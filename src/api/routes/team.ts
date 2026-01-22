@@ -89,7 +89,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
               pagination: {
                 type: 'object',
                 properties: {
@@ -205,8 +205,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
             properties: {
               total_members: { type: 'integer' },
               active_members: { type: 'integer' },
-              by_role: { type: 'object' },
-              by_region: { type: 'object' },
+              by_role: { type: 'object', additionalProperties: true },
+              by_region: { type: 'object', additionalProperties: true },
               total_capacity: { type: 'integer' },
               total_assigned: { type: 'integer' },
               utilization_percentage: { type: 'number' }
@@ -299,7 +299,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -366,7 +366,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          201: { type: 'object' },
+          201: { type: 'object', additionalProperties: true },
           409: {
             type: 'object',
             properties: {
@@ -470,7 +470,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -724,7 +724,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -790,7 +790,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -869,7 +869,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              member: { type: 'object' },
+              member: { type: 'object', additionalProperties: true },
               workload: {
                 type: 'object',
                 properties: {

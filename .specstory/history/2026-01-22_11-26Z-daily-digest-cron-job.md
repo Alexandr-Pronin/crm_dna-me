@@ -144,7 +144,601 @@ Ich sollte auch prüfen, wie die Workers im System initialisiert werden.</detail
 
 ---
 
-Ich muss sehen, wie die Workers
+Ich muss sehen, wie die Workers initialisiert werden, um den neuen Daily Digest Worker korrekt einzubinden.
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "createDecayWorker|eventWorker|routingWorker" in "src" • 4 matches</summary>
+
+Output mode: files_with_matches
+
+
+| File |
+|------|
+| `src\workers\decayWorker.ts` |
+| `src\workers\eventWorker.ts` |
+| `src\workers\routingWorker.ts` |
+| `src\workers\index.ts` |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/db/index.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Jetzt muss ich mir ansehen, wie die Workers initialisiert werden in `src/workers/index.ts`.</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/workers/index.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Jetzt habe ich alle Informationen, die ich brauche. Ich werde:
+
+1. Einen neuen Worker `src/workers/dailyDigestWorker.ts` erstellen
+2. Den Worker in `src/workers/index.ts` importieren und initialisieren
+
+Der Daily Digest Worker wird:
+- Täglich um 8:00 Uhr morgens laufen (ein guter Zeitpunkt für den täglichen Report)
+- Die Statistiken für die letzten 24 Stunden sammeln:
+  - Neue Leads (created_at)
+  - Hot Leads (total_score >= 80)
+  - Deals erstellt (created_at)
+  - Deals gewonnen (status = 'won')
+  - Total Pipeline Value
+  - Top Lead Sources
+- Die Slack-Integration aufrufen
+
+Ich werde auch ein Feature-Flag hinzufügen, damit der Daily Digest aktiviert/deaktiviert werden kann.</details></think>
+
+---
+
+Jetzt habe ich alle Informationen. Ich werde den Daily Digest Worker erstellen und in das System integrieren.
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **write** • Edit file: src/workers/dailyDigestWorker.ts</summary>
+
+**Chunk 1**
+Lines added: 317, lines removed: 1
+
+```diff
+@@ -1,1 +1,317 @@
+- 
++ // =============================================================================
++ // src/workers/dailyDigestWorker.ts
++ // Daily Digest Worker - Scheduled job to send daily marketing stats via Slack
++ // =============================================================================
++ 
++ import { Worker, Job } from 'bullmq';
++ import { db } from '../db/index.js';
++ import { redisOptions } from '../config/redis.js';
++ import { getScheduledQueue, QUEUE_NAMES } from '../config/queues.js';
++ import { config } from '../config/index.js';
++ import { getSlackService } from '../integrations/slack.js';
++ 
++ // =============================================================================
++ // Types
++ // =============================================================================
++ 
++ interface DailyDigestJobData {
++   triggered_by?: 'cron' | 'manual';
++   force?: boolean;
++ }
++ 
++ interface DailyDigestStats {
++   new_leads: number;
++   hot_leads: number;
++   deals_created: number;
++   deals_won: number;
++   total_value: number;
++   top_sources: Array&lt;{ source: string; count: number }&gt;;
++ }
++ 
++ interface DigestResult {
++   stats: DailyDigestStats;
++   sent: boolean;
++   execution_time_ms: number;
++ }
++ 
++ // =============================================================================
++ // Setup Daily Digest Job (Scheduled)
++ // =============================================================================
++ 
++ /**
++  * Schedule the daily digest job
++  * Runs at 8:00 AM every day (workday start)
++  */
++ export async function setupDailyDigestJob(): Promise&lt;void&gt; {
++   if (!config.features.slackAlerts) {
++     console.log('[DailyDigestWorker] Slack alerts disabled, skipping daily digest scheduling');
++     return;
++   }
++ 
++   const slackService = getSlackService();
++   if (!slackService.isConfigured()) {
++     console.log('[DailyDigestWorker] Slack not configured, skipping daily digest scheduling');
++     return;
++   }
++ 
++   const queue = getScheduledQueue();
++ 
++   // Remove existing repeatable job if exists (to update schedule)
++   const existingJobs = await queue.getRepeatableJobs();
++   for (const job of existingJobs) {
++     if (job.name === 'daily_digest') {
++       await queue.removeRepeatableByKey(job.key);
++     }
++   }
++ 
++   // Add the scheduled job - 8:00 AM daily
++   await queue.add(
++     'daily_digest',
++     { triggered_by: 'cron' } as DailyDigestJobData,
++     {
++       repeat: {
++         pattern: '0 8 * * *' // 8:00 AM daily
++       },
++       jobId: 'daily_digest_scheduled'
++     }
++   );
++ 
++   console.log('[DailyDigestWorker] Daily digest job scheduled for 8:00 AM daily');
++ }
++ 
++ /**
++  * Trigger daily digest job manually
++  */
++ export async function triggerManualDigest(): Promise&lt;string&gt; {
++   const queue = getScheduledQueue();
++   
++   const job = await queue.add(
++     'daily_digest',
++     { triggered_by: 'manual', force: true } as DailyDigestJobData,
++     {
++       priority: 1 // High priority for manual triggers
++     }
++   );
++ 
++   console.log(&#96;[DailyDigestWorker] Manual digest job triggered: ${job.id}&#96;);
++   return job.id!;
++ }
++ 
++ // =============================================================================
++ // Create Daily Digest Worker
++ // =============================================================================
++ 
++ export function createDailyDigestWorker(): Worker {
++   const worker = new Worker&lt;DailyDigestJobData, DigestResult&gt;(
++     QUEUE_NAMES.SCHEDULED,
++     async (job: Job&lt;DailyDigestJobData&gt;) =&gt; {
++       // Only process daily_digest jobs
++       if (job.name !== 'daily_digest') {
++         return { stats: getEmptyStats(), sent: false, execution_time_ms: 0 };
++       }
++ 
++       const startTime = Date.now();
++       console.log(&#96;[DailyDigestWorker] Starting daily digest job (triggered by: ${job.data.triggered_by || 'unknown'})&#96;);
++ 
++       try {
++         // Gather statistics for the last 24 hours
++         const stats = await gatherDailyStats();
++         
++         // Send to Slack
++         const slackService = getSlackService();
++         let sent = false;
++         
++         if (slackService.isConfigured()) {
++           sent = await slackService.sendDailyDigest(stats);
++           if (sent) {
++             console.log('[DailyDigestWorker] Daily digest sent to Slack successfully');
++           } else {
++             console.warn('[DailyDigestWorker] Failed to send daily digest to Slack');
++           }
++         } else {
++           console.log('[DailyDigestWorker] Slack not configured, digest not sent');
++         }
++ 
++         const executionTime = Date.now() - startTime;
++ 
++         console.log(
++           &#96;[DailyDigestWorker] Daily digest complete: &#96; +
++           &#96;${stats.new_leads} new leads, ${stats.hot_leads} hot leads, &#96; +
++           &#96;${stats.deals_created} deals created, ${stats.deals_won} deals won &#96; +
++           &#96;in ${executionTime}ms&#96;
++         );
++ 
++         return {
++           stats,
++           sent,
++           execution_time_ms: executionTime
++         };
++       } catch (error) {
++         console.error('[DailyDigestWorker] Daily digest failed:', error);
++         throw error;
++       }
++     },
++     {
++       connection: redisOptions,
++       concurrency: 1 // Only one digest job at a time
++     }
++   );
++ 
++   // Event handlers
++   worker.on('completed', (job, result) =&gt; {
++     if (job.name === 'daily_digest') {
++       console.log(&#96;[DailyDigestWorker] Job ${job.id} completed:&#96;, {
++         new_leads: result.stats.new_leads,
++         hot_leads: result.stats.hot_leads,
++         deals_won: result.stats.deals_won,
++         sent: result.sent
++       });
++     }
++   });
++ 
++   worker.on('failed', (job, error) =&gt; {
++     if (job?.name === 'daily_digest') {
++       console.error(&#96;[DailyDigestWorker] Job ${job.id} failed:&#96;, error.message);
++     }
++   });
++ 
++   return worker;
++ }
++ 
++ // =============================================================================
++ // Gather Daily Statistics
++ // =============================================================================
++ 
++ /**
++  * Gather all statistics for the daily digest
++  * Covers the last 24 hours
++  */
++ async function gatherDailyStats(): Promise&lt;DailyDigestStats&gt; {
++   const yesterday = new Date();
++   yesterday.setDate(yesterday.getDate() - 1);
++   const yesterdayISO = yesterday.toISOString();
++ 
++   // Get new leads count (last 24 hours)
++   const newLeadsResult = await db.query&lt;{ count: string }&gt;(&#96;
++     SELECT COUNT(*) as count 
++     FROM leads 
++     WHERE created_at &gt;= $1
++   &#96;, [yesterdayISO]);
++   const newLeads = parseInt(newLeadsResult[0]?.count || '0', 10);
++ 
++   // Get hot leads count (total score &gt;= 80, from last 24 hours)
++   const hotLeadsResult = await db.query&lt;{ count: string }&gt;(&#96;
++     SELECT COUNT(*) as count 
++     FROM leads 
++     WHERE created_at &gt;= $1 
++       AND total_score &gt;= 80
++   &#96;, [yesterdayISO]);
++   const hotLeads = parseInt(hotLeadsResult[0]?.count || '0', 10);
++ 
++   // Get deals created (last 24 hours)
++   const dealsCreatedResult = await db.query&lt;{ count: string }&gt;(&#96;
++     SELECT COUNT(*) as count 
++     FROM deals 
++     WHERE created_at &gt;= $1
++   &#96;, [yesterdayISO]);
++   const dealsCreated = parseInt(dealsCreatedResult[0]?.count || '0', 10);
++ 
++   // Get deals won (last 24 hours)
++   const dealsWonResult = await db.query&lt;{ count: string }&gt;(&#96;
++     SELECT COUNT(*) as count 
++     FROM deals 
++     WHERE status = 'won' 
++       AND closed_at &gt;= $1
++   &#96;, [yesterdayISO]);
++   const dealsWon = parseInt(dealsWonResult[0]?.count || '0', 10);
++ 
++   // Get total pipeline value (all open deals)
++   const pipelineValueResult = await db.query&lt;{ total: string | null }&gt;(&#96;
++     SELECT COALESCE(SUM(value), 0) as total 
++     FROM deals 
++     WHERE status = 'open'
++   &#96;);
++   const totalValue = parseFloat(pipelineValueResult[0]?.total || '0');
++ 
++   // Get top lead sources (last 24 hours)
++   const topSourcesResult = await db.query&lt;{ source: string; count: string }&gt;(&#96;
++     SELECT 
++       COALESCE(first_touch_source, 'unknown') as source, 
++       COUNT(*) as count 
++     FROM leads 
++     WHERE created_at &gt;= $1
++     GROUP BY first_touch_source 
++     ORDER BY count DESC 
++     LIMIT 5
++   &#96;, [yesterdayISO]);
++   
++   const topSources = topSourcesResult.map(row =&gt; ({
++     source: row.source || 'Unknown',
++     count: parseInt(row.count, 10)
++   }));
++ 
++   return {
++     new_leads: newLeads,
++     hot_leads: hotLeads,
++     deals_created: dealsCreated,
++     deals_won: dealsWon,
++     total_value: totalValue,
++     top_sources: topSources
++   };
++ }
++ 
++ /**
++  * Return empty stats object
++  */
++ function getEmptyStats(): DailyDigestStats {
++   return {
++     new_leads: 0,
++     hot_leads: 0,
++     deals_created: 0,
++     deals_won: 0,
++     total_value: 0,
++     top_sources: []
++   };
++ }
++ 
++ // =============================================================================
++ // Get Daily Digest Status
++ // =============================================================================
++ 
++ /**
++  * Get information about the daily digest job
++  */
++ export async function getDailyDigestStatus(): Promise&lt;{
++   enabled: boolean;
++   slack_configured: boolean;
++   next_scheduled_run: string | null;
++   last_stats: DailyDigestStats | null;
++ }&gt; {
++   const slackService = getSlackService();
++   const enabled = config.features.slackAlerts &amp;&amp; slackService.isConfigured();
++ 
++   // Get next scheduled run
++   const queue = getScheduledQueue();
++   const repeatableJobs = await queue.getRepeatableJobs();
++   const digestJob = repeatableJobs.find(j =&gt; j.name === 'daily_digest');
++ 
++   // Get current stats (for preview)
++   let lastStats: DailyDigestStats | null = null;
++   if (enabled) {
++     try {
++       lastStats = await gatherDailyStats();
++     } catch {
++       // Ignore errors when getting preview stats
++     }
++   }
++ 
++   return {
++     enabled,
++     slack_configured: slackService.isConfigured(),
++     next_scheduled_run: digestJob?.next ? new Date(digestJob.next).toISOString() : null,
++     last_stats: lastStats
++   };
++ }
++ 
++ export default createDailyDigestWorker;
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Jetzt muss ich den Worker in die `src/workers/index.ts` integrieren. Ich werde den Import hinzufügen und den Worker initialisieren.</details></think>
+
+---
+
+Jetzt integriere ich den neuen Worker in `src/workers/index.ts`:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/workers/index.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -12,4 +12,5 @@
+  import { createSyncWorker } from './syncWorker.js';
+  import { createDecayWorker, setupDecayJob } from './decayWorker.js';
++ import { createDailyDigestWorker, setupDailyDigestJob } from './dailyDigestWorker.js';
+  import { getScoringEngine } from '../services/scoringEngine.js';
+  import { getIntentDetector } from '../services/intentDetector.js';
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Jetzt muss ich noch den Daily Digest Worker in der Initialisierung hinzufügen. Ich werde ihn nach dem Decay Worker hinzufügen.</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: src/workers/index.ts</summary>
+
+**Chunk 1**
+Lines added: 10, lines removed: undefined
+
+```diff
+@@ -106,4 +106,14 @@
+      console.log('⚠️ Decay Worker disabled (ENABLE_SCORE_DECAY=false)');
+    }
++ 
++   // Daily Digest Worker - sends daily marketing stats to Slack
++   if (config.features.slackAlerts &amp;&amp; slackService.isConfigured()) {
++     const dailyDigestWorker = createDailyDigestWorker();
++     workers.push(dailyDigestWorker);
++     await setupDailyDigestJob();
++     console.log('✅ Daily Digest Worker started (scheduled: 8:00 AM daily)');
++   } else {
++     console.log('⚠️ Daily Digest Worker disabled (Slack not configured or ENABLE_SLACK_ALERTS=false)');
++   }
+  
+    console.log(&#96;✅ ${workers.length} worker(s) initialized&#96;);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Jetzt sollte ich die Lints für beide Dateien prüfen, um sicherzustellen, dass keine Fehler vorhanden sind.</details></think>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 2 files</summary>
+      
+Lint paths:
+
+- `src/workers/dailyDigestWorker.ts`
+- `src/workers/index.ts`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Ausgezeichnet! Keine Linter-Fehler. Jetzt sollte ich noch eine Export-Datei oder die Möglichkeit hinzufügen, den Daily Digest manuell auszulösen. Ich könnte auch einen einfachen API-Endpunkt hinzufügen, um den Status zu überprüfen und den Digest manuell auszulösen.
+
+Aber eigentlich ist die Kernfunktionalität jetzt implementiert. Der Daily Digest Worker:
+1. Läuft täglich um 8:00 Uhr
+2. Sammelt die täglichen Marketing-Statistiken
+3. Sendet sie per Slack
+
+Ich sollte vielleicht noch überprüfen, ob der Code kompiliert werden kann, und dann die Todo als erledigt markieren.</details></think>
+
+---
+
+Lassen Sie mich die aktualisierten Dateien lesen, um die vollständige Implementierung zu bestätigen:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: src/workers/index.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Die Implementierung ist vollständig. Der Daily Digest Worker:
+
+1. Ist im `src/workers/dailyDigestWorker.ts` implementiert
+2. Läuft täglich um 8:00 Uhr (Cron-Pattern: `0 8 * * *`)
+3. Sammelt folgende Statistiken:
+   - Neue Leads (letzte 24 Stunden)
+   - Hot Leads (Score >= 80, letzte 24 Stunden)
+   - Erstellte Deals (letzte 24 Stunden)
+   - Gewonnene Deals (letzte 24 Stunden)
+   - Gesamt-Pipeline-Wert (alle offenen Deals)
+   - Top Lead-Quellen (letzte 24 Stunden, Top 5)
+4. Sendet die Statistiken über die bestehende `sendDailyDigest`-Methode des SlackService
+5. Kann auch manuell ausgelöst werden mit `triggerManualDigest()`
+6. Hat eine Status-Funktion `getDailyDigestStatus()` zur Überwachung
+
+Der Worker wird nur aktiviert, wenn:
+- `ENABLE_SLACK_ALERTS=true` (Feature-Flag)
+- Slack Webhook-URL konfiguriert ist
+
+Ich sollte die Todo jetzt als abgeschlossen markieren.</details></think>
+
+---
+
+Die Implementierung ist vollständig. Lassen Sie mich die Todo als erledigt markieren:
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Implementiere Daily Digest Cron Job im DecayWorker oder separatem Worker
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Die Todo ist jetzt als abgeschlossen markiert. Ich habe den Daily Digest Cron Job erfolgreich implementiert. Hier ist eine Zusammenfassung:</details></think>
+
+---
+
+## ✅ Daily Digest Cron Job wurde implementiert
+
+Ich habe einen neuen **Daily Digest Worker** erstellt (`src/workers/dailyDigestWorker.ts`), der täglich um 8:00 Uhr die Marketing-Statistiken per Slack versendet.
+
+### Implementierte Features:
+
+**1. Neuer Worker: `dailyDigestWorker.ts`**
+- Läuft täglich um **8:00 Uhr** (Cron-Pattern: `0 8 * * *`)
+- Nutzt die bestehende `sendDailyDigest`-Methode des SlackService
+- Sammelt alle relevanten Statistiken aus der Datenbank
+
+**2. Gesammelte Statistiken (letzte 24 Stunden):**
+- 📊 Neue Leads (`new_leads`)
+- 🔥 Hot Leads mit Score ≥ 80 (`hot_leads`)
+- 📝 Erstellte Deals (`deals_created`)
+- 🏆 Gewonnene Deals (`deals_won`)
+- 💰 Gesamt-Pipeline-Wert (alle offenen Deals)
+- 📈 Top 5 Lead-Quellen (`top_sources`)
+
+**3. Exportierte Funktionen:**
+- `setupDailyDigestJob()` - Plant den täglichen Job
+- `triggerManualDigest()` - Manueller Auslöser
+- `getDailyDigestStatus()` - Status und Vorschau der aktuellen Stats
+- `createDailyDigestWorker()` - Worker-Factory
+
+**4. Integration in `src/workers/index.ts`:**
+- Automatische Aktivierung wenn `ENABLE_SLACK_ALERTS=true` und Slack konfiguriert ist
+- Konsolen-Logging bei Start/Deaktivierung
+
+### Aktivierung:
+Der Daily Digest wird aktiviert, wenn folgende Bedingungen erfüllt sind:
+- `ENABLE_SLACK_ALERTS=true` (Umgebungsvariable)
+- `SLACK_WEBHOOK_URL` ist konfiguriert
 
 ---
 

@@ -145,7 +145,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
               pagination: {
                 type: 'object',
                 properties: {
@@ -206,7 +206,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -239,8 +239,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              by_status: { type: 'object' },
-              by_routing_status: { type: 'object' }
+              by_status: { type: 'object', additionalProperties: true },
+              by_routing_status: { type: 'object', additionalProperties: true }
             }
           }
         }
@@ -283,7 +283,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -352,7 +352,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          201: { type: 'object' },
+          201: { type: 'object', additionalProperties: true },
           409: {
             type: 'object',
             properties: {
@@ -433,7 +433,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -577,7 +577,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -637,7 +637,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -701,7 +701,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -764,7 +764,7 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {

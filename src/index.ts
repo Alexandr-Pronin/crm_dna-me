@@ -22,6 +22,7 @@ import { automationRoutes } from './api/routes/automation.js';
 import { gdprRoutes } from './api/routes/gdpr.js';
 import { reportsRoutes } from './api/routes/reports.js';
 import { teamRoutes } from './api/routes/team.js';
+import { campaignsRoutes } from './api/routes/campaigns.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -51,7 +52,7 @@ const fastify = Fastify({
 await fastify.register(cors, {
   origin: isDev ? true : ['https://crm.dna-me.com'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID', 'X-Correlation-ID'],
   credentials: true
 });
 
@@ -145,6 +146,7 @@ await fastify.register(automationRoutes, { prefix: '/api/v1' });
 await fastify.register(gdprRoutes, { prefix: '/api/v1' });
 await fastify.register(reportsRoutes, { prefix: '/api/v1' });
 await fastify.register(teamRoutes, { prefix: '/api/v1' });
+await fastify.register(campaignsRoutes, { prefix: '/api/v1' });
 
 // =============================================================================
 // Graceful Shutdown
@@ -194,8 +196,9 @@ const start = async () => {
         throw new Error('Database health check returned false');
       }
     } catch (dbError) {
-      fastify.log.error('Database connection error:', dbError);
-      throw new Error(`Failed to connect to database: ${(dbError as Error).message}`);
+      const err = dbError as Error;
+      fastify.log.error({ err, message: err.message }, 'Database connection error');
+      throw new Error(`Failed to connect to database: ${err.message}`);
     }
     fastify.log.info('✅ Database connected');
 
@@ -227,7 +230,10 @@ const start = async () => {
     `);
 
   } catch (error) {
-    fastify.log.error('Failed to start server:', error);
+    const err = error as Error;
+    fastify.log.error({ err, message: err.message, stack: err.stack }, 'Failed to start server');
+    console.error('❌ Startup Error:', err.message);
+    console.error('Stack:', err.stack);
     process.exit(1);
   }
 };

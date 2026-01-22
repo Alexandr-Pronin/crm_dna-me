@@ -156,7 +156,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
               pagination: {
                 type: 'object',
                 properties: {
@@ -261,7 +261,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -319,11 +319,11 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
             expected_close_date: { type: 'string', format: 'date-time' },
             assigned_to: { type: 'string', format: 'uuid' },
             assigned_region: { type: 'string', maxLength: 50 },
-            metadata: { type: 'object' }
+            metadata: { type: 'object', additionalProperties: true }
           }
         },
         response: {
-          201: { type: 'object' },
+          201: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -404,11 +404,11 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
             expected_close_date: { type: ['string', 'null'], format: 'date-time' },
             assigned_to: { type: ['string', 'null'], format: 'uuid' },
             assigned_region: { type: ['string', 'null'], maxLength: 50 },
-            metadata: { type: 'object' }
+            metadata: { type: 'object', additionalProperties: true }
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -480,7 +480,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -566,7 +566,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -644,7 +644,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {

@@ -116,7 +116,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -175,7 +175,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
           }
         },
         response: {
-          200: { type: 'object' },
+          200: { type: 'object', additionalProperties: true },
           404: {
             type: 'object',
             properties: {
@@ -238,7 +238,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }
@@ -293,7 +293,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
           200: {
             type: 'object',
             properties: {
-              data: { type: 'array', items: { type: 'object' } }
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
             }
           }
         }

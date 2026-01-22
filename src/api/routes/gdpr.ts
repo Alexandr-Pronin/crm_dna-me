@@ -106,13 +106,13 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
             type: 'object',
             description: 'Complete export of all lead data',
             properties: {
-              lead: { type: 'object' },
+              lead: { type: 'object', additionalProperties: true },
               organization: { type: ['object', 'null'] },
-              events: { type: 'array', items: { type: 'object' } },
-              score_history: { type: 'array', items: { type: 'object' } },
-              intent_signals: { type: 'array', items: { type: 'object' } },
-              deals: { type: 'array', items: { type: 'object' } },
-              tasks: { type: 'array', items: { type: 'object' } },
+              events: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              score_history: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              intent_signals: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              deals: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              tasks: { type: 'array', items: { type: 'object', additionalProperties: true } },
               export_date: { type: 'string', format: 'date-time' },
               export_format_version: { type: 'string' }
             }
