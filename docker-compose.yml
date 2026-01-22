@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dna_postgres
+    environment:
+      POSTGRES_DB: dna_marketing
+      POSTGRES_USER: dna
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dna -d dna_marketing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dna_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: dna_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dna_network
+
+  # Uncomment for production deployment
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: dna_api
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: 3000
+  #     DATABASE_URL: postgres://dna:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/dna_marketing
+  #     REDIS_URL: redis://redis:6379
+  #     MOCO_API_KEY: ${MOCO_API_KEY}
+  #     MOCO_SUBDOMAIN: ${MOCO_SUBDOMAIN}
+  #     SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+  #     WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+  #     JWT_SECRET: ${JWT_SECRET}
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - dna_network
+
+  # workers:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: dna_workers
+  #   command: ["npm", "run", "workers"]
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgres://dna:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/dna_marketing
+  #     REDIS_URL: redis://redis:6379
+  #     MOCO_API_KEY: ${MOCO_API_KEY}
+  #     MOCO_SUBDOMAIN: ${MOCO_SUBDOMAIN}
+  #     SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - dna_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  dna_network:
+    driver: bridge

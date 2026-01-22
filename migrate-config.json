@@ -1,0 +1,6 @@
+{
+  "migrationsDir": "migrations",
+  "direction": "up",
+  "noLock": false,
+  "createMigrationsSchema": true
+}
