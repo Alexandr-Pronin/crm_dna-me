@@ -19,10 +19,12 @@ const AppBar = (props) => {
     <RAAppBar
       {...props}
       sx={{
-        backgroundColor: 'background.paper',
+        backgroundColor: 'rgba(18, 18, 26, 0.85)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         backgroundImage: 'none',
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'rgba(0, 128, 255, 0.2)',
         '& .RaAppBar-toolbar': {
           minHeight: 64,
         },

@@ -1,38 +1,51 @@
-import { useState, useEffect } from 'react';
+/**
+ * Team Management Component
+ * Full CRUD with Real API (GET /api/v1/team)
+ */
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Button,
   Card,
   CardContent,
+  Button,
+  IconButton,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
-  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  TableSortLabel,
+  Paper,
   Chip,
+  Avatar,
   LinearProgress,
   Alert,
-  Snackbar,
-  FormHelperText,
+  CircularProgress,
+  InputAdornment,
+  Switch,
+  FormControlLabel,
+  Grid,
 } from '@mui/material';
-import {
-  DataGrid,
-  GridToolbarContainer,
-  GridToolbarFilterButton,
-  GridToolbarDensitySelector,
-} from '@mui/x-data-grid';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  PersonOff as DeactivateIcon,
   Refresh as RefreshIcon,
+  Search as SearchIcon,
+  PersonOff as DeactivateIcon,
+  PersonAdd as ActivateIcon,
+  Group as TeamIcon,
+  Work as WorkloadIcon,
 } from '@mui/icons-material';
 import {
   getTeamMembers,
@@ -41,594 +54,734 @@ import {
   updateTeamMember,
   deleteTeamMember,
   deactivateTeamMember,
-  getTeamWorkload,
 } from '../../providers/dataProvider';
 
+// =============================================================================
+// Role Configuration
+// =============================================================================
+
 const ROLES = [
-  { value: 'admin', label: 'Administrator' },
-  { value: 'sales_manager', label: 'Sales Manager' },
-  { value: 'sales_rep', label: 'Sales Representative' },
-  { value: 'viewer', label: 'Viewer' },
+  { id: 'bdr', name: 'Business Development Rep', color: '#4A90A4' },
+  { id: 'ae', name: 'Account Executive', color: '#6C5CE7' },
+  { id: 'partnership_manager', name: 'Partnership Manager', color: '#28A745' },
+  { id: 'marketing_manager', name: 'Marketing Manager', color: '#F59E0B' },
+  { id: 'admin', name: 'Administrator', color: '#DC3545' },
 ];
 
-const REGIONS = [
-  { value: 'DACH', label: 'DACH' },
-  { value: 'EU', label: 'EU' },
-  { value: 'US', label: 'US' },
-  { value: 'APAC', label: 'APAC' },
-];
+const getRoleConfig = (role) => ROLES.find(r => r.id === role) || { name: role, color: '#64748B' };
 
-const TeamManagement = () => {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
-  const [totalRows, setTotalRows] = useState(0);
-  const [filterModel, setFilterModel] = useState({ items: [] });
+// =============================================================================
+// Stats Card Component
+// =============================================================================
+
+const StatsCard = ({ title, value, icon: Icon, color, subtitle }) => (
+  <Card sx={{ height: '100%' }}>
+    <CardContent sx={{ py: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, color }}>
+            {value}
+          </Typography>
+          {subtitle && (
+            <Typography variant="caption" color="text.secondary">
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
+        <Icon sx={{ fontSize: 40, color, opacity: 0.7 }} />
+      </Box>
+    </CardContent>
+  </Card>
+);
+
+// =============================================================================
+// Role Badge Component
+// =============================================================================
+
+const RoleBadge = ({ role }) => {
+  const config = getRoleConfig(role);
+  return (
+    <Chip
+      label={config.name}
+      size="small"
+      sx={{
+        bgcolor: `${config.color}20`,
+        color: config.color,
+        fontWeight: 500,
+        fontSize: '0.7rem',
+      }}
+    />
+  );
+};
+
+// =============================================================================
+// Workload Indicator Component
+// =============================================================================
+
+const WorkloadIndicator = ({ current, max }) => {
+  const percentage = max > 0 ? Math.round((current / max) * 100) : 0;
+  const color = percentage >= 90 ? 'error' : percentage >= 70 ? 'warning' : 'success';
   
-  // Dialog states
-  const [openDialog, setOpenDialog] = useState(false);
-  const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
-  const [currentMember, setCurrentMember] = useState(null);
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
+      <LinearProgress
+        variant="determinate"
+        value={percentage}
+        color={color}
+        sx={{ flex: 1, height: 8, borderRadius: 4 }}
+      />
+      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 45 }}>
+        {current}/{max}
+      </Typography>
+    </Box>
+  );
+};
+
+// =============================================================================
+// Create/Edit Dialog Component
+// =============================================================================
+
+const MemberDialog = ({ open, member, onClose, onSave, loading }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'sales_rep',
+    role: 'bdr',
     region: '',
-    max_leads: 10,
+    max_leads: 50,
+    is_active: true,
   });
-  const [formErrors, setFormErrors] = useState({});
-  
-  // Delete confirmation
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState(null);
-  
-  // Notification
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [errors, setErrors] = useState({});
 
-  // Load team members
-  const loadTeamMembers = async () => {
+  useEffect(() => {
+    if (member) {
+      setFormData({
+        name: member.name || '',
+        email: member.email || '',
+        role: member.role || 'bdr',
+        region: member.region || '',
+        max_leads: member.max_leads || 50,
+        is_active: member.is_active !== false,
+      });
+    } else {
+      setFormData({
+        name: '',
+        email: '',
+        role: 'bdr',
+        region: '',
+        max_leads: 50,
+        is_active: true,
+      });
+    }
+    setErrors({});
+  }, [member, open]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+    if (!formData.role) newErrors.role = 'Role is required';
+    if (formData.max_leads < 1 || formData.max_leads > 1000) {
+      newErrors.max_leads = 'Max leads must be between 1 and 1000';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (validate()) {
+      onSave(formData);
+    }
+  };
+
+  const handleChange = (field) => (event) => {
+    const value = field === 'is_active' ? event.target.checked : event.target.value;
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {member ? 'Edit Team Member' : 'Add Team Member'}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField
+            label="Full Name"
+            value={formData.name}
+            onChange={handleChange('name')}
+            error={!!errors.name}
+            helperText={errors.name}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Email Address"
+            type="email"
+            value={formData.email}
+            onChange={handleChange('email')}
+            error={!!errors.email}
+            helperText={errors.email}
+            fullWidth
+            required
+            disabled={!!member} // Cannot change email of existing member
+          />
+          <TextField
+            label="Role"
+            select
+            value={formData.role}
+            onChange={handleChange('role')}
+            error={!!errors.role}
+            helperText={errors.role}
+            fullWidth
+            required
+          >
+            {ROLES.map(role => (
+              <MenuItem key={role.id} value={role.id}>
+                {role.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Region"
+            value={formData.region}
+            onChange={handleChange('region')}
+            fullWidth
+            placeholder="e.g., DACH, EU, US"
+          />
+          <TextField
+            label="Max Leads Capacity"
+            type="number"
+            value={formData.max_leads}
+            onChange={handleChange('max_leads')}
+            error={!!errors.max_leads}
+            helperText={errors.max_leads || 'Maximum concurrent leads this member can handle'}
+            fullWidth
+            inputProps={{ min: 1, max: 1000 }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.is_active}
+                onChange={handleChange('is_active')}
+                color="success"
+              />
+            }
+            label="Active"
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} /> : null}
+        >
+          {member ? 'Update' : 'Create'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// =============================================================================
+// Delete Confirmation Dialog
+// =============================================================================
+
+const DeleteDialog = ({ open, member, onClose, onConfirm, loading }) => (
+  <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <DialogTitle>Delete Team Member</DialogTitle>
+    <DialogContent>
+      <Typography>
+        Are you sure you want to delete <strong>{member?.name}</strong>?
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        This action cannot be undone. Consider deactivating instead if they have assigned deals or tasks.
+      </Typography>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose} disabled={loading}>Cancel</Button>
+      <Button
+        onClick={onConfirm}
+        color="error"
+        variant="contained"
+        disabled={loading}
+        startIcon={loading ? <CircularProgress size={16} /> : <DeleteIcon />}
+      >
+        Delete
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
+
+// =============================================================================
+// Main Team Management Component
+// =============================================================================
+
+const TeamManagement = () => {
+  // State
+  const [members, setMembers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [orderBy, setOrderBy] = useState('name');
+  const [order, setOrder] = useState('asc');
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  
+  // Dialogs
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // =============================================================================
+  // Data Fetching
+  // =============================================================================
+
+  const fetchMembers = useCallback(async () => {
     setLoading(true);
+    setError(null);
+    
     try {
       const params = {
-        page: paginationModel.page + 1,
-        limit: paginationModel.pageSize,
+        page: page + 1,
+        limit: rowsPerPage,
+        sort_by: orderBy,
+        sort_order: order,
       };
       
-      // Add filters
-      filterModel.items.forEach(filter => {
-        if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
-          params[filter.field] = filter.value;
-        }
-      });
+      if (roleFilter) params.role = roleFilter;
+      if (statusFilter !== '') params.is_active = statusFilter === 'active';
+      if (searchQuery) params.search = searchQuery;
       
       const response = await getTeamMembers(params);
-      const members = response.data || response;
-      const total = response.pagination?.total || response.total || members.length;
-      
-      setRows(Array.isArray(members) ? members : []);
-      setTotalRows(total);
-    } catch (error) {
-      console.error('Error loading team members:', error);
-      showNotification('Fehler beim Laden der Team-Mitglieder', 'error');
-      setRows([]);
-      setTotalRows(0);
+      setMembers(response.data || []);
+      setTotal(response.pagination?.total || response.data?.length || 0);
+    } catch (err) {
+      console.error('Failed to fetch team members:', err);
+      setError(err.message || 'Failed to load team members');
+      setMembers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, orderBy, order, roleFilter, statusFilter, searchQuery]);
 
-  // Load team stats
-  const loadTeamStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
-      const statsData = await getTeamStats();
-      setStats(statsData.data || statsData);
-    } catch (error) {
-      console.error('Error loading team stats:', error);
+      const response = await getTeamStats();
+      setStats(response);
+    } catch (err) {
+      console.error('Failed to fetch team stats:', err);
     }
-  };
-
-  useEffect(() => {
-    loadTeamMembers();
-  }, [paginationModel, filterModel]);
-
-  useEffect(() => {
-    loadTeamStats();
   }, []);
 
-  const showNotification = (message, severity = 'success') => {
-    setNotification({ open: true, message, severity });
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // =============================================================================
+  // Handlers
+  // =============================================================================
+
+  const handleSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
   };
 
-  const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  // Open create dialog
-  const handleCreate = () => {
-    setDialogMode('create');
-    setFormData({
-      name: '',
-      email: '',
-      role: 'sales_rep',
-      region: '',
-      max_leads: 10,
-    });
-    setFormErrors({});
-    setCurrentMember(null);
-    setOpenDialog(true);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
-  // Open edit dialog
-  const handleEdit = (member) => {
-    setDialogMode('edit');
-    setFormData({
-      name: member.name || '',
-      email: member.email || '',
-      role: member.role || 'sales_rep',
-      region: member.region || '',
-      max_leads: member.max_leads || 10,
-    });
-    setFormErrors({});
-    setCurrentMember(member);
-    setOpenDialog(true);
+  const handleCreateClick = () => {
+    setSelectedMember(null);
+    setEditDialogOpen(true);
   };
 
-  // Validate form
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.name || formData.name.trim() === '') {
-      errors.name = 'Name ist erforderlich';
-    }
-    
-    if (!formData.email || formData.email.trim() === '') {
-      errors.email = 'E-Mail ist erforderlich';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Ungültige E-Mail-Adresse';
-    }
-    
-    if (!formData.role) {
-      errors.role = 'Rolle ist erforderlich';
-    }
-    
-    if (formData.max_leads < 1 || formData.max_leads > 100) {
-      errors.max_leads = 'Max Leads muss zwischen 1 und 100 liegen';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  const handleEditClick = (member) => {
+    setSelectedMember(member);
+    setEditDialogOpen(true);
   };
 
-  // Save member (create or update)
-  const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      if (dialogMode === 'create') {
-        await createTeamMember(formData);
-        showNotification('Team-Mitglied erfolgreich erstellt', 'success');
-      } else {
-        await updateTeamMember(currentMember.id, formData);
-        showNotification('Team-Mitglied erfolgreich aktualisiert', 'success');
-      }
-      
-      setOpenDialog(false);
-      await loadTeamMembers();
-      await loadTeamStats();
-    } catch (error) {
-      console.error('Error saving team member:', error);
-      showNotification(
-        error.body?.error?.message || 'Fehler beim Speichern des Team-Mitglieds',
-        'error'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Open delete confirmation
   const handleDeleteClick = (member) => {
-    setMemberToDelete(member);
+    setSelectedMember(member);
     setDeleteDialogOpen(true);
   };
 
-  // Confirm delete
-  const handleDeleteConfirm = async () => {
-    if (!memberToDelete) return;
+  const handleSave = async (formData) => {
+    setActionLoading(true);
     
-    setLoading(true);
     try {
-      await deleteTeamMember(memberToDelete.id);
-      showNotification('Team-Mitglied erfolgreich gelöscht', 'success');
+      if (selectedMember) {
+        await updateTeamMember(selectedMember.id, formData);
+      } else {
+        await createTeamMember(formData);
+      }
+      setEditDialogOpen(false);
+      setSelectedMember(null);
+      fetchMembers();
+      fetchStats();
+    } catch (err) {
+      console.error('Failed to save team member:', err);
+      setError(err.body?.error?.message || err.message || 'Failed to save team member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedMember) return;
+    
+    setActionLoading(true);
+    
+    try {
+      await deleteTeamMember(selectedMember.id);
       setDeleteDialogOpen(false);
-      setMemberToDelete(null);
-      await loadTeamMembers();
-      await loadTeamStats();
-    } catch (error) {
-      console.error('Error deleting team member:', error);
-      showNotification(
-        error.body?.error?.message || 'Fehler beim Löschen des Team-Mitglieds',
-        'error'
-      );
+      setSelectedMember(null);
+      fetchMembers();
+      fetchStats();
+    } catch (err) {
+      console.error('Failed to delete team member:', err);
+      setError(err.body?.error?.message || err.message || 'Failed to delete team member');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
-  // Deactivate member
-  const handleDeactivate = async (member) => {
-    if (!window.confirm(`Team-Mitglied "${member.name}" deaktivieren?`)) {
-      return;
-    }
+  const handleToggleActive = async (member) => {
+    setActionLoading(true);
     
-    setLoading(true);
     try {
-      await deactivateTeamMember(member.id);
-      showNotification('Team-Mitglied erfolgreich deaktiviert', 'success');
-      await loadTeamMembers();
-      await loadTeamStats();
-    } catch (error) {
-      console.error('Error deactivating team member:', error);
-      showNotification(
-        error.body?.error?.message || 'Fehler beim Deaktivieren des Team-Mitglieds',
-        'error'
-      );
+      if (member.is_active) {
+        await deactivateTeamMember(member.id);
+      } else {
+        await updateTeamMember(member.id, { is_active: true });
+      }
+      fetchMembers();
+      fetchStats();
+    } catch (err) {
+      console.error('Failed to toggle member status:', err);
+      setError(err.body?.error?.message || err.message || 'Failed to update status');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
-  // DataGrid columns
-  const columns = [
-    {
-      field: 'name',
-      headerName: 'Name',
-      flex: 1,
-      minWidth: 150,
-    },
-    {
-      field: 'email',
-      headerName: 'E-Mail',
-      flex: 1,
-      minWidth: 200,
-    },
-    {
-      field: 'role',
-      headerName: 'Rolle',
-      width: 150,
-      renderCell: (params) => {
-        const roleLabel = ROLES.find(r => r.value === params.value)?.label || params.value;
-        return <Chip label={roleLabel} size="small" variant="outlined" />;
-      },
-    },
-    {
-      field: 'region',
-      headerName: 'Region',
-      width: 100,
-      renderCell: (params) => params.value ? <Chip label={params.value} size="small" /> : '-',
-    },
-    {
-      field: 'current_leads',
-      headerName: 'Aktuelle Leads',
-      width: 120,
-      type: 'number',
-      renderCell: (params) => params.value || 0,
-    },
-    {
-      field: 'max_leads',
-      headerName: 'Max Leads',
-      width: 100,
-      type: 'number',
-    },
-    {
-      field: 'utilization_percentage',
-      headerName: 'Auslastung',
-      width: 150,
-      renderCell: (params) => {
-        const utilization = params.value || 0;
-        const color = utilization >= 90 ? 'error' : utilization >= 70 ? 'warning' : 'success';
-        return (
-          <Box sx={{ width: '100%' }}>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(utilization, 100)}
-              color={color}
-              sx={{ height: 8, borderRadius: 1 }}
-            />
-            <Typography variant="caption" sx={{ mt: 0.5 }}>
-              {utilization.toFixed(0)}%
-            </Typography>
-          </Box>
-        );
-      },
-    },
-    {
-      field: 'is_active',
-      headerName: 'Status',
-      width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Aktiv' : 'Inaktiv'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-        />
-      ),
-    },
-    {
-      field: 'actions',
-      headerName: 'Aktionen',
-      width: 150,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => (
-        <Box>
-          <IconButton
-            size="small"
-            onClick={() => handleEdit(params.row)}
-            title="Bearbeiten"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDeactivate(params.row)}
-            title="Deaktivieren"
-            disabled={!params.row.is_active}
-          >
-            <DeactivateIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDeleteClick(params.row)}
-            title="Löschen"
-            color="error"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      ),
-    },
-  ];
-
-  // Custom toolbar
-  const CustomToolbar = () => (
-    <GridToolbarContainer>
-      <GridToolbarFilterButton />
-      <GridToolbarDensitySelector />
-      <Box sx={{ flexGrow: 1 }} />
-      <Button
-        size="small"
-        startIcon={<RefreshIcon />}
-        onClick={loadTeamMembers}
-      >
-        Aktualisieren
-      </Button>
-      <Button
-        size="small"
-        startIcon={<AddIcon />}
-        variant="contained"
-        onClick={handleCreate}
-        sx={{ ml: 1 }}
-      >
-        Mitglied hinzufügen
-      </Button>
-    </GridToolbarContainer>
-  );
+  // =============================================================================
+  // Render
+  // =============================================================================
 
   return (
     <Box>
       {/* Stats Cards */}
       {stats && (
-        <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Card sx={{ flex: 1, minWidth: 200 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Gesamt Mitglieder
-              </Typography>
-              <Typography variant="h4">
-                {stats.total_members || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, minWidth: 200 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Aktive Mitglieder
-              </Typography>
-              <Typography variant="h4">
-                {stats.active_members || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, minWidth: 200 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Durchschnittliche Auslastung
-              </Typography>
-              <Typography variant="h4">
-                {stats.average_utilization ? `${stats.average_utilization.toFixed(0)}%` : '0%'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatsCard
+              title="Total Members"
+              value={stats.total_members}
+              icon={TeamIcon}
+              color="#4A90A4"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatsCard
+              title="Active Members"
+              value={stats.active_members}
+              icon={TeamIcon}
+              color="#28A745"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatsCard
+              title="Total Capacity"
+              value={stats.total_capacity}
+              icon={WorkloadIcon}
+              color="#6C5CE7"
+              subtitle={`${stats.total_assigned} assigned`}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatsCard
+              title="Utilization"
+              value={`${stats.utilization_percentage}%`}
+              icon={WorkloadIcon}
+              color={stats.utilization_percentage >= 80 ? '#DC3545' : '#F59E0B'}
+            />
+          </Grid>
+        </Grid>
       )}
 
-      {/* DataGrid */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            loading={loading}
-            paginationMode="server"
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            rowCount={totalRows}
-            pageSizeOptions={[10, 25, 50, 100]}
-            filterMode="server"
-            onFilterModelChange={setFilterModel}
-            slots={{
-              toolbar: CustomToolbar,
-            }}
-            autoHeight
-            disableRowSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-cell:focus': {
-                outline: 'none',
-              },
-              '& .MuiDataGrid-row:hover': {
-                backgroundColor: 'action.hover',
-              },
-            }}
-          />
+      {/* Actions Bar */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+          Team Members
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Refresh">
+            <IconButton onClick={() => { fetchMembers(); fetchStats(); }} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+          >
+            Add Member
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Filters */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <TextField
+              placeholder="Search members..."
+              size="small"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              select
+              label="Role"
+              size="small"
+              value={roleFilter}
+              onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}
+              sx={{ minWidth: 180 }}
+            >
+              <MenuItem value="">All Roles</MenuItem>
+              {ROLES.map(role => (
+                <MenuItem key={role.id} value={role.id}>{role.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Status"
+              size="small"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+              sx={{ minWidth: 130 }}
+            >
+              <MenuItem value="">All Status</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </TextField>
+            {(roleFilter || statusFilter || searchQuery) && (
+              <Button
+                size="small"
+                onClick={() => {
+                  setRoleFilter('');
+                  setStatusFilter('');
+                  setSearchQuery('');
+                  setPage(0);
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </Box>
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {dialogMode === 'create' ? 'Neues Team-Mitglied' : 'Team-Mitglied bearbeiten'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField
-              label="Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              error={!!formErrors.name}
-              helperText={formErrors.name}
-              fullWidth
-              required
-            />
-            <TextField
-              label="E-Mail"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              error={!!formErrors.email}
-              helperText={formErrors.email}
-              fullWidth
-              required
-              disabled={dialogMode === 'edit'}
-            />
-            <FormControl fullWidth required error={!!formErrors.role}>
-              <InputLabel>Rolle</InputLabel>
-              <Select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                label="Rolle"
-              >
-                {ROLES.map((role) => (
-                  <MenuItem key={role.value} value={role.value}>
-                    {role.label}
-                  </MenuItem>
-                ))}
-              </Select>
-              {formErrors.role && <FormHelperText>{formErrors.role}</FormHelperText>}
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Region</InputLabel>
-              <Select
-                value={formData.region}
-                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                label="Region"
-              >
-                <MenuItem value="">
-                  <em>Keine</em>
-                </MenuItem>
-                {REGIONS.map((region) => (
-                  <MenuItem key={region.value} value={region.value}>
-                    {region.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Max Leads"
-              type="number"
-              value={formData.max_leads}
-              onChange={(e) => setFormData({ ...formData, max_leads: parseInt(e.target.value, 10) })}
-              error={!!formErrors.max_leads}
-              helperText={formErrors.max_leads || 'Maximale Anzahl gleichzeitiger Leads'}
-              fullWidth
-              required
-              inputProps={{ min: 1, max: 100 }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>
-            Abbrechen
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={loading}
-          >
-            {dialogMode === 'create' ? 'Erstellen' : 'Speichern'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Table */}
+      <Card>
+        <TableContainer component={Paper} sx={{ bgcolor: 'background.paper' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'name'}
+                    direction={orderBy === 'name' ? order : 'asc'}
+                    onClick={() => handleSort('name')}
+                  >
+                    Member
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'role'}
+                    direction={orderBy === 'role' ? order : 'asc'}
+                    onClick={() => handleSort('role')}
+                  >
+                    Role
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>Region</TableCell>
+                <TableCell>Workload</TableCell>
+                <TableCell align="center">Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <CircularProgress size={32} />
+                  </TableCell>
+                </TableRow>
+              ) : members.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">
+                      {searchQuery || roleFilter || statusFilter 
+                        ? 'No members match your filters' 
+                        : 'No team members found'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                members.map((member) => (
+                  <TableRow
+                    key={member.id}
+                    hover
+                    sx={{ opacity: member.is_active ? 1 : 0.6 }}
+                  >
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ bgcolor: getRoleConfig(member.role).color, width: 36, height: 36 }}>
+                          {member.name?.charAt(0) || '?'}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>
+                            {member.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {member.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <RoleBadge role={member.role} />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {member.region || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <WorkloadIndicator
+                        current={member.current_leads || 0}
+                        max={member.max_leads || 50}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={member.is_active ? 'Active' : 'Inactive'}
+                        size="small"
+                        color={member.is_active ? 'success' : 'default'}
+                        variant={member.is_active ? 'filled' : 'outlined'}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                        <Tooltip title={member.is_active ? 'Deactivate' : 'Activate'}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleToggleActive(member)}
+                            disabled={actionLoading}
+                          >
+                            {member.is_active ? <DeactivateIcon fontSize="small" /> : <ActivateIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditClick(member)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick(member)}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
+      </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
+      {/* Dialogs */}
+      <MemberDialog
+        open={editDialogOpen}
+        member={selectedMember}
+        onClose={() => { setEditDialogOpen(false); setSelectedMember(null); }}
+        onSave={handleSave}
+        loading={actionLoading}
+      />
+      
+      <DeleteDialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Team-Mitglied löschen?</DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Diese Aktion kann nicht rückgängig gemacht werden.
-          </Alert>
-          <Typography>
-            Möchten Sie das Team-Mitglied <strong>{memberToDelete?.name}</strong> wirklich löschen?
-          </Typography>
-          {memberToDelete?.current_leads > 0 && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              Achtung: Diesem Mitglied sind aktuell {memberToDelete.current_leads} Lead(s) zugewiesen.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>
-            Abbrechen
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-            disabled={loading}
-          >
-            Löschen
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
+        member={selectedMember}
+        onClose={() => { setDeleteDialogOpen(false); setSelectedMember(null); }}
+        onConfirm={handleDelete}
+        loading={actionLoading}
+      />
     </Box>
   );
 };

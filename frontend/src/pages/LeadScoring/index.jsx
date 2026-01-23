@@ -483,7 +483,7 @@ const LeadScoringPage = () => {
   const totalPoints = rules.reduce((sum, r) => sum + (r.points || 0), 0);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, width: '100%', maxWidth: '100%' }}>
       {/* Page Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>

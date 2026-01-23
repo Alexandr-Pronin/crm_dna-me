@@ -51,11 +51,11 @@ export const palette = {
     contrastText: '#FFFFFF',
   },
   
-  // Background - Deep dark for biotech feel
+  // Background - Transparent/semi-transparent for DNA shader visibility
   background: {
-    default: '#0a0a0f',
-    paper: '#12121a',
-    elevated: '#1a1a24',
+    default: 'rgba(0, 0, 0, 0)',
+    paper: 'rgba(18, 18, 26, 0.8)',
+    elevated: 'rgba(26, 26, 36, 0.85)',
   },
   
   // Text

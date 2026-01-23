@@ -9,9 +9,11 @@ import {
   People as LeadsIcon,
   Handshake as DealsIcon,
   CheckCircle as TasksIcon,
+  Business as OrganizationsIcon,
   Analytics as ReportsIcon,
   Settings as SettingsIcon,
   TrendingUp as ScoringIcon,
+  Timeline as PipelineIcon,
 } from '@mui/icons-material';
 
 /**
@@ -68,6 +70,16 @@ const Menu = (props) => {
         name="tasks"
         primaryText="Tasks"
         leftIcon={<TasksIcon />}
+      />
+      <RAMenu.ResourceItem
+        name="organizations"
+        primaryText="Organizations"
+        leftIcon={<OrganizationsIcon />}
+      />
+      <RAMenu.ResourceItem
+        name="pipelines"
+        primaryText="Pipelines"
+        leftIcon={<PipelineIcon />}
       />
 
       {/* Analytics Section */}

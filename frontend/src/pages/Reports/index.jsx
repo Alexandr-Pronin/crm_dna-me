@@ -69,7 +69,7 @@ const KPICard = ({ title, value, change, positive, icon: Icon }) => (
 
 const ReportsPage = () => {
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, width: '100%', maxWidth: '100%' }}>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 300 }}>

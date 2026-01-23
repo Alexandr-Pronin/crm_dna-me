@@ -2,7 +2,7 @@
  * Lead Create Modal
  * Creates a new lead via POST /leads (REAL API)
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -22,7 +22,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { useCreate, useNotify } from 'react-admin';
+import { useCreate, useNotify, useDataProvider } from 'react-admin';
 
 const LeadCreateModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -31,6 +31,7 @@ const LeadCreateModal = ({ open, onClose, onSuccess }) => {
     last_name: '',
     phone: '',
     job_title: '',
+    organization_id: '',
     status: 'new',
     lifecycle_stage: 'lead',
     first_touch_source: '',
@@ -38,9 +39,45 @@ const LeadCreateModal = ({ open, onClose, onSuccess }) => {
     linkedin_url: '',
   });
   const [errors, setErrors] = useState({});
+  const [organizations, setOrganizations] = useState([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
   
   const [create, { isLoading }] = useCreate();
   const notify = useNotify();
+  const dataProvider = useDataProvider();
+
+  useEffect(() => {
+    if (!open) return;
+    let isActive = true;
+
+    const loadOrganizations = async () => {
+      setOrganizationsLoading(true);
+      try {
+        const { data } = await dataProvider.getList('organizations', {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: 'name', order: 'ASC' },
+          filter: {},
+        });
+        if (isActive) {
+          setOrganizations(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        if (isActive) {
+          setOrganizations([]);
+        }
+      } finally {
+        if (isActive) {
+          setOrganizationsLoading(false);
+        }
+      }
+    };
+
+    loadOrganizations();
+
+    return () => {
+      isActive = false;
+    };
+  }, [open, dataProvider]);
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({
@@ -104,6 +141,7 @@ const LeadCreateModal = ({ open, onClose, onSuccess }) => {
       last_name: '',
       phone: '',
       job_title: '',
+      organization_id: '',
       status: 'new',
       lifecycle_stage: 'lead',
       first_touch_source: '',
@@ -193,6 +231,23 @@ const LeadCreateModal = ({ open, onClose, onSuccess }) => {
                 fullWidth
                 placeholder="Lab Director"
               />
+            </Grid>
+            <Grid size={12}>
+              <FormControl fullWidth disabled={organizationsLoading}>
+                <InputLabel>Company</InputLabel>
+                <Select
+                  value={formData.organization_id}
+                  onChange={handleChange('organization_id')}
+                  label="Company"
+                >
+                  <MenuItem value="">No company</MenuItem>
+                  {organizations.map((org) => (
+                    <MenuItem key={org.id} value={org.id}>
+                      {org.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             {/* Status Fields */}

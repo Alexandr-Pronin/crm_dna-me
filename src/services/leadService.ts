@@ -25,6 +25,37 @@ import type {
 
 export class LeadService {
   // ===========================================================================
+  // Organization Helpers
+  // ===========================================================================
+
+  private extractDomainFromEmail(email?: string | null): string | null {
+    if (!email) return null;
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1) return null;
+    const domain = email.slice(atIndex + 1).trim().toLowerCase();
+    return domain || null;
+  }
+
+  private async getOrganizationIdByDomain(domain: string): Promise<string | null> {
+    const org = await db.queryOne<{ id: string }>(
+      'SELECT id FROM organizations WHERE domain = $1 ORDER BY created_at ASC LIMIT 1',
+      [domain]
+    );
+    return org?.id ?? null;
+  }
+
+  private async createOrganizationForDomain(domain: string): Promise<string> {
+    const name = domain;
+    const rows = await db.query<{ id: string }>(
+      `INSERT INTO organizations (name, domain, created_at, updated_at)
+       VALUES ($1, $2, NOW(), NOW())
+       RETURNING id`,
+      [name, domain]
+    );
+    return rows[0].id;
+  }
+
+  // ===========================================================================
   // Find or Create Lead
   // ===========================================================================
   
@@ -161,6 +192,15 @@ export class LeadService {
     }
     
     const now = new Date().toISOString();
+    let organizationId = data.organization_id || null;
+
+    if (!organizationId) {
+      const domain = this.extractDomainFromEmail(data.email);
+      if (domain) {
+        const existingOrgId = await this.getOrganizationIdByDomain(domain);
+        organizationId = existingOrgId || (await this.createOrganizationForDomain(domain));
+      }
+    }
     
     const sql = `
       INSERT INTO leads (
@@ -189,7 +229,7 @@ export class LeadService {
       data.last_name || null,
       data.phone || null,
       data.job_title || null,
-      data.organization_id || null,
+      organizationId,
       data.status || 'new',
       data.lifecycle_stage || 'lead',
       data.portal_id || null,
