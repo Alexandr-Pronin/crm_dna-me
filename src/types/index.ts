@@ -100,6 +100,7 @@ export interface Deal {
   lead_id: string;
   pipeline_id: string;
   stage_id: string;
+  position: number;
   name?: string;
   value?: number;
   currency: string;

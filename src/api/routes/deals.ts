@@ -13,7 +13,8 @@ import {
   type MoveDealInput,
   type CloseDealInput,
   type DealFiltersInput,
-  type DealWithRelations
+  type DealWithRelations,
+  type ReorderDealsInput
 } from '../../services/dealService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { Deal, DealStatus } from '../../types/index.js';
@@ -49,6 +50,11 @@ const moveDealSchema = z.object({
   stage_id: z.string().uuid()
 });
 
+const reorderDealsSchema = z.object({
+  stage_id: z.string().uuid(),
+  ordered_ids: z.array(z.string().uuid()).min(1)
+});
+
 const closeDealSchema = z.object({
   status: z.enum(['won', 'lost']),
   close_reason: z.string().max(500).optional()
@@ -66,7 +72,7 @@ const dealFiltersSchema = z.object({
   created_before: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sort_by: z.enum(['created_at', 'updated_at', 'value', 'name', 'stage_entered_at']).default('created_at'),
+  sort_by: z.enum(['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position']).default('created_at'),
   sort_order: z.enum(['asc', 'desc']).default('desc')
 });
 
@@ -92,6 +98,7 @@ function transformDealResponse(deal: DealWithRelations) {
     lead_id: deal.lead_id,
     pipeline_id: deal.pipeline_id,
     stage_id: deal.stage_id,
+    position: deal.position,
     name: deal.name ?? null,
     value: deal.value ?? null,
     currency: deal.currency,
@@ -148,7 +155,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
             created_before: { type: 'string', format: 'date-time' },
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-            sort_by: { type: 'string', enum: ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at'], default: 'created_at' },
+            sort_by: { type: 'string', enum: ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position'], default: 'created_at' },
             sort_order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' }
           }
         },
@@ -531,6 +538,65 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
       }, 'Deal moved to new stage');
       
       return transformDealResponse(deal);
+    }
+  );
+
+  // ===========================================================================
+  // POST /api/v1/deals/reorder
+  // ===========================================================================
+  /**
+   * Reorder deals within a stage.
+   */
+  fastify.post<{
+    Body: ReorderDealsInput;
+  }>(
+    '/deals/reorder',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Reorder deals within a stage',
+        tags: ['Deals'],
+        body: {
+          type: 'object',
+          required: ['stage_id', 'ordered_ids'],
+          properties: {
+            stage_id: { type: 'string', format: 'uuid' },
+            ordered_ids: { type: 'array', items: { type: 'string', format: 'uuid' }, minItems: 1 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' }
+            }
+          },
+          422: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const bodyResult = reorderDealsSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new ValidationError('Invalid reorder data', {
+          validationErrors: bodyResult.error.errors
+        });
+      }
+
+      await dealService.reorderDealsInStage(bodyResult.data);
+
+      return { success: true };
     }
   );
 

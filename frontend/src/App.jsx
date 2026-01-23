@@ -30,9 +30,11 @@ import { Layout } from './components/layout';
 import Dashboard from './components/Dashboard';
 
 // Resources - REAL API
-import { LeadList, LeadShow } from './resources/leads';
-import { DealList } from './resources/deals';
+import { LeadList, LeadShow, LeadEdit, LeadCreate } from './resources/leads';
+import { DealList, DealCreate, DealEdit } from './resources/deals';
 import { TaskList } from './resources/tasks';
+import { OrganizationList, OrganizationCreate, OrganizationEdit } from './resources/organizations';
+import { PipelineList, PipelineShow } from './resources/pipelines';
 
 // Pages - MOCK DATA
 import ReportsPage from './pages/Reports';
@@ -48,7 +50,8 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Admin
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100vh' }}>
+        <Admin
         dataProvider={dataProvider}
         authProvider={authProvider}
         layout={Layout}
@@ -67,13 +70,17 @@ const App = () => {
           name="leads"
           list={LeadList}
           show={LeadShow}
+          edit={LeadEdit}
+          create={LeadCreate}
           options={{ label: 'Leads' }}
         />
 
-        {/* Deals - Real API with Kanban placeholder */}
+        {/* Deals - Real API with Kanban Board (Drag & Drop) */}
         <Resource
           name="deals"
           list={DealList}
+          create={DealCreate}
+          edit={DealEdit}
           options={{ label: 'Deals' }}
         />
 
@@ -82,6 +89,23 @@ const App = () => {
           name="tasks"
           list={TaskList}
           options={{ label: 'Tasks' }}
+        />
+
+        {/* Organizations - Real API */}
+        <Resource
+          name="organizations"
+          list={OrganizationList}
+          create={OrganizationCreate}
+          edit={OrganizationEdit}
+          options={{ label: 'Organizations' }}
+        />
+
+        {/* Pipelines - Real API (read-only, shows stages and metrics) */}
+        <Resource
+          name="pipelines"
+          list={PipelineList}
+          show={PipelineShow}
+          options={{ label: 'Pipelines' }}
         />
 
         {/* Events - Real API (read-only timeline) */}
@@ -104,6 +128,7 @@ const App = () => {
           <Route path="/lead-scoring" element={<LeadScoringPage />} />
         </CustomRoutes>
       </Admin>
+      </div>
     </ThemeProvider>
   );
 };

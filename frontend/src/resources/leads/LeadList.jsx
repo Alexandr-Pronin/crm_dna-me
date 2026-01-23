@@ -2,15 +2,17 @@
  * Lead List Component
  * Displays leads from the REAL backend API (GET /leads)
  */
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  List,
+  List as RaList,
   Datagrid,
   TextField,
   DateField,
   FunctionField,
   useRefresh,
   useNotify,
+  useDataProvider,
+  ReferenceField,
   TopToolbar,
   FilterButton,
   CreateButton,
@@ -25,14 +27,29 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Card,
+  CardContent,
+  List as MuiList,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  CircularProgress,
+  Alert,
+  Pagination,
+  Link,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
+  EventNote as EventNoteIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
+import { getLeadEvents } from '../../providers/dataProvider';
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 /**
  * Custom filters for the lead list
@@ -72,6 +89,42 @@ const leadFilters = [
   />,
   <TextInput source="email" label="Email" />,
 ];
+
+const SOURCE_LABELS = {
+  waalaxy: 'Waalaxy',
+  portal: 'Portal',
+  lemlist: 'Lemlist',
+  ads: 'Ads',
+  conference: 'Conference',
+  website: 'Website',
+  linkedin: 'LinkedIn',
+  manual: 'Manual',
+  api: 'API',
+  import: 'Import',
+};
+
+const formatRelativeTime = (value) => {
+  if (!value) return 'Unbekannt';
+  const dateValue = typeof value === 'string' ? parseISO(value) : new Date(value);
+  if (!isValid(dateValue)) return 'Unbekannt';
+  return formatDistanceToNow(dateValue, { addSuffix: true, locale: de });
+};
+
+const humanizeEventType = (eventType) => {
+  if (!eventType) return 'Aktivität aktualisiert';
+  return eventType
+    .split('_')
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
+    .join(' ');
+};
+
+const buildLeadLabel = (lead) => {
+  if (!lead) return 'Unbekannter Lead';
+  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
+  if (fullName && lead.email) return `${fullName} (${lead.email})`;
+  if (fullName) return fullName;
+  return lead.email || lead.id || 'Unbekannter Lead';
+};
 
 /**
  * Custom actions toolbar
@@ -179,8 +232,15 @@ const ActionsField = ({ record }) => {
  */
 const LeadList = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState(null);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [activitiesTotal, setActivitiesTotal] = useState(0);
+  const activitiesPerPage = 10;
   const refresh = useRefresh();
   const notify = useNotify();
+  const dataProvider = useDataProvider();
 
   const handleCreateClick = (e) => {
     e.preventDefault();
@@ -196,6 +256,57 @@ const LeadList = () => {
   const handleCreateClose = () => {
     setCreateModalOpen(false);
   };
+
+  const loadRecentActivities = useCallback(async () => {
+    setActivitiesLoading(true);
+    setActivitiesError(null);
+    try {
+      const { data: leads, total } = await dataProvider.getList('leads', {
+        pagination: { page: activitiesPage, perPage: activitiesPerPage },
+        sort: { field: 'last_activity', order: 'DESC' },
+        filter: {},
+      });
+
+      setActivitiesTotal(total || 0);
+
+      const leadsWithActivity = (leads || []).filter((lead) => lead.last_activity);
+      const activityResults = await Promise.all(
+        leadsWithActivity.map(async (lead) => {
+          let lastEvent = null;
+          try {
+            const events = await getLeadEvents(lead.id, { limit: 1 });
+            lastEvent = Array.isArray(events) ? events[0] : null;
+          } catch (error) {
+            lastEvent = null;
+          }
+
+          return {
+            id: lastEvent?.id || `${lead.id}-activity`,
+            lead,
+            event: lastEvent,
+            occurredAt:
+              lastEvent?.occurred_at || lead.last_activity || lead.updated_at || lead.created_at,
+          };
+        })
+      );
+
+      const sortedActivities = activityResults
+        .filter((entry) => entry.occurredAt)
+        .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
+        .slice(0, activitiesPerPage);
+
+      setRecentActivities(sortedActivities);
+    } catch (error) {
+      console.error('Failed to load recent activities:', error);
+      setActivitiesError('Aktivitäten konnten nicht geladen werden.');
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, [dataProvider, activitiesPage, activitiesPerPage]);
+
+  useEffect(() => {
+    loadRecentActivities();
+  }, [loadRecentActivities]);
 
   return (
     <Box sx={{ p: 2 }}>
@@ -216,8 +327,100 @@ const LeadList = () => {
         </Tooltip>
       </Box>
 
+      {/* Recent Activity */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6">Letzte Aktivitäten</Typography>
+            <Tooltip title="Aktivitäten aktualisieren">
+              <IconButton size="small" onClick={loadRecentActivities} disabled={activitiesLoading}>
+                {activitiesLoading ? <CircularProgress size={18} /> : <RefreshIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {activitiesError && <Alert severity="error">{activitiesError}</Alert>}
+
+          {!activitiesError && (
+            <MuiList disablePadding>
+              {recentActivities.length === 0 && !activitiesLoading && (
+                <ListItem>
+                  <ListItemText primary="Keine Aktivitäten gefunden." />
+                </ListItem>
+              )}
+
+              {recentActivities.map((entry, index) => {
+                const eventLabel = humanizeEventType(entry.event?.event_type);
+                const leadLabel = buildLeadLabel(entry.lead);
+                const sourceLabel = entry.event?.source
+                  ? SOURCE_LABELS[entry.event.source] || entry.event.source
+                  : null;
+                const secondaryText = [
+                  formatRelativeTime(entry.occurredAt),
+                  sourceLabel ? `Quelle: ${sourceLabel}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' • ');
+                const leadUrl = entry.lead?.id ? `#/leads/${entry.lead.id}/show` : null;
+
+                return (
+                  <Box key={entry.id}>
+                    <ListItem alignItems="flex-start" disableGutters>
+                      <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
+                        <EventNoteIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            <Typography component="span" variant="body1">
+                              {leadLabel}
+                            </Typography>
+                            <Typography component="span" variant="body1" color="text.secondary">
+                              —
+                            </Typography>
+                            <Typography component="span" variant="body1">
+                              {eventLabel}
+                            </Typography>
+                            {sourceLabel && (
+                              <Chip size="small" label={sourceLabel} sx={{ ml: 0.5 }} />
+                            )}
+                          </Box>
+                        }
+                        secondary={secondaryText}
+                      />
+                      {leadUrl && (
+                        <Link
+                          href={leadUrl}
+                          underline="hover"
+                          sx={{ ml: 1, alignSelf: 'center', whiteSpace: 'nowrap' }}
+                        >
+                          Lead öffnen
+                        </Link>
+                      )}
+                    </ListItem>
+                    {index < recentActivities.length - 1 && <Divider component="li" />}
+                  </Box>
+                );
+              })}
+            </MuiList>
+          )}
+
+          {activitiesTotal > activitiesPerPage && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Pagination
+                count={Math.max(1, Math.ceil(activitiesTotal / activitiesPerPage))}
+                page={activitiesPage}
+                onChange={(_, page) => setActivitiesPage(page)}
+                color="primary"
+                size="small"
+              />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Lead List */}
-      <List
+      <RaList
         filters={leadFilters}
         actions={<ListActions onCreateClick={handleCreateClick} />}
         sort={{ field: 'created_at', order: 'DESC' }}
@@ -247,6 +450,15 @@ const LeadList = () => {
         >
           <TextField source="email" label="Email" />
           <FunctionField label="Name" render={(record) => <FullNameField record={record} />} />
+          <ReferenceField
+            source="organization_id"
+            reference="organizations"
+            label="Company"
+            link="edit"
+            emptyText="—"
+          >
+            <TextField source="name" />
+          </ReferenceField>
           <FunctionField label="Score" render={(record) => <ScoreField record={record} />} />
           <FunctionField label="Status" render={(record) => <StatusBadge status={record?.status} />} />
           <FunctionField label="Stage" render={(record) => <StatusBadge status={record?.lifecycle_stage} />} />
@@ -255,7 +467,7 @@ const LeadList = () => {
           <DateField source="created_at" label="Created" showTime={false} />
           <FunctionField label="" render={(record) => <ActionsField record={record} />} />
         </Datagrid>
-      </List>
+      </RaList>
 
       {/* Create Lead Modal */}
       <LeadCreateModal

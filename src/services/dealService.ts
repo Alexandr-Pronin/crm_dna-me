@@ -48,6 +48,11 @@ export interface MoveDealInput {
   stage_id: string;
 }
 
+export interface ReorderDealsInput {
+  stage_id: string;
+  ordered_ids: string[];
+}
+
 export interface CloseDealInput {
   status: 'won' | 'lost';
   close_reason?: string;
@@ -135,15 +140,24 @@ export class DealService {
     const dealName = data.name || 
       `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
     
+    const positionResult = await db.queryOne<{ next_position: number }>(
+      `SELECT COALESCE(MAX(position), 0) + 1 AS next_position
+       FROM deals
+       WHERE pipeline_id = $1 AND stage_id = $2`,
+      [data.pipeline_id, stageId]
+    );
+
+    const position = positionResult?.next_position ?? 1;
+
     const sql = `
       INSERT INTO deals (
-        lead_id, pipeline_id, stage_id, name, value, currency,
+        lead_id, pipeline_id, stage_id, position, name, value, currency,
         expected_close_date, assigned_to, assigned_region,
         assigned_at, status, metadata, created_at, updated_at, stage_entered_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9,
-        $10, 'open', $11, NOW(), NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10,
+        $11, 'open', $12, NOW(), NOW(), NOW()
       )
       RETURNING *
     `;
@@ -152,6 +166,7 @@ export class DealService {
       data.lead_id,
       data.pipeline_id,
       stageId,
+      position,
       dealName,
       data.value || null,
       data.currency || 'EUR',
@@ -232,7 +247,7 @@ export class DealService {
       params.push(options.status);
     }
     
-    sql += ' ORDER BY ps.position ASC, d.created_at DESC';
+    sql += ' ORDER BY ps.position ASC, d.position ASC, d.created_at DESC';
     
     if (options?.limit) {
       sql += ` LIMIT $${paramIndex++}`;
@@ -333,7 +348,7 @@ export class DealService {
     const totalPages = Math.ceil(total / limit);
     
     // Build order clause
-    const validSortColumns = ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at'];
+    const validSortColumns = ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position'];
     const sortBy = validSortColumns.includes(filters.sort_by || '') ? filters.sort_by : 'created_at';
     const sortOrder = (filters.sort_order || 'desc').toUpperCase();
     const orderClause = `ORDER BY d.${sortBy} ${sortOrder} NULLS LAST`;
@@ -464,13 +479,21 @@ export class DealService {
       throw new ValidationError('Target stage does not belong to the deal\'s pipeline');
     }
     
+    const positionResult = await db.queryOne<{ next_position: number }>(
+      `SELECT COALESCE(MAX(position), 0) + 1 AS next_position
+       FROM deals
+       WHERE pipeline_id = $1 AND stage_id = $2`,
+      [deal.pipeline_id, data.stage_id]
+    );
+    const position = positionResult?.next_position ?? 1;
+
     // Update deal with new stage
     const updatedDeal = await db.queryOne<Deal>(
       `UPDATE deals 
-       SET stage_id = $1, stage_entered_at = NOW(), updated_at = NOW()
-       WHERE id = $2
+       SET stage_id = $1, position = $2, stage_entered_at = NOW(), updated_at = NOW()
+       WHERE id = $3
        RETURNING *`,
-      [data.stage_id, id]
+      [data.stage_id, position, id]
     );
     
     // Process stage change automation
@@ -483,6 +506,43 @@ export class DealService {
     }
     
     return updatedDeal!;
+  }
+
+  // ===========================================================================
+  // Reorder Deals within a Stage
+  // ===========================================================================
+  
+  async reorderDealsInStage(data: ReorderDealsInput): Promise<void> {
+    if (!data.ordered_ids.length) {
+      return;
+    }
+
+    const existing = await db.query<{ id: string }>(
+      `SELECT id FROM deals WHERE stage_id = $1 AND id = ANY($2::uuid[])`,
+      [data.stage_id, data.ordered_ids]
+    );
+
+    if (existing.length !== data.ordered_ids.length) {
+      throw new ValidationError('One or more deals do not belong to the target stage');
+    }
+
+    const values: string[] = [];
+    const params: unknown[] = [data.stage_id];
+    let paramIndex = 2;
+
+    data.ordered_ids.forEach((id, index) => {
+      values.push(`($${paramIndex++}::uuid, $${paramIndex++}::int)`);
+      params.push(id, index + 1);
+    });
+
+    const sql = `
+      UPDATE deals AS d
+      SET position = v.position, updated_at = NOW()
+      FROM (VALUES ${values.join(', ')}) AS v(id, position)
+      WHERE d.id = v.id AND d.stage_id = $1
+    `;
+
+    await db.execute(sql, params);
   }
 
   // ===========================================================================

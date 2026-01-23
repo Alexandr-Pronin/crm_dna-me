@@ -156,6 +156,7 @@ const getEventIcon = (eventType) => {
     contract_sent: ContractIcon,
     deal_won: WonIcon,
     deal_lost: LostIcon,
+    note_created: ManualIcon,
     // Product Events
     user_registered: RegisteredIcon,
     order_placed: OrderIcon,
@@ -203,6 +204,7 @@ const getEventLabel = (eventType) => {
     contract_sent: 'Contract Sent',
     deal_won: 'Deal Won',
     deal_lost: 'Deal Lost',
+    note_created: 'Note',
     // Product Events
     user_registered: 'User Registered',
     order_placed: 'Order Placed',

@@ -23,6 +23,7 @@ import { gdprRoutes } from './api/routes/gdpr.js';
 import { reportsRoutes } from './api/routes/reports.js';
 import { teamRoutes } from './api/routes/team.js';
 import { campaignsRoutes } from './api/routes/campaigns.js';
+import { organizationsRoutes } from './api/routes/organizations.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -147,6 +148,7 @@ await fastify.register(gdprRoutes, { prefix: '/api/v1' });
 await fastify.register(reportsRoutes, { prefix: '/api/v1' });
 await fastify.register(teamRoutes, { prefix: '/api/v1' });
 await fastify.register(campaignsRoutes, { prefix: '/api/v1' });
+await fastify.register(organizationsRoutes, { prefix: '/api/v1' });
 
 // =============================================================================
 // Graceful Shutdown

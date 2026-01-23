@@ -213,11 +213,38 @@ const dataProvider = {
 
 /**
  * Move deal to a new stage
+ * @param {string} dealId - Deal UUID
+ * @param {string} newStageId - New stage UUID
+ * @returns {Promise<Object>} Updated deal
  */
-export const moveDealStage = async (dealId, newStage) => {
-  const { json } = await httpClient(`${API_URL}/deals/${dealId}/stage`, {
-    method: 'PUT',
-    body: JSON.stringify({ stage: newStage }),
+export const moveDealStage = async (dealId, newStageId) => {
+  const { json } = await httpClient(`${API_URL}/deals/${dealId}/move`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_id: newStageId }),
+  });
+  return json;
+};
+
+/**
+ * Move deal to a new stage (alias for moveDealStage)
+ * @param {string} dealId - Deal UUID
+ * @param {string} newStageId - New stage UUID
+ * @returns {Promise<Object>} Updated deal
+ */
+export const moveDealToStage = async (dealId, newStageId) => {
+  return moveDealStage(dealId, newStageId);
+};
+
+/**
+ * Reorder deals within a stage
+ * @param {string} stageId - Stage UUID
+ * @param {string[]} orderedIds - Ordered deal UUIDs
+ * @returns {Promise<Object>} Result
+ */
+export const reorderDealsInStage = async (stageId, orderedIds) => {
+  const { json } = await httpClient(`${API_URL}/deals/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_id: stageId, ordered_ids: orderedIds }),
   });
   return json;
 };
@@ -308,6 +335,18 @@ export const getLeadEvents = async (leadId, params = {}) => {
   });
   const { json } = await httpClient(`${API_URL}/leads/${leadId}/events?${query}`);
   return json.data || json;
+};
+
+/**
+ * Ingest a manual event for a lead
+ * POST /events/ingest
+ */
+export const ingestLeadEvent = async (eventData) => {
+  const { json } = await httpClient(`${API_URL}/events/ingest`, {
+    method: 'POST',
+    body: JSON.stringify(eventData),
+  });
+  return json;
 };
 
 // ==========================================
@@ -568,6 +607,89 @@ export const deactivateTeamMember = async (memberId) => {
 export const getTeamWorkload = async (memberId) => {
   const { json } = await httpClient(`${API_URL}/team/${memberId}/workload`);
   return json.data || json;
+};
+
+// ==========================================
+// Integration Status API
+// ==========================================
+
+/**
+ * Get status of all integrations
+ * @returns {Promise<Object>} Status of Moco and Slack integrations
+ */
+export const getIntegrationsStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/status`);
+  return json;
+};
+
+/**
+ * Get Moco connection status with connection test
+ * @returns {Promise<Object>} Moco status with connection details
+ */
+export const getMocoStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/status`);
+  return json;
+};
+
+/**
+ * Trigger manual Moco sync for a lead
+ * @param {string} leadId - Lead UUID
+ * @param {Object} options - Sync options
+ * @param {string} options.action - Action: 'create_customer'
+ * @param {boolean} options.force - Force sync even if already synced
+ * @returns {Promise<Object>} Job status
+ */
+export const triggerMocoLeadSync = async (leadId, options = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/sync/lead/${leadId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: options.action || 'create_customer',
+      force: options.force || false,
+    }),
+  });
+  return json;
+};
+
+/**
+ * Trigger manual Moco sync for a deal
+ * @param {string} dealId - Deal UUID
+ * @param {Object} options - Sync options
+ * @param {string} options.action - Action: 'create_offer' | 'create_invoice'
+ * @param {boolean} options.force - Force sync even if already synced
+ * @returns {Promise<Object>} Job status
+ */
+export const triggerMocoDealSync = async (dealId, options = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/sync/deal/${dealId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: options.action || 'create_offer',
+      force: options.force || false,
+    }),
+  });
+  return json;
+};
+
+/**
+ * Find Moco customer by email
+ * @param {string} email - Customer email
+ * @returns {Promise<Object>} Moco customer details
+ */
+export const findMocoCustomer = async (email) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/customer/${encodeURIComponent(email)}`);
+  return json;
+};
+
+// ==========================================
+// Routing Configuration API
+// ==========================================
+
+/**
+ * Get routing configuration
+ * @returns {Promise<Object>} Routing config with thresholds and mappings
+ */
+export const getRoutingConfig = async () => {
+  const { json } = await httpClient(`${API_URL}/routing/config`);
+  return json;
 };
 
 export default dataProvider;

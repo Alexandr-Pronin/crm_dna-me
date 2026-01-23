@@ -2,7 +2,7 @@
  * Settings Page - Tab-based Layout
  * Integrated with real Team Management API
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,
@@ -24,8 +24,13 @@ import {
   Notifications as NotificationsIcon,
   People as PeopleIcon,
   Palette as ThemeIcon,
+  Extension as IntegrationIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import TeamManagement from './TeamManagement';
+import IntegrationSettings from './IntegrationSettings';
+import SystemConfig from './SystemConfig';
+import NotificationPreferences from './NotificationPreferences';
 
 // TabPanel component
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -44,31 +49,13 @@ const TabPanel = ({ children, value, index, ...other }) => {
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    hotLeads: true,
-    weeklyReport: true,
-  });
-
-  // Load notification preferences from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('notification_preferences');
-    if (saved) {
-      try {
-        setNotifications(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading notification preferences:', error);
-      }
-    }
-  }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, width: '100%', maxWidth: '100%' }}>
       {/* Page Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 300 }}>
@@ -84,6 +71,8 @@ const SettingsPage = () => {
         <Tabs value={activeTab} onChange={handleTabChange} aria-label="settings tabs">
           <Tab icon={<PersonIcon />} label="Profile" iconPosition="start" />
           <Tab icon={<PeopleIcon />} label="Team Management" iconPosition="start" />
+          <Tab icon={<IntegrationIcon />} label="Integrations" iconPosition="start" />
+          <Tab icon={<SettingsIcon />} label="System Config" iconPosition="start" />
           <Tab icon={<NotificationsIcon />} label="Notifications" iconPosition="start" />
           <Tab icon={<ThemeIcon />} label="Appearance" iconPosition="start" />
         </Tabs>
@@ -101,17 +90,6 @@ const SettingsPage = () => {
                   <PersonIcon color="primary" />
                   <Typography variant="h6">Profile</Typography>
                 </Box>
-                <Chip
-                  label="MOCK DATA"
-                  size="small"
-                  sx={{
-                    mb: 2,
-                    bgcolor: 'warning.main',
-                    color: 'warning.contrastText',
-                    fontWeight: 600,
-                    fontSize: '0.65rem',
-                  }}
-                />
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main', fontSize: 24 }}>
                     A
@@ -126,6 +104,7 @@ const SettingsPage = () => {
                     <Chip label="Administrator" size="small" sx={{ mt: 0.5 }} />
                   </Box>
                 </Box>
+                <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <TextField
                     label="Full Name"
@@ -139,9 +118,42 @@ const SettingsPage = () => {
                     fullWidth
                     size="small"
                   />
-                  <Button variant="outlined" disabled>
-                    Update Profile (Mock)
-                  </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Profile updates will be available in a future version.
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                  <SettingsIcon color="primary" />
+                  <Typography variant="h6">Account Settings</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="Current Password"
+                    type="password"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="New Password"
+                    type="password"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="Confirm Password"
+                    type="password"
+                    fullWidth
+                    size="small"
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Password change functionality will be available in a future version.
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -154,82 +166,23 @@ const SettingsPage = () => {
         <TeamManagement />
       </TabPanel>
 
-      {/* Notifications Tab */}
+      {/* Integrations Tab */}
       <TabPanel value={activeTab} index={2}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                  <NotificationsIcon color="primary" />
-                  <Typography variant="h6">Notification Preferences</Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Preferences are stored locally in your browser
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.email}
-                        onChange={(e) => {
-                          const newNotifications = { ...notifications, email: e.target.checked };
-                          setNotifications(newNotifications);
-                          localStorage.setItem('notification_preferences', JSON.stringify(newNotifications));
-                        }}
-                      />
-                    }
-                    label="Email Notifications"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.push}
-                        onChange={(e) => {
-                          const newNotifications = { ...notifications, push: e.target.checked };
-                          setNotifications(newNotifications);
-                          localStorage.setItem('notification_preferences', JSON.stringify(newNotifications));
-                        }}
-                      />
-                    }
-                    label="Push Notifications"
-                  />
-                  <Divider sx={{ my: 1 }} />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.hotLeads}
-                        onChange={(e) => {
-                          const newNotifications = { ...notifications, hotLeads: e.target.checked };
-                          setNotifications(newNotifications);
-                          localStorage.setItem('notification_preferences', JSON.stringify(newNotifications));
-                        }}
-                      />
-                    }
-                    label="Hot Lead Alerts"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.weeklyReport}
-                        onChange={(e) => {
-                          const newNotifications = { ...notifications, weeklyReport: e.target.checked };
-                          setNotifications(newNotifications);
-                          localStorage.setItem('notification_preferences', JSON.stringify(newNotifications));
-                        }}
-                      />
-                    }
-                    label="Weekly Report Summary"
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        <IntegrationSettings />
+      </TabPanel>
+
+      {/* System Config Tab */}
+      <TabPanel value={activeTab} index={3}>
+        <SystemConfig />
+      </TabPanel>
+
+      {/* Notifications Tab */}
+      <TabPanel value={activeTab} index={4}>
+        <NotificationPreferences />
       </TabPanel>
 
       {/* Appearance Tab */}
-      <TabPanel value={activeTab} index={3}>
+      <TabPanel value={activeTab} index={5}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Card>
@@ -238,13 +191,25 @@ const SettingsPage = () => {
                   <ThemeIcon color="primary" />
                   <Typography variant="h6">Appearance</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Theme customization options
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Customize the look and feel of your CRM
                 </Typography>
-                <FormControlLabel
-                  control={<Switch checked={true} disabled />}
-                  label="Dark Mode (Default)"
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <FormControlLabel
+                    control={<Switch checked={true} />}
+                    label="Dark Mode"
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Dark mode is currently enabled by default. Theme switching will be available in a future version.
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle2" fontWeight={500}>
+                    Color Theme
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    DNA-ME Brand Colors (Active)
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
