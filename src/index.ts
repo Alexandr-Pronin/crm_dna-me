@@ -24,6 +24,9 @@ import { reportsRoutes } from './api/routes/reports.js';
 import { teamRoutes } from './api/routes/team.js';
 import { campaignsRoutes } from './api/routes/campaigns.js';
 import { organizationsRoutes } from './api/routes/organizations.js';
+import { triggersRoutes } from './api/routes/triggers.js';
+import { emailRoutes } from './api/routes/email.js';
+import { sequencesRoutes } from './api/routes/sequences.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -149,6 +152,9 @@ await fastify.register(reportsRoutes, { prefix: '/api/v1' });
 await fastify.register(teamRoutes, { prefix: '/api/v1' });
 await fastify.register(campaignsRoutes, { prefix: '/api/v1' });
 await fastify.register(organizationsRoutes, { prefix: '/api/v1' });
+await fastify.register(triggersRoutes, { prefix: '/api/v1' });
+await fastify.register(emailRoutes, { prefix: '/api/v1' });
+await fastify.register(sequencesRoutes, { prefix: '/api/v1' });
 
 // =============================================================================
 // Graceful Shutdown

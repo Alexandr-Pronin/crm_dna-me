@@ -250,6 +250,37 @@ export const reorderDealsInStage = async (stageId, orderedIds) => {
 };
 
 /**
+ * Update the lead associated with a deal
+ * @param {string} dealId - Deal UUID
+ * @param {string} leadId - New Lead UUID
+ * @returns {Promise<Object>} Updated deal
+ */
+export const updateDealLead = async (dealId, leadId) => {
+  const { json } = await httpClient(`${API_URL}/deals/${dealId}/lead`, {
+    method: 'PATCH',
+    body: JSON.stringify({ lead_id: leadId }),
+  });
+  return json;
+};
+
+/**
+ * Search leads for autocomplete
+ * @param {Object} params - Search parameters
+ * @param {string} params.search - Search term
+ * @param {number} params.limit - Max results (default: 20)
+ * @returns {Promise<Array>} List of leads
+ */
+export const searchLeads = async (params = {}) => {
+  const query = stringify({
+    search: params.search || '',
+    limit: params.limit || 20,
+    page: 1,
+  });
+  const { json } = await httpClient(`${API_URL}/leads?${query}`);
+  return json.data || json;
+};
+
+/**
  * Get lead timeline/activity
  */
 export const getLeadTimeline = async (leadId) => {
@@ -689,6 +720,76 @@ export const findMocoCustomer = async (email) => {
  */
 export const getRoutingConfig = async () => {
   const { json } = await httpClient(`${API_URL}/routing/config`);
+  return json;
+};
+
+// ==========================================
+// Reports & Analytics API
+// ==========================================
+
+/**
+ * Get routing statistics
+ * @returns {Promise<Object>} Routing stats with pipeline and intent breakdown
+ */
+export const getRoutingStats = async () => {
+  const { json } = await httpClient(`${API_URL}/routing/stats`);
+  return json;
+};
+
+/**
+ * Get lead statistics
+ * @returns {Promise<Object>} Lead stats by status and routing status
+ */
+export const getLeadStats = async () => {
+  const { json } = await httpClient(`${API_URL}/leads/stats`);
+  return json;
+};
+
+/**
+ * Get deal statistics
+ * @param {string} pipelineId - Optional pipeline ID to filter by
+ * @returns {Promise<Object>} Deal stats by status
+ */
+export const getDealStats = async (pipelineId) => {
+  const query = pipelineId ? `?pipeline_id=${pipelineId}` : '';
+  const { json } = await httpClient(`${API_URL}/deals/stats${query}`);
+  return json;
+};
+
+/**
+ * Get pipeline metrics with stage breakdown
+ * @param {string} pipelineId - Pipeline UUID
+ * @returns {Promise<Object>} Pipeline metrics including stages
+ */
+export const getPipelineMetrics = async (pipelineId) => {
+  const { json } = await httpClient(`${API_URL}/pipelines/${pipelineId}/metrics`);
+  return json;
+};
+
+/**
+ * Get all pipelines with summary
+ * @returns {Promise<Object>} Pipelines with deal counts and values
+ */
+export const getPipelinesWithSummary = async () => {
+  const { json } = await httpClient(`${API_URL}/pipelines?with_summary=true`);
+  return json;
+};
+
+/**
+ * Get leads with date filtering for time series
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} Leads data
+ */
+export const getLeadsTimeSeries = async (params = {}) => {
+  const query = stringify({
+    page: params.page || 1,
+    limit: Math.min(params.limit || 100, 100), // API max is 100
+    sort_by: 'created_at',
+    sort_order: 'asc',
+    ...(params.created_after && { created_after: params.created_after }),
+    ...(params.created_before && { created_before: params.created_before }),
+  });
+  const { json } = await httpClient(`${API_URL}/leads?${query}`);
   return json;
 };
 

@@ -6,7 +6,8 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Box, Paper, Typography, alpha, useTheme } from '@mui/material';
+import { Box, Paper, Typography, alpha, useTheme, IconButton, Tooltip } from '@mui/material';
+import { Settings as SettingsIcon } from '@mui/icons-material';
 
 /**
  * KanbanColumnContainer - Droppable Container für eine Stage
@@ -21,6 +22,8 @@ export const KanbanColumnContainer = ({
   totalValue,
   headerContent,
   emptyContent,
+  onSettingsClick,
+  showSettings = true,
 }) => {
   const theme = useTheme();
   const { setNodeRef, isOver } = useDroppable({
@@ -83,20 +86,43 @@ export const KanbanColumnContainer = ({
               {title}
             </Typography>
           </Box>
-          <Box 
-            sx={{ 
-              bgcolor: activeColor,
-              color: 'white',
-              px: 1.25,
-              py: 0.25,
-              borderRadius: 1.5,
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              minWidth: 28,
-              textAlign: 'center',
-            }}
-          >
-            {count}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {showSettings && onSettingsClick && (
+              <Tooltip title="Stage Trigger konfigurieren">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSettingsClick();
+                  }}
+                  sx={{
+                    p: 0.5,
+                    color: alpha(activeColor, 0.7),
+                    '&:hover': {
+                      color: activeColor,
+                      bgcolor: alpha(activeColor, 0.1),
+                    },
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Box 
+              sx={{ 
+                bgcolor: activeColor,
+                color: 'white',
+                px: 1.25,
+                py: 0.25,
+                borderRadius: 1.5,
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                minWidth: 28,
+                textAlign: 'center',
+              }}
+            >
+              {count}
+            </Box>
           </Box>
         </Box>
         
@@ -185,9 +211,9 @@ export const KanbanColumnContainer = ({
 
 /**
  * KanbanItem - Sortable/Draggable Wrapper für Deal Cards
- * Optimiert für flüssiges Drag ohne Ruckeln
+ * Beim Drag: Original verschwindet komplett, DragOverlay zeigt Kopie
  */
-export const KanbanItem = ({ id, deal, children, isOverlay }) => {
+export const KanbanItem = ({ id, deal, children }) => {
   const {
     attributes,
     listeners,
@@ -198,55 +224,18 @@ export const KanbanItem = ({ id, deal, children, isOverlay }) => {
   } = useSortable({
     id,
     data: { type: 'deal', deal, id },
-    // Deaktiviere die Animation während des Draggings
-    transition: {
-      duration: 150,
-      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-    },
   });
 
-  // Overlay-Version (fliegt hinter dem Cursor)
-  if (isOverlay) {
-    return (
-      <Box 
-        sx={{ 
-          transform: 'rotate(2deg)',
-          cursor: 'grabbing',
-          width: 320,
-          maxWidth: 320,
-        }}
-      >
-        {children}
-      </Box>
-    );
-  }
-
-  // Inline style für DnD-Transform
   const style = {
-    transform: CSS.Translate.toString(transform),
-    transition: transition,
-    // Wichtig für Performance
-    willChange: transform ? 'transform' : 'auto',
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : 1,
   };
 
   return (
-    <Box
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      sx={{
-        position: 'relative',
-        opacity: isDragging ? 0.3 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        touchAction: 'none',
-        userSelect: 'none',
-        // Keine hover-Transitions während Drag
-        pointerEvents: 'auto',
-      }}
-    >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {children}
-    </Box>
+    </div>
   );
 };
 

@@ -271,7 +271,6 @@ const DealCard = forwardRef(({
               onClick={handleTitleClick}
               underline="hover"
               sx={{ 
-                display: 'block',
                 textAlign: 'left',
                 width: '100%',
                 color: DNA_COLORS.textPrimary,

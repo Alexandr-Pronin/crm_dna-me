@@ -8,7 +8,7 @@ import { validateApiKey } from '../middleware/apiKey.js';
 import { getPipelineService } from '../../services/pipelineService.js';
 import { getDealService } from '../../services/dealService.js';
 import { ValidationError } from '../../errors/index.js';
-import type { Pipeline, PipelineStage, Deal } from '../../types/index.js';
+import type { Pipeline, PipelineStage, Deal, AutomationStageConfig } from '../../types/index.js';
 
 // =============================================================================
 // Type Definitions
@@ -18,10 +18,55 @@ interface IdParams {
   id: string;
 }
 
+interface StageIdParams {
+  id: string;
+}
+
 interface DealsQuery {
   status?: 'open' | 'won' | 'lost';
   limit?: string;
   offset?: string;
+}
+
+interface CreatePipelineBody {
+  name: string;
+  slug?: string;
+  description?: string;
+  is_active?: boolean;
+  is_default?: boolean;
+  sales_cycle_days?: number;
+  target_persona?: string;
+  config?: Record<string, unknown>;
+}
+
+interface UpdatePipelineBody {
+  name?: string;
+  slug?: string;
+  description?: string;
+  is_active?: boolean;
+  is_default?: boolean;
+  sales_cycle_days?: number | null;
+  target_persona?: string | null;
+  config?: Record<string, unknown>;
+}
+
+interface CreateStageBody {
+  name: string;
+  slug?: string;
+  position?: number;
+  stage_type?: string;
+  automation_config?: AutomationStageConfig[];
+}
+
+interface UpdateStageBody {
+  name?: string;
+  slug?: string;
+  stage_type?: string | null;
+  automation_config?: AutomationStageConfig[];
+}
+
+interface ReorderStagesBody {
+  stage_ids: string[];
 }
 
 // =============================================================================
@@ -386,6 +431,573 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
       
       const metrics = await pipelineService.getPipelineMetrics(id);
       return metrics;
+    }
+  );
+
+  // ===========================================================================
+  // POST /api/v1/pipelines
+  // ===========================================================================
+  /**
+   * Create a new pipeline.
+   */
+  fastify.post<{
+    Body: CreatePipelineBody;
+  }>(
+    '/pipelines',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Create a new pipeline',
+        tags: ['Pipelines'],
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 255 },
+            slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
+            description: { type: 'string' },
+            is_active: { type: 'boolean', default: true },
+            is_default: { type: 'boolean', default: false },
+            sales_cycle_days: { type: 'integer', minimum: 1 },
+            target_persona: { type: 'string', maxLength: 255 },
+            config: { type: 'object', additionalProperties: true }
+          }
+        },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const pipeline = await pipelineService.createPipeline(request.body);
+      reply.status(201);
+      return transformPipelineResponse(pipeline);
+    }
+  );
+
+  // ===========================================================================
+  // PATCH /api/v1/pipelines/:id
+  // ===========================================================================
+  /**
+   * Update a pipeline.
+   */
+  fastify.patch<{
+    Params: IdParams;
+    Body: UpdatePipelineBody;
+  }>(
+    '/pipelines/:id',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Update a pipeline',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 255 },
+            slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
+            description: { type: ['string', 'null'] },
+            is_active: { type: 'boolean' },
+            is_default: { type: 'boolean' },
+            sales_cycle_days: { type: ['integer', 'null'], minimum: 1 },
+            target_persona: { type: ['string', 'null'], maxLength: 255 },
+            config: { type: 'object', additionalProperties: true }
+          }
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid pipeline ID format');
+      }
+      
+      const pipeline = await pipelineService.updatePipeline(id, request.body);
+      return transformPipelineResponse(pipeline);
+    }
+  );
+
+  // ===========================================================================
+  // DELETE /api/v1/pipelines/:id
+  // ===========================================================================
+  /**
+   * Delete a pipeline.
+   */
+  fastify.delete<{
+    Params: IdParams;
+  }>(
+    '/pipelines/:id',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Delete a pipeline',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        response: {
+          204: { type: 'null' },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid pipeline ID format');
+      }
+      
+      await pipelineService.deletePipeline(id);
+      reply.status(204);
+      return;
+    }
+  );
+
+  // ===========================================================================
+  // POST /api/v1/pipelines/:id/stages
+  // ===========================================================================
+  /**
+   * Create a new stage in a pipeline.
+   */
+  fastify.post<{
+    Params: IdParams;
+    Body: CreateStageBody;
+  }>(
+    '/pipelines/:id/stages',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Create a new stage in a pipeline',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 255 },
+            slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
+            position: { type: 'integer', minimum: 1 },
+            stage_type: { type: 'string', maxLength: 50 },
+            automation_config: { type: 'array', items: { type: 'object', additionalProperties: true } }
+          }
+        },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid pipeline ID format');
+      }
+      
+      const stage = await pipelineService.createStage(id, request.body as {
+        name: string;
+        slug?: string;
+        position?: number;
+        stage_type?: string;
+        automation_config?: Record<string, unknown>[];
+      });
+      reply.status(201);
+      return transformStageResponse(stage);
+    }
+  );
+
+  // ===========================================================================
+  // POST /api/v1/pipelines/:id/stages/reorder
+  // ===========================================================================
+  /**
+   * Reorder stages in a pipeline.
+   */
+  fastify.post<{
+    Params: IdParams;
+    Body: ReorderStagesBody;
+  }>(
+    '/pipelines/:id/stages/reorder',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Reorder stages in a pipeline',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          required: ['stage_ids'],
+          properties: {
+            stage_ids: {
+              type: 'array',
+              items: { type: 'string', format: 'uuid' },
+              minItems: 1
+            }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } }
+            }
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid pipeline ID format');
+      }
+      
+      // Validate all stage IDs are valid UUIDs
+      for (const stageId of request.body.stage_ids) {
+        if (!stageId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          throw new ValidationError(`Invalid stage ID format: ${stageId}`);
+        }
+      }
+      
+      const stages = await pipelineService.reorderStages(id, request.body.stage_ids);
+      return {
+        data: stages.map(transformStageResponse)
+      };
+    }
+  );
+
+  // ===========================================================================
+  // PATCH /api/v1/stages/:id
+  // ===========================================================================
+  /**
+   * Update a stage.
+   */
+  fastify.patch<{
+    Params: StageIdParams;
+    Body: UpdateStageBody;
+  }>(
+    '/stages/:id',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Update a stage',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 255 },
+            slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
+            stage_type: { type: ['string', 'null'], maxLength: 50 },
+            automation_config: { type: 'array', items: { type: 'object', additionalProperties: true } }
+          }
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid stage ID format');
+      }
+      
+      const stage = await pipelineService.updateStage(id, request.body as {
+        name?: string;
+        slug?: string;
+        stage_type?: string | null;
+        automation_config?: Record<string, unknown>[];
+      });
+      return transformStageResponse(stage);
+    }
+  );
+
+  // ===========================================================================
+  // DELETE /api/v1/stages/:id
+  // ===========================================================================
+  /**
+   * Delete a stage.
+   */
+  fastify.delete<{
+    Params: StageIdParams;
+  }>(
+    '/stages/:id',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Delete a stage',
+        tags: ['Pipelines'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        response: {
+          204: { type: 'null' },
+          400: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      
+      if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        throw new ValidationError('Invalid stage ID format');
+      }
+      
+      await pipelineService.deleteStage(id);
+      reply.status(204);
+      return;
     }
   );
 }

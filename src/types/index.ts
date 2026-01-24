@@ -246,6 +246,67 @@ export interface ApiKey {
 }
 
 // =============================================================================
+// E-Mail Sequence Types
+// =============================================================================
+
+export interface EmailSequence {
+  id: string;
+  name: string;
+  description?: string;
+  trigger_event?: string;
+  trigger_config: Record<string, unknown>;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailSequenceStep {
+  id: string;
+  sequence_id: string;
+  position: number;
+  delay_days: number;
+  delay_hours: number;
+  subject: string;
+  body_html: string;
+  body_text?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailSequenceEnrollment {
+  id: string;
+  lead_id: string;
+  sequence_id: string;
+  current_step: number;
+  status: EmailEnrollmentStatus;
+  enrolled_at: Date;
+  last_email_sent_at?: Date;
+  next_email_due_at?: Date;
+  completed_at?: Date;
+  unsubscribed_at?: Date;
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailTracking {
+  id: string;
+  enrollment_id: string;
+  step_id: string;
+  sent_at: Date;
+  opened_at?: Date;
+  open_count: number;
+  clicked_at?: Date;
+  click_count: number;
+  bounced_at?: Date;
+  bounce_reason?: string;
+  unsubscribed_at?: Date;
+  metadata: Record<string, unknown>;
+}
+
+export type EmailEnrollmentStatus = 'active' | 'paused' | 'completed' | 'unsubscribed';
+
+// =============================================================================
 // Enums / Union Types
 // =============================================================================
 

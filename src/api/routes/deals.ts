@@ -758,6 +758,91 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ===========================================================================
+  // PATCH /api/v1/deals/:id/lead
+  // ===========================================================================
+  /**
+   * Update the lead associated with a deal.
+   */
+  fastify.patch<{
+    Params: IdParams;
+    Body: { lead_id: string };
+  }>(
+    '/deals/:id/lead',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        description: 'Update the lead associated with a deal',
+        tags: ['Deals'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          required: ['lead_id'],
+          properties: {
+            lead_id: { type: 'string', format: 'uuid' }
+          }
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const paramResult = dealIdParamSchema.safeParse(request.params);
+      if (!paramResult.success) {
+        throw new ValidationError('Invalid deal ID', {
+          validationErrors: paramResult.error.errors
+        });
+      }
+      
+      const bodyResult = z.object({ lead_id: z.string().uuid() }).safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new ValidationError('Invalid lead ID', {
+          validationErrors: bodyResult.error.errors
+        });
+      }
+      
+      const deal = await dealService.updateDealLead(paramResult.data.id, bodyResult.data.lead_id);
+      
+      request.log.info({
+        dealId: deal.id,
+        newLeadId: bodyResult.data.lead_id
+      }, 'Deal lead updated');
+      
+      return transformDealResponse(deal);
+    }
+  );
+
+  // ===========================================================================
   // DELETE /api/v1/deals/:id
   // ===========================================================================
   /**

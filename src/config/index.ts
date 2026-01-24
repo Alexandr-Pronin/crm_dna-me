@@ -50,6 +50,25 @@ const configSchema = z.object({
     enabled: z.boolean().default(false)
   }),
 
+  // Cituro Integration
+  cituro: z.object({
+    apiKey: z.string().nullish(),
+    subdomain: z.string().nullish(),
+    enabled: z.boolean().default(false)
+  }),
+
+  // SMTP Configuration
+  smtp: z.object({
+    host: z.string().nullish(),
+    port: z.coerce.number().default(587),
+    user: z.string().nullish(),
+    pass: z.string().nullish(),
+    secure: z.boolean().default(false),
+    from: z.string().nullish(),
+    fromName: z.string().default('DNA ME'),
+    enabled: z.boolean().default(false)
+  }),
+
   // Feature Flags
   features: z.object({
     mocoSync: z.boolean().default(false),
@@ -112,6 +131,21 @@ function loadConfig(): Config {
       webhookUrl: process.env.SLACK_WEBHOOK_URL || undefined,
       botToken: process.env.SLACK_BOT_TOKEN || undefined,
       enabled: parseBoolean(process.env.ENABLE_SLACK_ALERTS, false)
+    },
+    cituro: {
+      apiKey: process.env.CITURO_API_KEY || undefined,
+      subdomain: process.env.CITURO_SUBDOMAIN || undefined,
+      enabled: parseBoolean(process.env.ENABLE_CITURO, false)
+    },
+    smtp: {
+      host: process.env.SMTP_HOST || undefined,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER || undefined,
+      pass: process.env.SMTP_PASS || undefined,
+      secure: parseBoolean(process.env.SMTP_SECURE, false),
+      from: process.env.SMTP_FROM || undefined,
+      fromName: process.env.SMTP_FROM_NAME || 'DNA ME',
+      enabled: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
     },
     features: {
       mocoSync: parseBoolean(process.env.ENABLE_MOCO_SYNC, false),

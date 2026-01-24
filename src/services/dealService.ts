@@ -609,6 +609,50 @@ export class DealService {
   }
 
   // ===========================================================================
+  // Update Deal Lead
+  // ===========================================================================
+  
+  async updateDealLead(id: string, newLeadId: string): Promise<Deal> {
+    // Verify deal exists
+    const deal = await this.getDealById(id);
+    
+    // Verify new lead exists
+    const lead = await db.queryOne<Lead>(
+      'SELECT * FROM leads WHERE id = $1',
+      [newLeadId]
+    );
+    
+    if (!lead) {
+      throw new NotFoundError('Lead', newLeadId);
+    }
+    
+    // Check if there's already a deal for this lead in this pipeline
+    const existingDeal = await db.queryOne<Deal>(
+      'SELECT * FROM deals WHERE lead_id = $1 AND pipeline_id = $2 AND id != $3',
+      [newLeadId, deal.pipeline_id, id]
+    );
+    
+    if (existingDeal) {
+      throw new ConflictError('A deal already exists for this lead in this pipeline', {
+        existing_deal_id: existingDeal.id
+      });
+    }
+    
+    // Update deal name based on new lead
+    const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
+    
+    const updatedDeal = await db.queryOne<Deal>(
+      `UPDATE deals 
+       SET lead_id = $1, name = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [newLeadId, dealName, id]
+    );
+    
+    return updatedDeal!;
+  }
+
+  // ===========================================================================
   // Delete Deal
   // ===========================================================================
   

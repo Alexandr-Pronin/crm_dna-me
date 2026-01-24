@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   TrendingUp as ScoringIcon,
   Timeline as PipelineIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 
 /**
@@ -93,6 +94,11 @@ const Menu = (props) => {
         to="/lead-scoring"
         primaryText="Lead Scoring"
         leftIcon={<ScoringIcon />}
+      />
+      <RAMenu.Item
+        to="/email-marketing"
+        primaryText="E-Mail Marketing"
+        leftIcon={<EmailIcon />}
       />
 
       {/* Settings Section */}
