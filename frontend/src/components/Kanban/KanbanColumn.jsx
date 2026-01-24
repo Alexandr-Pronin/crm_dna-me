@@ -48,6 +48,7 @@ const KanbanColumn = ({
   onDealPreview,
   selectedDeals = {},
   onToggleSelection,
+  onSettingsClick,
 }) => {
   // Berechne Gesamtwert der Deals in dieser Stage
   const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
@@ -65,6 +66,8 @@ const KanbanColumn = ({
       count={deals.length}
       color={stageColor}
       totalValue={totalValue}
+      onSettingsClick={onSettingsClick ? () => onSettingsClick(stage, deals) : undefined}
+      showSettings={!!onSettingsClick}
     >
       <SortableContext 
         items={dealIds} 

@@ -4,15 +4,20 @@
 import { Layout as RALayout } from 'react-admin';
 import AppBar from './AppBar';
 import Menu from './Menu';
+import { BeamsBackground } from '../ui/BeamsBackground';
 
 /**
  * Custom Layout with DNA ME AppBar and Menu
  */
 const Layout = (props) => {
   return (
-    <RALayout
-      {...props}
-      appBar={AppBar}
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: -1 }}>
+        <BeamsBackground intensity="medium" />
+      </div>
+      <RALayout
+        {...props}
+        appBar={AppBar}
       menu={Menu}
       sx={{
         // Main layout transparent background
@@ -35,7 +40,7 @@ const Layout = (props) => {
         
         // Main content area styling - proper stretching
         '& .RaLayout-content': {
-          backgroundColor: 'rgba(2, 6, 23, 0.7)', // Semi-transparent dark background
+          backgroundColor: 'rgba(2, 6, 23, 0.4)', // Semi-transparent dark background
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)', // Safari support
           minHeight: 'calc(100vh - 56px)', // Adjust minHeight
@@ -75,6 +80,7 @@ const Layout = (props) => {
         },
       }}
     />
+    </>
   );
 };
 

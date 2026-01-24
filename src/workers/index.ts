@@ -12,6 +12,8 @@ import { createRoutingWorker } from './routingWorker.js';
 import { createSyncWorker } from './syncWorker.js';
 import { createDecayWorker, setupDecayJob } from './decayWorker.js';
 import { createDailyDigestWorker, setupDailyDigestJob } from './dailyDigestWorker.js';
+import { createEmailSequenceWorker, setupEmailSequenceJob } from './emailSequenceWorker.js';
+import { getEmailService } from '../services/emailService.js';
 import { getScoringEngine } from '../services/scoringEngine.js';
 import { getIntentDetector } from '../services/intentDetector.js';
 import { getPipelineRouter } from '../services/pipelineRouter.js';
@@ -114,6 +116,17 @@ async function initializeWorkers() {
     console.log('✅ Daily Digest Worker started (scheduled: 8:00 AM daily)');
   } else {
     console.log('⚠️ Daily Digest Worker disabled (Slack not configured or ENABLE_SLACK_ALERTS=false)');
+  }
+
+  // Email Sequence Worker - processes email sequences
+  const emailService = getEmailService();
+  if (emailService.checkConfiguration()) {
+    const emailSequenceWorker = createEmailSequenceWorker();
+    workers.push(emailSequenceWorker);
+    await setupEmailSequenceJob();
+    console.log('✅ Email Sequence Worker started (scheduled: every 15 minutes)');
+  } else {
+    console.log('⚠️ Email Sequence Worker disabled (SMTP not configured)');
   }
 
   console.log(`✅ ${workers.length} worker(s) initialized`);

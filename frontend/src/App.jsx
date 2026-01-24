@@ -42,6 +42,11 @@ import SettingsPage from './pages/Settings';
 
 // Pages - REAL API
 import LeadScoringPage from './pages/LeadScoring';
+import { PipelineSettings } from './pages/Pipelines';
+
+// Pages - Email Marketing
+import EmailMarketingPage from './pages/EmailMarketing';
+import SequenceBuilder from './pages/EmailMarketing/SequenceBuilder';
 
 /**
  * Main Application
@@ -126,6 +131,13 @@ const App = () => {
           
           {/* Lead Scoring - REAL API */}
           <Route path="/lead-scoring" element={<LeadScoringPage />} />
+
+          {/* Pipeline Settings - REAL API */}
+          <Route path="/pipelines/settings" element={<PipelineSettings />} />
+
+          {/* Email Marketing - MOCK DATA */}
+          <Route path="/email-marketing" element={<EmailMarketingPage />} />
+          <Route path="/email-marketing/:id" element={<SequenceBuilder />} />
         </CustomRoutes>
       </Admin>
       </div>

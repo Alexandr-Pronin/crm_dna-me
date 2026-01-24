@@ -2,7 +2,7 @@
  * Deal Preview/Edit Modal
  * Ermöglicht Vorschau und Bearbeitung eines Deals im Modal
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -25,6 +25,7 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Autocomplete,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -39,9 +40,11 @@ import {
   AttachMoney as MoneyIcon,
   OpenInNew as OpenInNewIcon,
   Notes as NotesIcon,
+  SwapHoriz as SwapIcon,
 } from '@mui/icons-material';
 import { useDataProvider, useNotify } from 'react-admin';
 import { useNavigate } from 'react-router-dom';
+import { updateDealLead, searchLeads } from '../../providers/dataProvider';
 
 // DNA ME Farben
 const DNA_COLORS = {
@@ -72,6 +75,13 @@ const DealPreviewModal = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // Lead-Dropdown State
+  const [leadOptions, setLeadOptions] = useState([]);
+  const [leadSearchInput, setLeadSearchInput] = useState('');
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [leadLoading, setLeadLoading] = useState(false);
+  const [leadChangeLoading, setLeadChangeLoading] = useState(false);
+  
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const navigate = useNavigate();
@@ -87,8 +97,107 @@ const DealPreviewModal = ({
         notes: initialDeal.notes || '',
         stage_id: initialDeal.stage_id || '',
       });
+      // Setze den aktuellen Lead als ausgewählt
+      if (initialDeal.lead_id) {
+        setSelectedLead({
+          id: initialDeal.lead_id,
+          label: initialDeal.lead_name || initialDeal.contact_name || 'Unbekannt',
+          email: initialDeal.lead_email || initialDeal.contact_email,
+          company: initialDeal.lead_company || initialDeal.company_name,
+        });
+      }
     }
   }, [initialDeal]);
+
+  // Lead-Suche mit Debounce
+  const searchLeadsDebounced = useCallback(
+    async (searchTerm) => {
+      if (!searchTerm || searchTerm.length < 2) {
+        setLeadOptions([]);
+        return;
+      }
+      
+      setLeadLoading(true);
+      try {
+        const leads = await searchLeads({ search: searchTerm, limit: 15 });
+        const options = leads.map((lead) => ({
+          id: lead.id,
+          label: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.email,
+          email: lead.email,
+          company: lead.organization_name || lead.company,
+          first_name: lead.first_name,
+          last_name: lead.last_name,
+        }));
+        setLeadOptions(options);
+      } catch (err) {
+        console.error('Lead search failed:', err);
+        setLeadOptions([]);
+      } finally {
+        setLeadLoading(false);
+      }
+    },
+    []
+  );
+
+  // Debounce für Lead-Suche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isEditing && leadSearchInput) {
+        searchLeadsDebounced(leadSearchInput);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [leadSearchInput, isEditing, searchLeadsDebounced]);
+
+  // Lead ändern
+  const handleLeadChange = async (newLead) => {
+    if (!newLead || newLead.id === deal.lead_id) {
+      setSelectedLead(newLead);
+      return;
+    }
+    
+    setLeadChangeLoading(true);
+    try {
+      const updatedDeal = await updateDealLead(deal.id, newLead.id);
+      setSelectedLead(newLead);
+      setDeal(prev => ({
+        ...prev,
+        lead_id: newLead.id,
+        lead_name: newLead.label,
+        lead_email: newLead.email,
+        lead_company: newLead.company,
+        contact_name: newLead.label,
+        contact_email: newLead.email,
+        company_name: newLead.company,
+      }));
+      notify('Lead erfolgreich geändert', { type: 'success' });
+      
+      if (onDealUpdated) {
+        onDealUpdated({
+          ...deal,
+          ...updatedDeal,
+          lead_id: newLead.id,
+          lead_name: newLead.label,
+          lead_email: newLead.email,
+          lead_company: newLead.company,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update deal lead:', err);
+      const errorMessage = err.body?.error?.message || err.message || 'Fehler beim Ändern des Leads';
+      notify(errorMessage, { type: 'error' });
+      // Zurücksetzen auf vorherigen Lead
+      setSelectedLead({
+        id: deal.lead_id,
+        label: deal.lead_name || deal.contact_name || 'Unbekannt',
+        email: deal.lead_email || deal.contact_email,
+        company: deal.lead_company || deal.company_name,
+      });
+    } finally {
+      setLeadChangeLoading(false);
+    }
+  };
 
   const handleClose = () => {
     setIsEditing(false);
@@ -317,6 +426,78 @@ const DealPreviewModal = ({
                     ))}
                   </Select>
                 </FormControl>
+              </Box>
+            )}
+
+            {/* Lead-Zuordnung (nur beim Bearbeiten) */}
+            {isEditing && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Zugeordneter Lead
+                </Typography>
+                <Autocomplete
+                  value={selectedLead}
+                  onChange={(event, newValue) => handleLeadChange(newValue)}
+                  inputValue={leadSearchInput}
+                  onInputChange={(event, newInputValue) => setLeadSearchInput(newInputValue)}
+                  options={leadOptions}
+                  loading={leadLoading || leadChangeLoading}
+                  isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                  getOptionLabel={(option) => option?.label || ''}
+                  filterOptions={(x) => x} // Deaktiviert Client-seitiges Filtern
+                  noOptionsText={leadSearchInput.length < 2 ? 'Mindestens 2 Zeichen eingeben...' : 'Keine Leads gefunden'}
+                  loadingText="Suche..."
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} key={option.id}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2" fontWeight={500}>
+                          {option.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.email}
+                          {option.company && ` • ${option.company}`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      placeholder="Lead suchen..."
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <InputAdornment position="start">
+                              <SwapIcon sx={{ fontSize: 18, color: DNA_COLORS.textMuted }} />
+                            </InputAdornment>
+                            {params.InputProps.startAdornment}
+                          </>
+                        ),
+                        endAdornment: (
+                          <>
+                            {(leadLoading || leadChangeLoading) && (
+                              <CircularProgress color="inherit" size={16} />
+                            )}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: alpha(DNA_COLORS.border, 0.2),
+                    },
+                  }}
+                />
+                {selectedLead && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    Aktuell: {selectedLead.email}
+                    {selectedLead.company && ` • ${selectedLead.company}`}
+                  </Typography>
+                )}
               </Box>
             )}
 

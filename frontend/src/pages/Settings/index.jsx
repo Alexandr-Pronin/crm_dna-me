@@ -26,11 +26,13 @@ import {
   Palette as ThemeIcon,
   Extension as IntegrationIcon,
   Settings as SettingsIcon,
+  ViewKanban as PipelineIcon,
 } from '@mui/icons-material';
 import TeamManagement from './TeamManagement';
 import IntegrationSettings from './IntegrationSettings';
 import SystemConfig from './SystemConfig';
 import NotificationPreferences from './NotificationPreferences';
+import { PipelineSettings } from '../Pipelines';
 
 // TabPanel component
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -72,6 +74,7 @@ const SettingsPage = () => {
           <Tab icon={<PersonIcon />} label="Profile" iconPosition="start" />
           <Tab icon={<PeopleIcon />} label="Team Management" iconPosition="start" />
           <Tab icon={<IntegrationIcon />} label="Integrations" iconPosition="start" />
+          <Tab icon={<PipelineIcon />} label="Pipelines" iconPosition="start" />
           <Tab icon={<SettingsIcon />} label="System Config" iconPosition="start" />
           <Tab icon={<NotificationsIcon />} label="Notifications" iconPosition="start" />
           <Tab icon={<ThemeIcon />} label="Appearance" iconPosition="start" />
@@ -171,18 +174,23 @@ const SettingsPage = () => {
         <IntegrationSettings />
       </TabPanel>
 
-      {/* System Config Tab */}
+      {/* Pipelines Tab */}
       <TabPanel value={activeTab} index={3}>
+        <PipelineSettings />
+      </TabPanel>
+
+      {/* System Config Tab */}
+      <TabPanel value={activeTab} index={4}>
         <SystemConfig />
       </TabPanel>
 
       {/* Notifications Tab */}
-      <TabPanel value={activeTab} index={4}>
+      <TabPanel value={activeTab} index={5}>
         <NotificationPreferences />
       </TabPanel>
 
       {/* Appearance Tab */}
-      <TabPanel value={activeTab} index={5}>
+      <TabPanel value={activeTab} index={6}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Card>

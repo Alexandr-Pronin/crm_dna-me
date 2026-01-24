@@ -17,7 +17,9 @@ import {
   Paper,
   Skeleton,
   alpha,
+  Button,
 } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 import {
   DndContext,
   DragOverlay,
@@ -34,6 +36,8 @@ import { moveDealToStage, reorderDealsInStage } from '../../providers/dataProvid
 import KanbanColumn from './KanbanColumn';
 import HubspotDealCard from './HubspotDealCard';
 import DealPreviewModal from './DealPreviewModal';
+import DealCreateModal from './DealCreateModal';
+import StageTriggersModal from './StageTriggersModal';
 import { KanbanItem } from './KanbanPrimitives';
 
 // Stage Farben (konsistent mit KanbanColumn)
@@ -84,6 +88,14 @@ const KanbanBoard = () => {
   const [previewDeal, setPreviewDeal] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // Modal state für Deal-Erstellung
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Modal state für Stage Triggers
+  const [isTriggersModalOpen, setIsTriggersModalOpen] = useState(false);
+  const [triggersStage, setTriggersStage] = useState(null);
+  const [triggersDeals, setTriggersDeals] = useState([]);
+  
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -92,16 +104,15 @@ const KanbanBoard = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Minimaler Abstand bevor Drag startet (5px Balance)
+        distance: 8, // Minimaler Abstand bevor Drag startet
       },
     })
   );
 
-  // Measuring configuration für bessere Performance
+  // Measuring configuration
   const measuringConfig = {
     droppable: {
       strategy: MeasuringStrategy.WhileDragging,
-      frequency: 'optimized',
     },
   };
 
@@ -421,6 +432,34 @@ const KanbanBoard = () => {
     setDeals(prev => prev.map(d => d.id === updatedDeal.id ? updatedDeal : d));
   }, []);
 
+  // Deal Creation handlers
+  const handleOpenCreateModal = useCallback(() => {
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setIsCreateModalOpen(false);
+  }, []);
+
+  const handleDealCreated = useCallback((newDeal) => {
+    // Reload deals to include the new one
+    refresh();
+    notify('Deal erfolgreich erstellt', { type: 'success' });
+  }, [refresh, notify]);
+
+  // Stage Triggers Modal handlers
+  const handleOpenTriggersModal = useCallback((stage, stageDeals) => {
+    setTriggersStage(stage);
+    setTriggersDeals(stageDeals);
+    setIsTriggersModalOpen(true);
+  }, []);
+
+  const handleCloseTriggersModal = useCallback(() => {
+    setIsTriggersModalOpen(false);
+    setTriggersStage(null);
+    setTriggersDeals([]);
+  }, []);
+
   // Loading state for pipelines
   if (pipelinesLoading) {
     return (
@@ -468,22 +507,45 @@ const KanbanBoard = () => {
             )}
           </Box>
           
-          <FormControl sx={{ minWidth: 250 }} size="small">
-            <InputLabel id="pipeline-select-label">Pipeline</InputLabel>
-            <Select
-              labelId="pipeline-select-label"
-              id="pipeline-select"
-              value={selectedPipelineId || ''}
-              label="Pipeline"
-              onChange={handlePipelineChange}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControl sx={{ minWidth: 250 }} size="small">
+              <InputLabel id="pipeline-select-label">Pipeline</InputLabel>
+              <Select
+                labelId="pipeline-select-label"
+                id="pipeline-select"
+                value={selectedPipelineId || ''}
+                label="Pipeline"
+                onChange={handlePipelineChange}
+              >
+                {pipelines.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateModal}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                fontWeight: 600,
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(74, 144, 164, 0.3)',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  boxShadow: '0 4px 12px rgba(74, 144, 164, 0.4)',
+                },
+              }}
             >
-              {pipelines.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              Deal erstellen
+            </Button>
+          </Box>
         </Box>
 
         {/* Pipeline Stats */}
@@ -574,6 +636,7 @@ const KanbanBoard = () => {
                 selectedDeals={selectedDeals}
                 onToggleSelection={toggleDealSelection}
                 onDealPreview={handleOpenDealPreview}
+                onSettingsClick={handleOpenTriggersModal}
               />
             ))}
             
@@ -586,22 +649,15 @@ const KanbanBoard = () => {
             )}
           </Box>
 
-          {/* Drag Overlay - performante Darstellung des gezogenen Elements */}
-          <DragOverlay 
-            dropAnimation={{
-              duration: 150,
-              easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-            }}
-            style={{ cursor: 'grabbing' }}
-          >
+          <DragOverlay>
             {activeDeal ? (
-              <KanbanItem id={activeDealId} isOverlay>
+              <Box sx={{ width: '100%', maxWidth: 288 }}>
                 <HubspotDealCard 
                   deal={activeDeal} 
                   isDragging
                   stageColor={getStageColor(activeDeal.stage_id || activeDeal.stage)}
                 />
-              </KanbanItem>
+              </Box>
             ) : null}
           </DragOverlay>
         </DndContext>
@@ -615,6 +671,23 @@ const KanbanBoard = () => {
         stageColor={previewDeal ? getStageColor(previewDeal.stage_id || previewDeal.stage) : undefined}
         stages={stages}
         onDealUpdated={handleDealUpdated}
+      />
+
+      {/* Deal Create Modal */}
+      <DealCreateModal
+        open={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        selectedPipelineId={selectedPipelineId}
+        onDealCreated={handleDealCreated}
+      />
+
+      {/* Stage Triggers Modal */}
+      <StageTriggersModal
+        open={isTriggersModalOpen}
+        onClose={handleCloseTriggersModal}
+        stage={triggersStage}
+        stageColor={triggersStage ? getStageColor(triggersStage.id) : undefined}
+        deals={triggersDeals}
       />
     </Box>
   );
