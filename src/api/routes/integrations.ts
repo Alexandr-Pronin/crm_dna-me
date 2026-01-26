@@ -6,6 +6,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { getMocoService } from '../../integrations/moco.js';
+import { getCituroService } from '../../integrations/cituro.js';
 import { getSyncQueue } from '../../config/queues.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError, BusinessLogicError } from '../../errors/index.js';
@@ -34,6 +35,7 @@ const mocoWebhookSchema = z.object({
 
 export async function integrationsRoutes(fastify: FastifyInstance): Promise<void> {
   const mocoService = getMocoService();
+  const cituroService = getCituroService();
   const syncQueue = getSyncQueue();
 
   // ===========================================================================
@@ -229,6 +231,31 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   });
 
   // ===========================================================================
+  // GET /integrations/cituro/status - Check Cituro connection status
+  // ===========================================================================
+
+  fastify.get('/integrations/cituro/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const isConfigured = cituroService.isConfigured();
+    
+    if (!isConfigured) {
+      return {
+        status: 'not_configured',
+        message: 'Cituro API key or subdomain not configured',
+        enabled: config.cituro.enabled
+      };
+    }
+
+    const connectionTest = await cituroService.testConnection();
+    
+    return {
+      status: connectionTest.connected ? 'connected' : 'disconnected',
+      message: connectionTest.error || 'Connection successful',
+      enabled: config.cituro.enabled,
+      subdomain: config.cituro.subdomain
+    };
+  });
+
+  // ===========================================================================
   // GET /integrations/status - Get status of all integrations
   // ===========================================================================
 
@@ -241,6 +268,14 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
       mocoConnected = connectionTest.connected;
     }
 
+    const cituroConfigured = cituroService.isConfigured();
+    let cituroConnected = false;
+
+    if (cituroConfigured) {
+      const connectionTest = await cituroService.testConnection();
+      cituroConnected = connectionTest.connected;
+    }
+
     return {
       moco: {
         configured: mocoConfigured,
@@ -251,6 +286,11 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
         configured: !!config.slack.webhookUrl,
         connected: false, // Will be implemented in Etappe 12
         enabled: config.features.slackAlerts
+      },
+      cituro: {
+        configured: cituroConfigured,
+        connected: cituroConnected,
+        enabled: config.cituro.enabled
       }
     };
   });

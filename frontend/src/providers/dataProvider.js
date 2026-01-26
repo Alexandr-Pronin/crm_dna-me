@@ -663,6 +663,15 @@ export const getMocoStatus = async () => {
 };
 
 /**
+ * Get Cituro connection status with connection test
+ * @returns {Promise<Object>} Cituro status with connection details
+ */
+export const getCituroStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/status`);
+  return json;
+};
+
+/**
  * Trigger manual Moco sync for a lead
  * @param {string} leadId - Lead UUID
  * @param {Object} options - Sync options

@@ -29,7 +29,7 @@ import {
   Link as LinkIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { getIntegrationsStatus, getMocoStatus } from '../../providers/dataProvider';
+import { getIntegrationsStatus, getMocoStatus, getCituroStatus } from '../../providers/dataProvider';
 
 // Status color mapping
 const getStatusColor = (status) => {
@@ -78,6 +78,7 @@ const IntegrationSettings = () => {
   const [error, setError] = useState(null);
   const [integrationStatus, setIntegrationStatus] = useState(null);
   const [mocoDetails, setMocoDetails] = useState(null);
+  const [cituroDetails, setCituroDetails] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [copySuccess, setCopySuccess] = useState(null);
 
@@ -125,6 +126,30 @@ const IntegrationSettings = () => {
     }
   };
 
+  // Test Cituro connection
+  const testCituroConnection = async () => {
+    setTestingConnection(true);
+    setError(null);
+    
+    try {
+      const details = await getCituroStatus();
+      setCituroDetails(details);
+      
+      // Also refresh the overall status
+      await fetchStatus(false);
+      
+      if (details.status === 'connected') {
+        // Success notification handled in UI
+      }
+    } catch (err) {
+      console.error('Error testing Cituro connection:', err);
+      setError('Fehler beim Testen der Cituro-Verbindung');
+      setCituroDetails(null);
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
   // Copy to clipboard
   const copyToClipboard = async (text, label) => {
     try {
@@ -159,8 +184,10 @@ const IntegrationSettings = () => {
 
   const mocoStatus = integrationStatus?.moco || {};
   const slackStatus = integrationStatus?.slack || {};
+  const cituroStatus = integrationStatus?.cituro || {};
   const mocoLabel = getStatusLabel(mocoStatus);
   const slackLabel = getStatusLabel(slackStatus);
+  const cituroLabel = getStatusLabel(cituroStatus);
 
   return (
     <Box>
@@ -428,6 +455,133 @@ const IntegrationSettings = () => {
           </Card>
         </Grid>
 
+        {/* Cituro Integration Card */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card 
+            sx={{ 
+              height: '100%',
+              border: '1px solid',
+              borderColor: cituroStatus.connected ? 'success.main' : 'divider',
+              transition: 'border-color 0.3s ease',
+            }}
+          >
+            <CardContent>
+              {/* Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: '#6C5CE7',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    C
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Cituro
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Meeting-Buchungen
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  icon={<StatusIcon status={cituroLabel.status} size="small" />}
+                  label={cituroLabel.text}
+                  color={getStatusColor(cituroLabel.status)}
+                  size="small"
+                  variant="outlined"
+                />
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Status Details */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    API konfiguriert:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {cituroStatus.configured ? 'Ja' : 'Nein'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Integration aktiviert:
+                  </Typography>
+                  <Chip
+                    label={cituroStatus.enabled ? 'Aktiviert' : 'Deaktiviert'}
+                    color={cituroStatus.enabled ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
+
+                {cituroDetails?.subdomain && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Subdomain:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500} fontFamily="monospace">
+                      {cituroDetails.subdomain}
+                    </Typography>
+                  </Box>
+                )}
+
+                {cituroDetails?.message && (
+                  <Alert 
+                    severity={cituroDetails.status === 'connected' ? 'success' : 'warning'} 
+                    sx={{ mt: 1 }}
+                    icon={false}
+                  >
+                    <Typography variant="caption">{cituroDetails.message}</Typography>
+                  </Alert>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Actions */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={testingConnection ? <CircularProgress size={16} /> : <SyncIcon />}
+                  onClick={testCituroConnection}
+                  disabled={testingConnection || !cituroStatus.configured}
+                  fullWidth
+                >
+                  {testingConnection ? 'Teste...' : 'Verbindung testen'}
+                </Button>
+              </Box>
+
+              {/* Info Note */}
+              <Paper 
+                variant="outlined" 
+                sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    API Key und Subdomain werden via Environment Variables konfiguriert (.env Datei).
+                    Änderungen erfordern einen Server-Neustart.
+                  </Typography>
+                </Box>
+              </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Webhook Endpoints Card */}
         <Grid size={{ xs: 12 }}>
           <Card>
@@ -562,6 +716,12 @@ const IntegrationSettings = () => {
                   label="Slack Alerts"
                   color={slackStatus.enabled ? 'success' : 'default'}
                   variant={slackStatus.enabled ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Cituro Integration"
+                  color={cituroStatus.enabled ? 'success' : 'default'}
+                  variant={cituroStatus.enabled ? 'filled' : 'outlined'}
                   size="small"
                 />
                 <Chip
