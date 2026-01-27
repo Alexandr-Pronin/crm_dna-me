@@ -58,6 +58,40 @@ export interface MocoOffer {
   updated_at: string;
 }
 
+export interface MocoUser {
+  id: number;
+  firstname: string;
+  lastname: string;
+  active?: boolean;
+}
+
+export interface MocoProjectData {
+  name: string;
+  currency: string;
+  leader_id: number;
+  customer_id: string;
+  start_date: string;
+  finish_date: string;
+  fixed_price: boolean;
+  retainer: boolean;
+  billing_variant?: 'project' | 'task' | 'user';
+  hourly_rate?: number;
+  budget?: number;
+  info?: string;
+  tags?: string[];
+}
+
+export interface MocoProject {
+  id: string;
+  name: string;
+  active: boolean;
+  currency: string;
+  leader: { id: number; firstname: string; lastname: string };
+  customer: { id: string; name: string };
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MocoInvoice {
   id: string;
   customer_id: string;
@@ -68,6 +102,41 @@ export interface MocoInvoice {
   paid_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface MocoInvoiceItem {
+  type: 'title' | 'description' | 'item' | 'subtotal' | 'page-break' | 'separator';
+  title?: string;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+  unit_price?: number;
+  net_total?: number;
+}
+
+export interface MocoInvoiceData {
+  customer_id: string;
+  recipient_address: string;
+  date: string;
+  due_date: string;
+  title: string;
+  tax: number;
+  currency: string;
+  items: MocoInvoiceItem[];
+  status?: 'created' | 'draft';
+  service_period_from?: string;
+  service_period_to?: string;
+  change_address?: 'invoice' | 'project' | 'customer';
+  salutation?: string;
+  footer?: string;
+  discount?: number;
+  cash_discount?: number;
+  cash_discount_days?: number;
+  project_id?: string;
+  internal_contact_id?: number;
+  info?: string;
+  tags?: string[];
+  custom_properties?: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -310,6 +379,115 @@ export class MocoService {
     const response = await this.client.post<MocoOffer>('/offers', payload);
     console.log(`[Moco] Offer created with ID: ${response.data.id}`);
     
+    return response.data.id;
+  }
+
+  // ===========================================================================
+  // Invoice Management
+  // ===========================================================================
+
+  /**
+   * Create an invoice in Moco (supports draft)
+   */
+  async createInvoice(data: MocoInvoiceData): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new MocoError('Moco not configured', 500);
+    }
+
+    const payload = {
+      customer_id: data.customer_id,
+      recipient_address: data.recipient_address,
+      date: data.date,
+      due_date: data.due_date,
+      title: data.title,
+      tax: data.tax,
+      currency: data.currency,
+      items: data.items,
+      status: data.status || 'created',
+      service_period_from: data.service_period_from,
+      service_period_to: data.service_period_to,
+      change_address: data.change_address,
+      salutation: data.salutation,
+      footer: data.footer,
+      discount: data.discount,
+      cash_discount: data.cash_discount,
+      cash_discount_days: data.cash_discount_days,
+      project_id: data.project_id,
+      internal_contact_id: data.internal_contact_id,
+      info: data.info,
+      tags: data.tags,
+      custom_properties: data.custom_properties
+    };
+
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, v]) => v !== undefined)
+    );
+
+    console.log(`[Moco] Creating invoice: ${data.title}`);
+    const response = await this.client.post<MocoInvoice>('/invoices', cleanPayload);
+    console.log(`[Moco] Invoice created with ID: ${response.data.id}`);
+
+    return response.data.id;
+  }
+
+  // ===========================================================================
+  // Project Management
+  // ===========================================================================
+
+  /**
+   * List users (needed for leader_id)
+   */
+  async getUsers(): Promise<MocoUser[]> {
+    if (!this.isConfigured()) {
+      throw new MocoError('Moco not configured', 500);
+    }
+
+    const response = await this.client.get<MocoUser[]>('/users');
+    return response.data;
+  }
+
+  /**
+   * Get default leader (first active user)
+   */
+  async getDefaultLeaderId(): Promise<number | null> {
+    const users = await this.getUsers();
+    const activeUser = users.find(user => user.active);
+    if (activeUser) return activeUser.id;
+    return users.length > 0 ? users[0].id : null;
+  }
+
+  /**
+   * Create a project in Moco
+   */
+  async createProject(data: MocoProjectData): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new MocoError('Moco not configured', 500);
+    }
+
+    const payload = {
+      name: data.name,
+      currency: data.currency,
+      leader_id: data.leader_id,
+      customer_id: data.customer_id,
+      start_date: data.start_date,
+      finish_date: data.finish_date,
+      fixed_price: data.fixed_price,
+      retainer: data.retainer,
+      billing_variant: data.billing_variant || 'project',
+      hourly_rate: data.hourly_rate,
+      budget: data.budget,
+      info: data.info,
+      tags: data.tags
+    };
+
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, v]) => v !== undefined)
+    );
+
+    console.log(`[Moco] Creating project: ${data.name}`);
+    const response = await this.client.post<MocoProject>('/projects', cleanPayload);
+    console.log(`[Moco] Project created with ID: ${response.data.id}`);
+
     return response.data.id;
   }
 

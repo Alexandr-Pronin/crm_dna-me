@@ -120,10 +120,16 @@ const DealCreateForm = () => {
 
   const pipelineChoices = pipelines.map(p => ({ id: p.id, name: p.name }));
   const stageChoices = stages.map(s => ({ id: s.id, name: s.name }));
-  const leadChoices = leads.map(l => ({
-    id: l.id,
-    name: `${l.email}${l.first_name ? ` (${l.first_name} ${l.last_name || ''})` : ''}`.trim(),
-  }));
+  const leadChoices = leads.map(l => {
+    const personName = `${l.first_name || ''} ${l.last_name || ''}`.trim();
+    const companyName = l.organization_name || l.company || '';
+    const labelBase = personName || l.email;
+
+    return {
+      id: l.id,
+      name: companyName ? `${companyName} — ${labelBase}` : labelBase,
+    };
+  });
 
   return (
     <SimpleForm>

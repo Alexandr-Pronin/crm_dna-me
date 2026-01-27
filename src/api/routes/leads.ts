@@ -64,6 +64,7 @@ function transformLeadResponse(lead: Lead): LeadResponse {
     phone: lead.phone ?? null,
     job_title: lead.job_title ?? null,
     organization_id: lead.organization_id ?? null,
+    organization_name: (lead as Lead & { organization_name?: string | null }).organization_name ?? null,
     status: lead.status,
     lifecycle_stage: lead.lifecycle_stage,
     demographic_score: lead.demographic_score,

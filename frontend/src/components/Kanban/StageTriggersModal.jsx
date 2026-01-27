@@ -19,8 +19,6 @@ import {
   Card,
   CardContent,
   CardActionArea,
-  Checkbox,
-  FormControlLabel,
   alpha,
   Tooltip,
   Collapse,
@@ -44,6 +42,7 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useDataProvider, useNotify } from 'react-admin';
+import { httpClient, API_URL } from '../../providers/dataProvider';
 
 // DNA ME Farbpalette
 const DNA_COLORS = {
@@ -62,15 +61,14 @@ const DNA_COLORS = {
 // Definierte Trigger-Aktionen
 const TRIGGER_ACTIONS = [
   {
-    id: 'send_email',
-    name: 'E-Mail senden',
-    description: 'Sendet eine E-Mail an den Lead/Kontakt',
+    id: 'enroll_email_sequence',
+    name: 'Email Marketing',
+    description: 'Lead in eine E-Mail-Sequenz einschreiben',
     icon: EmailIcon,
     color: '#4A90A4',
     category: 'communication',
     fields: [
-      { name: 'subject', label: 'Betreff', type: 'text', required: true },
-      { name: 'template', label: 'Template', type: 'select', required: true, options: ['Willkommen', 'Follow-up', 'Angebot', 'Erinnerung'] },
+      { name: 'sequence_id', label: 'E-Mail-Sequenz', type: 'select', required: true, options: [] },
     ],
   },
   {
@@ -89,9 +87,7 @@ const TRIGGER_ACTIONS = [
     icon: BusinessIcon,
     color: '#10B981',
     category: 'moco',
-    fields: [
-      { name: 'project_name', label: 'Projektname', type: 'text', required: false },
-    ],
+    fields: [],
   },
   {
     id: 'create_moco_offer',
@@ -103,6 +99,21 @@ const TRIGGER_ACTIONS = [
     fields: [],
   },
   {
+    id: 'create_moco_invoice_draft',
+    name: 'Moco Rechnung (Entwurf)',
+    description: 'Erstellt eine Rechnung als Entwurf in Moco',
+    icon: DescriptionIcon,
+    color: '#10B981',
+    category: 'moco',
+    fields: [
+      { name: 'title', label: 'Rechnungstitel', type: 'text', required: false },
+      { name: 'tax', label: 'Steuer %', type: 'text', required: false, placeholder: '8' },
+      { name: 'due_days', label: 'Fällig in Tagen', type: 'text', required: false, placeholder: '14' },
+      { name: 'item_title', label: 'Positionstitel', type: 'text', required: false },
+      { name: 'unit_price', label: 'Preis (netto)', type: 'text', required: false },
+    ],
+  },
+  {
     id: 'send_cituro_booking',
     name: 'Cituro Buchungslink',
     description: 'Sendet einen Terminbuchungslink per E-Mail',
@@ -110,7 +121,10 @@ const TRIGGER_ACTIONS = [
     color: '#8B5CF6',
     category: 'scheduling',
     fields: [
-      { name: 'booking_type', label: 'Meeting-Typ', type: 'select', required: true, options: ['Erstgespräch', 'Demo', 'Beratung', 'Follow-up'] },
+      { name: 'meeting_type', label: 'Meeting-Typ', type: 'select', required: false, options: ['consultation', 'demo', 'follow-up', 'beratung'] },
+      { name: 'duration_minutes', label: 'Dauer (Min.)', type: 'text', required: false, placeholder: '30' },
+      { name: 'email_subject', label: 'E-Mail Betreff', type: 'text', required: false },
+      { name: 'email_html', label: 'E-Mail Text/HTML', type: 'textarea', required: false },
     ],
   },
   {
@@ -124,6 +138,15 @@ const TRIGGER_ACTIONS = [
       { name: 'channel', label: 'Channel', type: 'text', placeholder: '#sales', required: true },
       { name: 'message', label: 'Nachricht', type: 'textarea', required: true },
     ],
+  },
+  {
+    id: 'send_notification_email',
+    name: 'Deal Notification',
+    description: 'Sendet eine Deal-Notification an ein Team-Postfach',
+    icon: EmailIcon,
+    color: '#E91E63',
+    category: 'notification',
+    fields: [],
   },
 ];
 
@@ -141,10 +164,10 @@ const StageTriggersModal = ({
   stage,
   stageColor = DNA_COLORS.primary,
   deals = [],
+  onExecuted,
 }) => {
   // Mehrfach-Auswahl von Aktionen (Objekt mit actionId als Key)
   const [selectedActions, setSelectedActions] = useState({});
-  const [selectedDeals, setSelectedDeals] = useState({});
   const [executing, setExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({
@@ -153,6 +176,7 @@ const StageTriggersModal = ({
     scheduling: true,
     notification: true,
   });
+  const [emailSequences, setEmailSequences] = useState([]);
   // Verschachteltes Objekt für Felder: { actionId: { fieldName: value } }
   const [actionFields, setActionFields] = useState({});
   // Validierungsfehler: { actionId: { fieldName: errorMessage } }
@@ -165,56 +189,67 @@ const StageTriggersModal = ({
   useEffect(() => {
     if (open) {
       setSelectedActions({});
-      setSelectedDeals({});
       setExecutionResult(null);
       setActionFields({});
       setValidationErrors({});
     }
   }, [open]);
 
+  useEffect(() => {
+    const loadSequences = async () => {
+      if (!open) return;
+      try {
+        const { data } = await dataProvider.getList('sequences', {
+          pagination: { page: 1, perPage: 200 },
+          sort: { field: 'created_at', order: 'DESC' },
+          filter: {},
+        });
+        setEmailSequences((data || []).map(seq => ({
+          id: seq.id,
+          name: seq.name || seq.id,
+        })));
+      } catch (error) {
+        console.error('Failed to load email sequences:', error);
+        setEmailSequences([]);
+      }
+    };
+
+    loadSequences();
+  }, [open, dataProvider]);
+
   // Gruppiere Aktionen nach Kategorie
+  const availableActions = useMemo(() => {
+    return TRIGGER_ACTIONS.map(action => {
+      if (action.id !== 'enroll_email_sequence') return action;
+      const fields = action.fields.map(field => (
+        field.name === 'sequence_id'
+          ? { ...field, options: emailSequences }
+          : field
+      ));
+      return { ...action, fields };
+    });
+  }, [emailSequences]);
+
   const actionsByCategory = useMemo(() => {
     const grouped = {};
-    TRIGGER_ACTIONS.forEach(action => {
+    availableActions.forEach(action => {
       if (!grouped[action.category]) {
         grouped[action.category] = [];
       }
       grouped[action.category].push(action);
     });
     return grouped;
-  }, []);
+  }, [availableActions]);
 
-  // Anzahl ausgewählter Deals
-  const selectedDealCount = Object.values(selectedDeals).filter(Boolean).length;
+  const dealCount = deals.length;
 
   // Anzahl ausgewählter Aktionen
   const selectedActionCount = Object.values(selectedActions).filter(Boolean).length;
 
   // Liste der ausgewählten Aktionen
   const selectedActionsList = useMemo(() => {
-    return TRIGGER_ACTIONS.filter(action => selectedActions[action.id]);
-  }, [selectedActions]);
-
-  // Toggle Deal-Auswahl
-  const handleToggleDeal = (dealId) => {
-    setSelectedDeals(prev => ({
-      ...prev,
-      [dealId]: !prev[dealId],
-    }));
-  };
-
-  // Alle Deals auswählen/abwählen
-  const handleToggleAllDeals = () => {
-    if (selectedDealCount === deals.length) {
-      setSelectedDeals({});
-    } else {
-      const allSelected = {};
-      deals.forEach(deal => {
-        allSelected[deal.id] = true;
-      });
-      setSelectedDeals(allSelected);
-    }
-  };
+    return availableActions.filter(action => selectedActions[action.id]);
+  }, [selectedActions, availableActions]);
 
   // Kategorie ein-/ausklappen
   const toggleCategory = (category) => {
@@ -282,14 +317,40 @@ const StageTriggersModal = ({
     }
   };
 
+  const NOTIFICATION_TEMPLATE_KEY = 'notification_email_template';
+
+  const loadNotificationSettings = () => {
+    try {
+      const stored = localStorage.getItem(NOTIFICATION_TEMPLATE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
   // Validierung der ausgewählten Aktionen
   const validateActions = useCallback(() => {
     const errors = {};
     let hasErrors = false;
+    const notificationSettings = loadNotificationSettings();
 
     selectedActionsList.forEach(action => {
       const fields = actionFields[action.id] || {};
       const actionErrors = {};
+
+      if (action.id === 'send_notification_email') {
+        if (!notificationSettings?.to) {
+          actionErrors.to = 'Empfänger fehlt in Einstellungen';
+          hasErrors = true;
+        }
+      }
+
+      if (action.id === 'enroll_email_sequence') {
+        if (!fields.sequence_id) {
+          actionErrors.sequence_id = 'E-Mail-Sequenz ist erforderlich';
+          hasErrors = true;
+        }
+      }
 
       action.fields.forEach(field => {
         if (field.required) {
@@ -322,8 +383,13 @@ const StageTriggersModal = ({
 
   // Trigger ausführen
   const handleExecuteTrigger = async () => {
-    if (selectedActionCount === 0 || selectedDealCount === 0) {
-      notify('Bitte wähle mindestens einen Deal und eine Aktion aus', { type: 'warning' });
+    if (selectedActionCount === 0) {
+      notify('Bitte wähle mindestens eine Aktion aus', { type: 'warning' });
+      return;
+    }
+
+    if (dealCount === 0) {
+      notify('Keine Deals in dieser Stage vorhanden', { type: 'warning' });
       return;
     }
 
@@ -337,43 +403,86 @@ const StageTriggersModal = ({
     setExecutionResult(null);
 
     try {
-      const selectedDealIds = Object.entries(selectedDeals)
-        .filter(([_, selected]) => selected)
-        .map(([id]) => id);
+      const selectedDealIds = deals.map((deal) => deal.id);
 
-      // Bereite Trigger-Daten vor
-      const triggers = selectedActionsList.map(action => ({
-        action: action.id,
-        params: actionFields[action.id] || {},
-      }));
-
-      // API-Call zum Ausführen der Trigger
-      const response = await fetch('/api/v1/triggers/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          triggers,
-          stage_id: stage?.id,
-          deal_ids: selectedDealIds,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Trigger-Ausführung fehlgeschlagen');
+      const missingLeadActions = new Set(['create_moco_customer', 'create_moco_project', 'send_cituro_booking', 'enroll_email_sequence']);
+      const missingLeadDeal = deals.find((deal) => !deal.lead_id && selectedActionsList.some(a => missingLeadActions.has(a.id)));
+      if (missingLeadDeal) {
+        throw new Error('Mindestens ein Deal hat kein lead_id für die ausgewählten Aktionen.');
       }
 
-      const result = await response.json();
-      
-      const actionNames = selectedActionsList.map(a => a.name).join(', ');
-      setExecutionResult({
-        success: true,
-        message: `${selectedActionCount} Aktion(en) erfolgreich für ${selectedDealIds.length} Deal(s) ausgeführt: ${actionNames}`,
-        details: result,
+      const notificationSettings = loadNotificationSettings();
+      const requests = [];
+      selectedActionsList.forEach(action => {
+        const config = action.id === 'send_notification_email'
+          ? notificationSettings
+          : (actionFields[action.id] || {});
+        deals.forEach(deal => {
+          requests.push({
+            action: action.id,
+            config,
+            context: {
+              deal_id: deal.id,
+              lead_id: deal.lead_id,
+              stage_id: stage?.id,
+              pipeline_id: deal.pipeline_id || stage?.pipeline_id,
+            },
+          });
+        });
       });
 
-      notify(`${selectedActionCount} Trigger erfolgreich ausgeführt`, { type: 'success' });
+      const results = await Promise.allSettled(
+        requests.map((payload) =>
+          httpClient(`${API_URL}/triggers/execute`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          })
+        )
+      );
+
+      const failures = [];
+      let successCount = 0;
+
+      results.forEach((res, index) => {
+        if (res.status === 'fulfilled') {
+          const data = res.value?.json;
+          if (data?.success) {
+            successCount += 1;
+          } else {
+            failures.push({
+              index,
+              error: data?.error || data?.result?.error || 'Unbekannter Fehler',
+            });
+          }
+        } else {
+          failures.push({ index, error: res.reason?.message || 'Unbekannter Fehler' });
+        }
+      });
+
+      const actionNames = selectedActionsList.map(a => a.name).join(', ');
+      const totalCount = requests.length;
+      const failedCount = failures.length;
+
+      const errorPreview = failures.slice(0, 3).map((f) => f.error).filter(Boolean);
+      const errorSuffix = errorPreview.length ? ` Fehler: ${errorPreview.join(' | ')}.` : '';
+
+      setExecutionResult({
+        success: failedCount === 0,
+        message: failedCount === 0
+          ? `${selectedActionCount} Aktion(en) erfolgreich für ${selectedDealIds.length} Deal(s) ausgeführt: ${actionNames}`
+          : `${successCount}/${totalCount} Trigger erfolgreich, ${failedCount} fehlgeschlagen.${errorSuffix}`,
+        details: { total: totalCount, success: successCount, failed: failedCount },
+      });
+
+      if (failedCount === 0) {
+        notify(`${selectedActionCount} Trigger erfolgreich ausgeführt`, { type: 'success' });
+      } else {
+        notify(`${failedCount} Trigger fehlgeschlagen`, { type: 'warning' });
+      }
+
+      if (successCount > 0 && typeof onExecuted === 'function') {
+        onExecuted();
+      }
     } catch (err) {
       console.error('Trigger execution failed:', err);
       setExecutionResult({
@@ -434,7 +543,7 @@ const StageTriggersModal = ({
               Stage Trigger: {stage.name}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Mehrere Aktionen für Deals in dieser Stage konfigurieren und ausführen
+              Mehrere Aktionen für alle Deals in dieser Stage konfigurieren und ausführen
             </Typography>
           </Box>
         </Box>
@@ -444,7 +553,7 @@ const StageTriggersModal = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, display: 'flex', height: '60vh' }}>
-        {/* Linke Seite: Deal-Auswahl */}
+        {/* Linke Seite: Deals in Stage */}
         <Box
           sx={{
             width: 320,
@@ -455,23 +564,11 @@ const StageTriggersModal = ({
         >
           <Box sx={{ p: 2, borderBottom: `1px solid ${DNA_COLORS.border}` }}>
             <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
-              Deals auswählen
+              Deals in dieser Stage
             </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={selectedDealCount === deals.length && deals.length > 0}
-                  indeterminate={selectedDealCount > 0 && selectedDealCount < deals.length}
-                  onChange={handleToggleAllDeals}
-                  sx={{ color: stageColor, '&.Mui-checked': { color: stageColor } }}
-                />
-              }
-              label={
-                <Typography variant="body2" color="text.secondary">
-                  Alle auswählen ({deals.length})
-                </Typography>
-              }
-            />
+            <Typography variant="body2" color="text.secondary">
+              {dealCount} Deal(s) werden automatisch berücksichtigt
+            </Typography>
           </Box>
 
           <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
@@ -487,62 +584,48 @@ const StageTriggersModal = ({
                   key={deal.id}
                   sx={{
                     mb: 1,
-                    bgcolor: selectedDeals[deal.id] 
-                      ? alpha(stageColor, 0.15) 
-                      : alpha(DNA_COLORS.border, 0.3),
-                    border: '1px solid',
-                    borderColor: selectedDeals[deal.id] ? stageColor : 'transparent',
+                    bgcolor: alpha(DNA_COLORS.border, 0.3),
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <CardActionArea onClick={() => handleToggleDeal(deal.id)}>
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Checkbox
-                          checked={!!selectedDeals[deal.id]}
-                          sx={{ 
-                            p: 0.5,
-                            color: stageColor, 
-                            '&.Mui-checked': { color: stageColor } 
+                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          color="text.primary"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                           }}
-                        />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography
-                            variant="body2"
-                            fontWeight={600}
-                            color="text.primary"
-                            sx={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {deal.title || deal.name || 'Unbenannter Deal'}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                            {deal.value > 0 && (
-                              <Chip
-                                size="small"
-                                icon={<MoneyIcon sx={{ fontSize: 12 }} />}
-                                label={`€${deal.value.toLocaleString('de-DE')}`}
-                                sx={{
-                                  height: 20,
-                                  fontSize: '0.65rem',
-                                  bgcolor: alpha(stageColor, 0.2),
-                                  color: stageColor,
-                                }}
-                              />
-                            )}
-                            {(deal.contact_name || deal.lead_name) && (
-                              <Typography variant="caption" color="text.secondary">
-                                {deal.contact_name || deal.lead_name}
-                              </Typography>
-                            )}
-                          </Box>
+                        >
+                          {deal.title || deal.name || 'Unbenannter Deal'}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                          {deal.value > 0 && (
+                            <Chip
+                              size="small"
+                              icon={<MoneyIcon sx={{ fontSize: 12 }} />}
+                              label={`€${deal.value.toLocaleString('de-DE')}`}
+                              sx={{
+                                height: 20,
+                                fontSize: '0.65rem',
+                                bgcolor: alpha(stageColor, 0.2),
+                                color: stageColor,
+                              }}
+                            />
+                          )}
+                          {(deal.contact_name || deal.lead_name) && (
+                            <Typography variant="caption" color="text.secondary">
+                              {deal.contact_name || deal.lead_name}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
-                    </CardContent>
-                  </CardActionArea>
+                    </Box>
+                  </CardContent>
                 </Card>
               ))
             )}
@@ -556,7 +639,7 @@ const StageTriggersModal = ({
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              <strong style={{ color: stageColor }}>{selectedDealCount}</strong> von {deals.length} Deals ausgewählt
+              <strong style={{ color: stageColor }}>{dealCount}</strong> Deal(s) in dieser Stage
             </Typography>
           </Box>
         </Box>
@@ -770,8 +853,8 @@ const StageTriggersModal = ({
                               >
                                 <option value="">-- Auswählen --</option>
                                 {field.options.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
+                                  <option key={opt.id || opt} value={opt.id || opt}>
+                                    {opt.name || opt}
                                   </option>
                                 ))}
                               </TextField>
@@ -806,7 +889,9 @@ const StageTriggersModal = ({
                     </Box>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      Diese Aktion benötigt keine weitere Konfiguration.
+                      {action.id === 'send_notification_email'
+                        ? 'Konfiguration erfolgt unter Einstellungen → Notifications.'
+                        : 'Diese Aktion benötigt keine weitere Konfiguration.'}
                     </Typography>
                   )}
                 </Box>
@@ -859,7 +944,7 @@ const StageTriggersModal = ({
           <Button
             variant="contained"
             onClick={handleExecuteTrigger}
-            disabled={executing || selectedActionCount === 0 || selectedDealCount === 0}
+            disabled={executing || selectedActionCount === 0 || dealCount === 0}
             startIcon={executing ? <CircularProgress size={16} /> : <PlayIcon />}
             sx={{
               bgcolor: DNA_COLORS.primary,
@@ -870,7 +955,7 @@ const StageTriggersModal = ({
           >
             {executing 
               ? 'Wird ausgeführt...' 
-              : `${selectedActionCount} Aktion(en) für ${selectedDealCount} Deal(s) ausführen`
+              : `${selectedActionCount} Aktion(en) für ${dealCount} Deal(s) ausführen`
             }
           </Button>
         </Box>

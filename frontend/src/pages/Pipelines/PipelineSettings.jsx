@@ -239,129 +239,242 @@ const PipelineSettings = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Load Pipelines
-  useEffect(() => {
-    const loadPipelines = async () => {
-      try {
-        const { data } = await dataProvider.getList('pipelines', {
-          pagination: { page: 1, perPage: 100 },
-          sort: { field: 'name', order: 'ASC' },
-        });
-        setPipelines(data);
-        if (data.length > 0 && !selectedPipelineId) {
-          setSelectedPipelineId(data[0].id);
+  // Load Pipelines function
+  const loadPipelines = useCallback(async () => {
+    try {
+      const { data } = await dataProvider.getList('pipelines', {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: 'name', order: 'ASC' },
+      });
+      setPipelines(data || []);
+      // Only set default pipeline if none is selected
+      setSelectedPipelineId(prev => {
+        if (!prev && data && data.length > 0) {
+          return data[0].id;
         }
-      } catch (error) {
-        notify('Fehler beim Laden der Pipelines', { type: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPipelines();
-  }, [dataProvider, notify, selectedPipelineId]);
+        return prev;
+      });
+    } catch (error) {
+      console.error('Failed to load pipelines:', error);
+      notify('Fehler beim Laden der Pipelines', { type: 'error' });
+      setPipelines([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [dataProvider, notify]);
 
-  // Load Stages
+  // Load Pipelines on mount
   useEffect(() => {
-    if (!selectedPipelineId) return;
+    loadPipelines();
+  }, [loadPipelines]);
 
-    const loadStages = async () => {
-      setStagesLoading(true);
-      try {
-        const { data } = await dataProvider.getList(`pipelines/${selectedPipelineId}/stages`, {
-          pagination: { page: 1, perPage: 100 },
-          sort: { field: 'position', order: 'ASC' },
-        });
-        setStages(data);
-      } catch (error) {
-        notify('Fehler beim Laden der Stages', { type: 'error' });
-      } finally {
-        setStagesLoading(false);
-      }
-    };
-    loadStages();
+  // Load Stages function
+  const loadStages = useCallback(async () => {
+    if (!selectedPipelineId) return;
+    
+    setStagesLoading(true);
+    try {
+      const { data } = await dataProvider.getList(`pipelines/${selectedPipelineId}/stages`, {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: 'position', order: 'ASC' },
+      });
+      setStages(data || []);
+    } catch (error) {
+      console.error('Failed to load stages:', error);
+      notify('Fehler beim Laden der Stages', { type: 'error' });
+      setStages([]);
+    } finally {
+      setStagesLoading(false);
+    }
   }, [selectedPipelineId, dataProvider, notify]);
+
+  // Load Stages when pipeline changes
+  useEffect(() => {
+    loadStages();
+  }, [loadStages]);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      setStages((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const newStages = arrayMove(items, oldIndex, newIndex);
-        
-        // Optimistic update
-        const stageIds = newStages.map(s => s.id);
-        
-        // Call API to reorder
-        dataProvider.create(`pipelines/${selectedPipelineId}/stages/reorder`, {
-             data: { stage_ids: stageIds } 
-        })
-        .catch(() => {
-            notify('Fehler beim Speichern der Reihenfolge', { type: 'error' });
-            // Revert on error (could be implemented by reloading stages)
-            refresh();
-        });
+    if (!active || !over || active.id === over.id) return;
 
-        return newStages;
+    const oldIndex = stages.findIndex((item) => item.id === active.id);
+    const newIndex = stages.findIndex((item) => item.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    // Optimistic update
+    const newStages = arrayMove(stages, oldIndex, newIndex);
+    setStages(newStages);
+    
+    const stageIds = newStages.map(s => s.id);
+    
+    try {
+      await dataProvider.create(`pipelines/${selectedPipelineId}/stages/reorder`, {
+        data: { stage_ids: stageIds } 
       });
+      // Reload stages to ensure consistency
+      await loadStages();
+    } catch (error) {
+      console.error('Failed to reorder stages:', error);
+      notify('Fehler beim Speichern der Reihenfolge', { type: 'error' });
+      // Revert by reloading stages
+      await loadStages();
     }
   };
 
   const handleStageUpdate = async (id, updates) => {
     // Optimistic update
+    const oldStages = stages;
     setStages(stages.map(s => s.id === id ? { ...s, ...updates } : s));
 
     try {
       await dataProvider.update('stages', { id, data: updates });
       notify('Stage aktualisiert', { type: 'success' });
+      // Reload stages to ensure consistency
+      await loadStages();
     } catch (error) {
+      console.error('Failed to update stage:', error);
+      // Revert optimistic update
+      setStages(oldStages);
       notify('Fehler beim Aktualisieren der Stage', { type: 'error' });
-      refresh(); // Revert
     }
   };
 
   const handleStageDelete = async (id) => {
+    // Prevent deleting the last stage to avoid 400 from backend
+    if (stages.length <= 1) {
+      notify('Die letzte Stage kann nicht gelöscht werden', { type: 'warning' });
+      return;
+    }
+
     if (!window.confirm('Sind Sie sicher? Alle Deals in dieser Stage müssen verschoben werden.')) return;
 
     try {
       await dataProvider.delete('stages', { id });
-      setStages(stages.filter(s => s.id !== id));
       notify('Stage gelöscht', { type: 'success' });
+      // Reload stages after deletion
+      await loadStages();
     } catch (error) {
-      notify('Fehler beim Löschen der Stage', { type: 'error' });
+      console.error('Failed to delete stage:', error);
+      if (error.message?.includes('last stage') || error.status === 400) {
+        notify('Die letzte Stage kann nicht gelöscht werden', { type: 'error' });
+      } else {
+        notify('Fehler beim Löschen der Stage', { type: 'error' });
+      }
     }
   };
 
+  const generateStageSlug = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[äöüß]/g, (char) => {
+        const map = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' };
+        return map[char] || char;
+      })
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 100);
+  };
+
   const handleAddStage = async () => {
-    const newPosition = stages.length > 0 ? Math.max(...stages.map(s => s.position || 0)) + 1 : 0;
+    if (!selectedPipelineId) {
+      notify('Bitte wählen Sie zuerst eine Pipeline aus', { type: 'warning' });
+      return;
+    }
+    
+    const newPosition = stages.length > 0 ? Math.max(...stages.map(s => s.position || 0)) + 1 : 1;
+    const baseName = 'Neue Stage';
+    const existingNames = new Set(stages.map(stage => stage.name?.trim().toLowerCase()));
+    const existingSlugs = new Set(stages.map(stage => stage.slug).filter(Boolean));
+    
+    // Find a unique name (UI) and a unique slug (backend)
+    let stageName = baseName;
+    let suffix = 2;
+    while (existingNames.has(stageName.toLowerCase())) {
+      stageName = `${baseName} ${suffix++}`;
+    }
+
+    let stageSlug = generateStageSlug(stageName);
+    while (existingSlugs.has(stageSlug)) {
+      stageName = `${baseName} ${suffix++}`;
+      stageSlug = generateStageSlug(stageName);
+    }
+    
     try {
-      const { data } = await dataProvider.create(`pipelines/${selectedPipelineId}/stages`, {
+      await dataProvider.create(`pipelines/${selectedPipelineId}/stages`, {
         data: {
-          name: 'Neue Stage',
+          name: stageName,
+          slug: stageSlug,
           position: newPosition,
           color: PRESET_COLORS[newPosition % PRESET_COLORS.length]
         }
       });
-      setStages([...stages, data]);
       notify('Stage erstellt', { type: 'success' });
+      // Reload stages after creation
+      await loadStages();
     } catch (error) {
-      notify('Fehler beim Erstellen der Stage', { type: 'error' });
+      console.error('Failed to create stage:', error);
+      
+      // If it's a slug conflict, show a more specific error
+      if (error.message?.includes('already exists') || error.status === 409) {
+        notify('Ein Konflikt ist aufgetreten. Bitte versuchen Sie es erneut.', { type: 'error' });
+        // Reload stages to get the latest data
+        await loadStages();
+      } else {
+        notify('Fehler beim Erstellen der Stage', { type: 'error' });
+      }
     }
   };
 
   const handleCreatePipeline = async () => {
+    const trimmedName = newPipelineName.trim();
+    if (!trimmedName) {
+      notify('Bitte geben Sie einen Namen für die Pipeline ein.', { type: 'warning' });
+      return;
+    }
+    
     try {
       const { data } = await dataProvider.create('pipelines', {
-        data: { name: newPipelineName, is_active: true }
+        data: { name: trimmedName, is_active: true }
       });
-      setPipelines([...pipelines, data]);
-      setSelectedPipelineId(data.id);
       setCreatePipelineOpen(false);
       setNewPipelineName('');
       notify('Pipeline erstellt', { type: 'success' });
+      // Reload pipelines to get the new one
+      await loadPipelines();
+      // Select the newly created pipeline
+      if (data && data.id) {
+        setSelectedPipelineId(data.id);
+      }
     } catch (error) {
+      console.error('Failed to create pipeline:', error);
       notify('Fehler beim Erstellen der Pipeline', { type: 'error' });
+    }
+  };
+
+  const handleDeletePipeline = async () => {
+    if (!selectedPipelineId) {
+      notify('Bitte wählen Sie zuerst eine Pipeline aus.', { type: 'warning' });
+      return;
+    }
+
+    if (!window.confirm('Möchten Sie diese Pipeline wirklich löschen? Alle Stages werden entfernt.')) return;
+
+    try {
+      await dataProvider.delete('pipelines', { id: selectedPipelineId });
+      notify('Pipeline gelöscht', { type: 'success' });
+      setSelectedPipelineId('');
+      await loadPipelines();
+    } catch (error) {
+      console.error('Failed to delete pipeline:', error);
+      if (error.status === 409 || error.message?.includes('Cannot delete')) {
+        notify('Pipeline kann nicht gelöscht werden. Bitte zuerst offene Deals schließen oder verschieben.', { type: 'error' });
+      } else if (error.status === 400) {
+        notify('Pipeline kann nicht gelöscht werden.', { type: 'error' });
+      } else {
+        notify('Fehler beim Löschen der Pipeline', { type: 'error' });
+      }
     }
   };
 
@@ -375,13 +488,24 @@ const PipelineSettings = () => {
         <Typography variant="h4" component="h1">
           Pipeline Einstellungen
         </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={() => setCreatePipelineOpen(true)}
-        >
-          Neue Pipeline
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={handleDeletePipeline}
+            disabled={!selectedPipelineId}
+          >
+            Pipeline löschen
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreatePipelineOpen(true)}
+          >
+            Neue Pipeline
+          </Button>
+        </Stack>
       </Box>
 
       <Card sx={{ mb: 4 }}>

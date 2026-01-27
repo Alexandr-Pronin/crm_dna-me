@@ -7,14 +7,14 @@
 import queryString from 'query-string';
 const { stringify } = queryString;
 
-// API Configuration - HARDCODED FOR DEV MODE
-const API_URL = 'http://localhost:3000/api/v1';
+// API Configuration - HARDCODED FOR DEV MODE (override with VITE_API_URL)
+export const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3000/api/v1';
 const API_KEY = 'test123';
 
 /**
  * Custom HTTP Client with hardcoded API Key header
  */
-const httpClient = async (url, options = {}) => {
+export const httpClient = async (url, options = {}) => {
   // Correlation ID for distributed tracing
   const correlationId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -27,10 +27,18 @@ const httpClient = async (url, options = {}) => {
     'X-Correlation-ID': correlationId,
   });
 
-  const response = await fetch(url, { 
-    ...options, 
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, { 
+      ...options, 
+      headers,
+    });
+  } catch (error) {
+    const networkError = new Error('API недоступен. Проверьте, запущен ли сервер.');
+    networkError.status = 0;
+    networkError.originalError = error;
+    throw networkError;
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
@@ -38,6 +46,15 @@ const httpClient = async (url, options = {}) => {
     error.status = response.status;
     error.body = errorBody;
     throw error;
+  }
+
+  // Handle 204 No Content responses (e.g., DELETE requests)
+  if (response.status === 204) {
+    return {
+      json: {},
+      headers: response.headers,
+      status: response.status,
+    };
   }
 
   const json = await response.json();
@@ -169,18 +186,20 @@ const dataProvider = {
   },
   
   update: async (resource, params) => {
+    const method = resource === 'organizations' ? 'PUT' : 'PATCH';
     const { json } = await httpClient(`${API_URL}/${resource}/${params.id}`, {
-      method: 'PUT',
+      method,
       body: JSON.stringify(params.data),
     });
     return { data: json.data || json };
   },
   
   updateMany: async (resource, params) => {
+    const method = resource === 'organizations' ? 'PUT' : 'PATCH';
     const responses = await Promise.all(
       params.ids.map(id =>
         httpClient(`${API_URL}/${resource}/${id}`, {
-          method: 'PUT',
+          method,
           body: JSON.stringify(params.data),
         })
       )

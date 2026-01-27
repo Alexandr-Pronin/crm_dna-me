@@ -176,6 +176,8 @@ const KanbanBoard = () => {
               name: stage.name,
               slug: stage.slug,
               position: stage.position,
+              color: stage.color || null,
+              stage_type: stage.stage_type || null,
             })));
           } else {
             const fallback = getFallbackPipeline(selectedPipelineId);
@@ -197,33 +199,34 @@ const KanbanBoard = () => {
     loadStages();
   }, [selectedPipelineId, dataProvider]);
 
+  const loadDeals = useCallback(async () => {
+    if (!selectedPipelineId) return;
+
+    setDealsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await dataProvider.getList('deals', {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: 'created_at', order: 'DESC' },
+        filter: { pipeline_id: selectedPipelineId },
+      });
+      
+      setDeals(data || []);
+    } catch (err) {
+      console.error('Failed to load deals:', err);
+      setError(err.message || 'Failed to load deals');
+      notify('Fehler beim Laden der Deals', { type: 'error' });
+    } finally {
+      setDealsLoading(false);
+    }
+  }, [selectedPipelineId, dataProvider, notify]);
+
   // Load deals for selected pipeline
   useEffect(() => {
     if (!selectedPipelineId) return;
-
-    const loadDeals = async () => {
-      setDealsLoading(true);
-      setError(null);
-      
-      try {
-        const { data } = await dataProvider.getList('deals', {
-          pagination: { page: 1, perPage: 100 },
-          sort: { field: 'created_at', order: 'DESC' },
-          filter: { pipeline_id: selectedPipelineId },
-        });
-        
-        setDeals(data || []);
-      } catch (err) {
-        console.error('Failed to load deals:', err);
-        setError(err.message || 'Failed to load deals');
-        notify('Fehler beim Laden der Deals', { type: 'error' });
-      } finally {
-        setDealsLoading(false);
-      }
-    };
-
     loadDeals();
-  }, [selectedPipelineId, dataProvider, notify]);
+  }, [selectedPipelineId, loadDeals]);
 
   // Group deals by stage (memoized)
   const dealsByStage = useMemo(() => {
@@ -441,11 +444,10 @@ const KanbanBoard = () => {
     setIsCreateModalOpen(false);
   }, []);
 
-  const handleDealCreated = useCallback((newDeal) => {
-    // Reload deals to include the new one
-    refresh();
+  const handleDealCreated = useCallback(() => {
+    loadDeals();
     notify('Deal erfolgreich erstellt', { type: 'success' });
-  }, [refresh, notify]);
+  }, [loadDeals, notify]);
 
   // Stage Triggers Modal handlers
   const handleOpenTriggersModal = useCallback((stage, stageDeals) => {
@@ -478,7 +480,15 @@ const KanbanBoard = () => {
 
   // Get color for active deal overlay
   const getStageColor = (stageId) => {
-    return STAGE_COLORS[stageId] || STAGE_COLORS.default;
+    const stage = stages.find(s => s.id === stageId || s.slug === stageId);
+    if (stage?.color) return stage.color;
+    if (stage?.stage_type && STAGE_COLORS[stage.stage_type]) {
+      return STAGE_COLORS[stage.stage_type];
+    }
+    if (stage?.slug && STAGE_COLORS[stage.slug]) {
+      return STAGE_COLORS[stage.slug];
+    }
+    return STAGE_COLORS.default;
   };
 
   return (
@@ -688,6 +698,7 @@ const KanbanBoard = () => {
         stage={triggersStage}
         stageColor={triggersStage ? getStageColor(triggersStage.id) : undefined}
         deals={triggersDeals}
+        onExecuted={loadDeals}
       />
     </Box>
   );

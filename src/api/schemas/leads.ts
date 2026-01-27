@@ -171,6 +171,7 @@ export interface LeadResponse {
   phone: string | null;
   job_title: string | null;
   organization_id: string | null;
+  organization_name?: string | null;
   status: string;
   lifecycle_stage: string;
   demographic_score: number;

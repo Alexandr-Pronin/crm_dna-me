@@ -17,6 +17,7 @@ import {
   IconButton, 
   Tooltip, 
   Link,
+  Chip,
   Fade,
   alpha,
 } from '@mui/material';
@@ -123,6 +124,20 @@ const DealCard = forwardRef(({
     return closeDate < new Date();
   };
 
+  const formatDateTime = (value) => {
+    if (!value) return null;
+    try {
+      return new Date(value).toLocaleString('de-DE', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return null;
+    }
+  };
+
   // Handlers
   const handleTitleClick = (e) => {
     e.stopPropagation();
@@ -190,6 +205,15 @@ const DealCard = forwardRef(({
   const companyName = deal.company_name || deal.lead_company;
   const email = deal.lead_email || deal.contact_email;
   const hasContactLink = deal.lead_id || deal.contact_id;
+  const emailSequence = deal.email_sequence;
+  const hasActiveSequence = emailSequence?.status === 'active';
+  const stepsTotal = emailSequence?.steps_total ? Number(emailSequence.steps_total) : null;
+  const currentStep = Number.isFinite(emailSequence?.current_step) ? Number(emailSequence.current_step) : 0;
+  const nextStep = stepsTotal ? Math.min(currentStep + 1, stepsTotal) : currentStep + 1;
+  const sequenceLabel = emailSequence?.sequence_name
+    ? `Sequenz: ${emailSequence.sequence_name} · Schritt ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`
+    : `E-Mail-Sequenz · Schritt ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`;
+  const nextDueLabel = formatDateTime(emailSequence?.next_email_due_at);
 
   return (
     <Paper
@@ -377,6 +401,27 @@ const DealCard = forwardRef(({
             >
               {formatCurrency(deal.value)}
             </Typography>
+          </Box>
+        )}
+
+        {/* === EMAIL-SEQUENZ STATUS === */}
+        {hasActiveSequence && (
+          <Box sx={{ mb: 1.5, pl: '28px' }}>
+            <Tooltip title={nextDueLabel ? `Nächste E-Mail: ${nextDueLabel}` : 'E-Mail-Sequenz aktiv'} arrow>
+              <Chip
+                size="small"
+                icon={<EmailOutlined sx={{ fontSize: 14 }} />}
+                label={sequenceLabel}
+                sx={{
+                  height: 22,
+                  fontSize: '0.7rem',
+                  bgcolor: alpha(stageColor, 0.15),
+                  color: stageColor,
+                  border: `1px solid ${alpha(stageColor, 0.3)}`,
+                  '& .MuiChip-icon': { color: stageColor }
+                }}
+              />
+            </Tooltip>
           </Box>
         )}
 

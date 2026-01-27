@@ -21,12 +21,18 @@ interface EmailSequenceJob {
 interface DueEmail {
   enrollment_id: string;
   lead_id: string;
+  deal_id?: string | null;
+  stage_id?: string | null;
   sequence_id: string;
   current_step: number;
   lead_email: string;
   lead_first_name?: string;
   lead_last_name?: string;
   lead_company?: string;
+  lead_position?: string;
+  deal_name?: string;
+  deal_value?: number | null;
+  deal_currency?: string | null;
   step_id: string;
   step_subject: string;
   step_body_html: string;
@@ -128,12 +134,18 @@ async function processDueEmails(emailService: ReturnType<typeof getEmailService>
     `SELECT 
        ese.id as enrollment_id,
        ese.lead_id,
+       ese.deal_id,
+       ese.stage_id,
        ese.sequence_id,
        ese.current_step,
        l.email as lead_email,
        l.first_name as lead_first_name,
        l.last_name as lead_last_name,
+       l.job_title as lead_position,
        o.name as lead_company,
+       d.name as deal_name,
+       d.value as deal_value,
+       d.currency as deal_currency,
        ess.id as step_id,
        ess.subject as step_subject,
        ess.body_html as step_body_html,
@@ -142,6 +154,7 @@ async function processDueEmails(emailService: ReturnType<typeof getEmailService>
      FROM email_sequence_enrollments ese
      JOIN leads l ON ese.lead_id = l.id
      LEFT JOIN organizations o ON l.organization_id = o.id
+     LEFT JOIN deals d ON d.id = ese.deal_id
      JOIN email_sequences es ON ese.sequence_id = es.id
      JOIN email_sequence_steps ess ON ess.sequence_id = es.id 
        AND ess.position = ese.current_step + 1
@@ -190,12 +203,18 @@ async function sendSingleEmail(
     `SELECT 
        ese.id as enrollment_id,
        ese.lead_id,
+       ese.deal_id,
+       ese.stage_id,
        ese.sequence_id,
        ese.current_step,
        l.email as lead_email,
        l.first_name as lead_first_name,
        l.last_name as lead_last_name,
+       l.job_title as lead_position,
        o.name as lead_company,
+       d.name as deal_name,
+       d.value as deal_value,
+       d.currency as deal_currency,
        ess.id as step_id,
        ess.subject as step_subject,
        ess.body_html as step_body_html,
@@ -204,6 +223,7 @@ async function sendSingleEmail(
      FROM email_sequence_enrollments ese
      JOIN leads l ON ese.lead_id = l.id
      LEFT JOIN organizations o ON l.organization_id = o.id
+     LEFT JOIN deals d ON d.id = ese.deal_id
      JOIN email_sequences es ON ese.sequence_id = es.id
      JOIN email_sequence_steps ess ON ess.sequence_id = es.id 
        AND ess.position = ese.current_step + 1
@@ -235,6 +255,10 @@ async function sendSequenceEmail(
     last_name: dueEmail.lead_last_name || '',
     email: dueEmail.lead_email,
     company: dueEmail.lead_company || '',
+    position: dueEmail.lead_position || '',
+    deal_name: dueEmail.deal_name || '',
+    deal_value: dueEmail.deal_value ?? '',
+    deal_currency: dueEmail.deal_currency || '',
     full_name: [dueEmail.lead_first_name, dueEmail.lead_last_name].filter(Boolean).join(' ') || 'Interessent/in'
   };
 
@@ -344,13 +368,19 @@ export async function setupEmailSequenceJob(): Promise<void> {
 export async function enrollLeadInSequence(
   leadId: string,
   sequenceId: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  options?: { dealId?: string; stageId?: string }
 ): Promise<string | null> {
+  const dealId = options?.dealId;
+  const stageId = options?.stageId;
   // Check if already enrolled
   const existing = await db.queryOne<{ id: string; status: string }>(
-    `SELECT id, status FROM email_sequence_enrollments 
-     WHERE lead_id = $1 AND sequence_id = $2`,
-    [leadId, sequenceId]
+    dealId
+      ? `SELECT id, status FROM email_sequence_enrollments 
+         WHERE deal_id = $1 AND sequence_id = $2`
+      : `SELECT id, status FROM email_sequence_enrollments 
+         WHERE lead_id = $1 AND sequence_id = $2 AND deal_id IS NULL`,
+    dealId ? [dealId, sequenceId] : [leadId, sequenceId]
   );
 
   if (existing) {
@@ -359,8 +389,8 @@ export async function enrollLeadInSequence(
       return existing.id;
     }
     
-    // Re-enroll if previously completed or unsubscribed
-    if (existing.status === 'completed') {
+    // Re-enroll if previously completed or paused
+    if (existing.status === 'completed' || existing.status === 'paused') {
       await db.execute(
         `UPDATE email_sequence_enrollments 
          SET status = 'active',
@@ -368,10 +398,17 @@ export async function enrollLeadInSequence(
              enrolled_at = NOW(),
              last_email_sent_at = NULL,
              completed_at = NULL,
+             deal_id = $2,
+             stage_id = $3,
              metadata = COALESCE($1, metadata),
              updated_at = NOW()
-         WHERE id = $2`,
-        [metadata ? JSON.stringify(metadata) : null, existing.id]
+         WHERE id = $4`,
+        [
+          metadata ? JSON.stringify(metadata) : null,
+          dealId ?? null,
+          stageId ?? null,
+          existing.id
+        ]
       );
       
       // Calculate next_email_due_at
@@ -393,10 +430,10 @@ export async function enrollLeadInSequence(
 
   // Create new enrollment
   const result = await db.queryOne<{ id: string }>(
-    `INSERT INTO email_sequence_enrollments (lead_id, sequence_id, metadata)
-     VALUES ($1, $2, $3)
+    `INSERT INTO email_sequence_enrollments (lead_id, sequence_id, metadata, deal_id, stage_id)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id`,
-    [leadId, sequenceId, JSON.stringify(metadata || {})]
+    [leadId, sequenceId, JSON.stringify(metadata || {}), dealId ?? null, stageId ?? null]
   );
 
   if (result) {
@@ -413,6 +450,32 @@ export async function enrollLeadInSequence(
   }
 
   return null;
+}
+
+// =============================================================================
+// Pause Enrollments for Deal (e.g., on stage change)
+// =============================================================================
+
+export async function pauseDealEnrollments(
+  dealId: string,
+  stageId?: string
+): Promise<number> {
+  const params: Array<string> = [dealId];
+  let condition = 'deal_id = $1 AND status = \'active\'';
+
+  if (stageId) {
+    params.push(stageId);
+    condition += ' AND stage_id = $2';
+  }
+
+  return db.execute(
+    `UPDATE email_sequence_enrollments
+     SET status = 'paused',
+         next_email_due_at = NULL,
+         updated_at = NOW()
+     WHERE ${condition}`,
+    params
+  );
 }
 
 // =============================================================================
