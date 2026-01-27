@@ -155,6 +155,104 @@ const DealEditForm = () => {
 
         <Divider sx={{ my: 3 }} />
 
+        {/* Moco Invoice Defaults */}
+        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+          Moco Invoice Defaults
+        </Typography>
+        <TextInput
+          source="metadata.invoice_title"
+          label="Invoice Title"
+          fullWidth
+          helperText="Falls leer, wird der Deal-Name verwendet"
+        />
+        <TextInput
+          source="metadata.recipient_address"
+          label="Recipient Address"
+          fullWidth
+          multiline
+          rows={3}
+        />
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <NumberInput
+            source="metadata.tax"
+            label="Tax (%)"
+            min={0}
+            fullWidth
+          />
+          <NumberInput
+            source="metadata.due_days"
+            label="Due Days"
+            min={0}
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextInput
+            source="metadata.item_title"
+            label="Item Title"
+            fullWidth
+          />
+          <NumberInput
+            source="metadata.unit_price"
+            label="Unit Price (net)"
+            min={0}
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <DateInput
+            source="metadata.service_period_from"
+            label="Service Period From"
+            fullWidth
+          />
+          <DateInput
+            source="metadata.service_period_to"
+            label="Service Period To"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <NumberInput
+            source="metadata.discount"
+            label="Discount (%)"
+            min={0}
+            fullWidth
+          />
+          <NumberInput
+            source="metadata.cash_discount"
+            label="Cash Discount (%)"
+            min={0}
+            fullWidth
+          />
+          <NumberInput
+            source="metadata.cash_discount_days"
+            label="Cash Discount Days"
+            min={0}
+            fullWidth
+          />
+        </Box>
+        <TextInput
+          source="metadata.tags"
+          label="Tags (comma-separated)"
+          fullWidth
+        />
+        <TextInput
+          source="metadata.salutation"
+          label="Salutation (HTML)"
+          fullWidth
+          multiline
+          rows={2}
+        />
+        <TextInput
+          source="metadata.footer"
+          label="Footer (HTML)"
+          fullWidth
+          multiline
+          rows={3}
+        />
+
+        <Divider sx={{ my: 3 }} />
+
         {/* Assignment */}
         <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
           Assignment

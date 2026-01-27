@@ -86,14 +86,28 @@ const DealPreviewModal = ({
   const notify = useNotify();
   const navigate = useNavigate();
 
+  const formatLeadOption = (lead) => {
+    const personName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+    const labelBase = personName || lead.email;
+    const companyName = lead.organization_name || lead.company || '';
+    return {
+      id: lead.id,
+      label: companyName ? `${companyName} — ${labelBase}` : labelBase,
+      email: lead.email,
+      company: companyName,
+      first_name: lead.first_name,
+      last_name: lead.last_name,
+    };
+  };
+
   // Aktualisiere deal wenn sich initialDeal ändert
   useEffect(() => {
     if (initialDeal) {
       setDeal(initialDeal);
       setEditedDeal({
-        title: initialDeal.title || '',
+        name: initialDeal.name || initialDeal.title || '',
         value: initialDeal.value || 0,
-        expected_close: initialDeal.expected_close || '',
+        expected_close_date: initialDeal.expected_close_date || initialDeal.expected_close || '',
         notes: initialDeal.notes || '',
         stage_id: initialDeal.stage_id || '',
       });
@@ -109,6 +123,24 @@ const DealPreviewModal = ({
     }
   }, [initialDeal]);
 
+  useEffect(() => {
+    const loadInitialLeads = async () => {
+      if (!open || !isEditing) return;
+      try {
+        const { data } = await dataProvider.getList('leads', {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: 'email', order: 'ASC' },
+          filter: {},
+        });
+        setLeadOptions((data || []).map(formatLeadOption));
+      } catch (err) {
+        console.error('Failed to load initial leads:', err);
+      }
+    };
+
+    loadInitialLeads();
+  }, [open, isEditing, dataProvider]);
+
   // Lead-Suche mit Debounce
   const searchLeadsDebounced = useCallback(
     async (searchTerm) => {
@@ -120,14 +152,7 @@ const DealPreviewModal = ({
       setLeadLoading(true);
       try {
         const leads = await searchLeads({ search: searchTerm, limit: 15 });
-        const options = leads.map((lead) => ({
-          id: lead.id,
-          label: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.email,
-          email: lead.email,
-          company: lead.organization_name || lead.company,
-          first_name: lead.first_name,
-          last_name: lead.last_name,
-        }));
+        const options = leads.map(formatLeadOption);
         setLeadOptions(options);
       } catch (err) {
         console.error('Lead search failed:', err);
@@ -212,9 +237,9 @@ const DealPreviewModal = ({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedDeal({
-      title: deal.title || '',
+      name: deal.name || deal.title || '',
       value: deal.value || 0,
-      expected_close: deal.expected_close || '',
+      expected_close_date: deal.expected_close_date || deal.expected_close || '',
       notes: deal.notes || '',
       stage_id: deal.stage_id || '',
     });
@@ -291,6 +316,20 @@ const DealPreviewModal = ({
     }
   };
 
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '—';
+    try {
+      return new Date(dateString).toLocaleString('de-DE', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '—';
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -303,6 +342,11 @@ const DealPreviewModal = ({
   const email = deal.lead_email || deal.contact_email;
   const phone = deal.lead_phone || deal.contact_phone;
   const hasContactLink = deal.lead_id || deal.contact_id;
+  const emailSequence = deal.email_sequence;
+  const hasActiveSequence = emailSequence?.status === 'active';
+  const stepsTotal = emailSequence?.steps_total ? Number(emailSequence.steps_total) : null;
+  const currentStep = Number.isFinite(emailSequence?.current_step) ? Number(emailSequence.current_step) : 0;
+  const nextStep = stepsTotal ? Math.min(currentStep + 1, stepsTotal) : currentStep + 1;
 
   return (
     <Dialog
@@ -338,8 +382,8 @@ const DealPreviewModal = ({
           <Box>
             {isEditing ? (
               <TextField
-                value={editedDeal.title}
-                onChange={handleInputChange('title')}
+                value={editedDeal.name}
+                onChange={handleInputChange('name')}
                 variant="standard"
                 fullWidth
                 sx={{
@@ -352,7 +396,7 @@ const DealPreviewModal = ({
               />
             ) : (
               <Typography variant="h6" fontWeight={600} color="text.primary">
-                {deal.title || 'Unbenannter Deal'}
+                {deal.title || deal.name || 'Unbenannter Deal'}
               </Typography>
             )}
             <Typography variant="body2" color="text.secondary">
@@ -509,8 +553,8 @@ const DealPreviewModal = ({
               {isEditing ? (
                 <TextField
                   type="date"
-                  value={editedDeal.expected_close ? editedDeal.expected_close.split('T')[0] : ''}
-                  onChange={handleInputChange('expected_close')}
+                  value={editedDeal.expected_close_date ? editedDeal.expected_close_date.split('T')[0] : ''}
+                  onChange={handleInputChange('expected_close_date')}
                   fullWidth
                   size="small"
                 />
@@ -518,7 +562,7 @@ const DealPreviewModal = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <EventIcon sx={{ color: DNA_COLORS.textMuted, fontSize: 20 }} />
                   <Typography variant="body1" color="text.primary">
-                    {formatDate(deal.expected_close)}
+                    {formatDate(deal.expected_close_date || deal.expected_close)}
                   </Typography>
                 </Box>
               )}
@@ -551,6 +595,29 @@ const DealPreviewModal = ({
                 </Box>
               )}
             </Box>
+
+            {/* E-Mail Sequenz Status */}
+            {hasActiveSequence && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  E-Mail Sequenz
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EmailIcon sx={{ color: stageColor, fontSize: 20 }} />
+                  <Box>
+                    <Typography variant="body1" color="text.primary">
+                      {emailSequence.sequence_name || 'Aktive Sequenz'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Schritt {nextStep}{stepsTotal ? `/${stepsTotal}` : ''}
+                      {emailSequence.next_email_due_at
+                        ? ` · Nächste E-Mail: ${formatDateTime(emailSequence.next_email_due_at)}`
+                        : ''}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
           </Grid>
 
           {/* Rechte Spalte - Kontaktinfos */}

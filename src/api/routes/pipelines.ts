@@ -54,6 +54,7 @@ interface CreateStageBody {
   name: string;
   slug?: string;
   position?: number;
+  color?: string;
   stage_type?: string;
   automation_config?: AutomationStageConfig[];
 }
@@ -61,6 +62,7 @@ interface CreateStageBody {
 interface UpdateStageBody {
   name?: string;
   slug?: string;
+  color?: string | null;
   stage_type?: string | null;
   automation_config?: AutomationStageConfig[];
 }
@@ -95,6 +97,7 @@ function transformStageResponse(stage: PipelineStage) {
     slug: stage.slug,
     name: stage.name,
     position: stage.position,
+    color: stage.color ?? null,
     stage_type: stage.stage_type ?? null,
     automation_config: stage.automation_config ?? [],
     created_at: stage.created_at?.toISOString?.() ?? (stage.created_at as unknown as string)
@@ -682,6 +685,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
             name: { type: 'string', minLength: 1, maxLength: 255 },
             slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
             position: { type: 'integer', minimum: 1 },
+            color: { type: 'string', pattern: '^#([0-9a-fA-F]{6})$' },
             stage_type: { type: 'string', maxLength: 50 },
             automation_config: { type: 'array', items: { type: 'object', additionalProperties: true } }
           }
@@ -738,6 +742,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
         name: string;
         slug?: string;
         position?: number;
+        color?: string;
         stage_type?: string;
         automation_config?: Record<string, unknown>[];
       });
@@ -863,6 +868,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
           properties: {
             name: { type: 'string', minLength: 1, maxLength: 255 },
             slug: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[a-z0-9-]+$' },
+            color: { type: ['string', 'null'], pattern: '^#([0-9a-fA-F]{6})$' },
             stage_type: { type: ['string', 'null'], maxLength: 50 },
             automation_config: { type: 'array', items: { type: 'object', additionalProperties: true } }
           }
@@ -918,6 +924,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
       const stage = await pipelineService.updateStage(id, request.body as {
         name?: string;
         slug?: string;
+        color?: string | null;
         stage_type?: string | null;
         automation_config?: Record<string, unknown>[];
       });

@@ -124,7 +124,7 @@ function loadConfig(): Config {
     apiKeys: parseApiKeys(process.env.API_KEYS),
     moco: {
       apiKey: process.env.MOCO_API_KEY || undefined,
-      subdomain: process.env.MOCO_SUBDOMAIN || undefined,
+      subdomain: process.env.MOCO_SUBDOMAIN || process.env.MOCO_ACCOUNT_ID || undefined,
       enabled: parseBoolean(process.env.ENABLE_MOCO_SYNC, false)
     },
     slack: {

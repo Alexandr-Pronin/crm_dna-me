@@ -6,6 +6,7 @@
 import { db } from '../db/index.js';
 import { getSyncQueue, getNotificationsQueue } from '../config/queues.js';
 import { NotFoundError } from '../errors/index.js';
+import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
 import type {
   AutomationRule,
   Lead,
@@ -407,6 +408,12 @@ export class AutomationEngine {
       SET stage_id = $1, stage_entered_at = NOW(), updated_at = NOW()
       WHERE id = $2
     `, [targetStage.id, deal.id]);
+
+    try {
+      await pauseDealEnrollments(deal.id, deal.stage_id);
+    } catch (pauseError) {
+      console.error('[Automation Engine] Failed to pause email enrollments:', pauseError);
+    }
     
     return { 
       action: 'move_to_stage', 

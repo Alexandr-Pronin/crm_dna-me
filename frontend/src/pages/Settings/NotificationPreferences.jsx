@@ -13,6 +13,7 @@ import {
   Divider,
   Alert,
   Grid,
+  TextField,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -23,6 +24,61 @@ import {
 } from '@mui/icons-material';
 
 const STORAGE_KEY = 'notification_preferences';
+const TEMPLATE_KEY = 'notification_email_template';
+
+const DEFAULT_TEMPLATE = `
+<div style="font-family: Inter, Arial, sans-serif; background:#f6f7fb; padding:24px; color:#111827;">
+  <div style="max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <div style="width:10px; height:10px; border-radius:999px; background:#10b981;"></div>
+      <div style="font-size:14px; color:#6b7280;">Deal Notification</div>
+    </div>
+    <h2 style="margin:0 0 12px; font-size:20px;">🔥 {{deal.name}}</h2>
+    <div style="display:grid; gap:8px; font-size:14px;">
+      <div><strong>Kunde:</strong> {{company.name}}</div>
+      <div><strong>Kontakt:</strong> {{lead.name}} {{lead.email}}</div>
+      <div><strong>Betrag:</strong> {{deal.value}} {{deal.currency}}</div>
+      <div><strong>Datum:</strong> {{deal.date}}</div>
+      <div><strong>Pipeline:</strong> {{pipeline.name}} / {{stage.name}}</div>
+    </div>
+    <a href="{{deal.link}}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:16px;padding:10px 14px;border-radius:8px;background:#4A90A4;color:#ffffff;text-decoration:none;">Deal öffnen</a>
+    <div style="margin-top:8px; font-size:12px; color:#6b7280;">
+      {{deal.link}}
+    </div>
+    <hr style="border:none;border-top:1px solid #e5e7eb; margin:20px 0;" />
+    <div style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; font-size:13px; color:#374151;">
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Kunden insgesamt</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.customers}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Leads insgesamt</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.leads}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Deals insgesamt</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.deals}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Umsatz (Won)</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.revenue_won}} {{deal.currency}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Umsatz (Total)</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.revenue_total}} {{deal.currency}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Deals (Open/Won/Lost)</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.open_deals}} / {{stats.won_deals}} / {{stats.lost_deals}}</div>
+      </div>
+      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
+        <div style="font-size:12px; color:#6b7280;">Ø Deal Value</div>
+        <div style="font-size:16px; font-weight:600;">{{stats.avg_deal}} {{deal.currency}}</div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
 
 const NotificationPreferences = () => {
   const [notifications, setNotifications] = useState({
@@ -32,6 +88,11 @@ const NotificationPreferences = () => {
     weeklyReport: true,
   });
   const [lastSaved, setLastSaved] = useState(null);
+  const [emailTemplate, setEmailTemplate] = useState({
+    to: '',
+    subject: '🔥 New Deal: {{deal.name}} ({{deal.value}} {{deal.currency}})',
+    html: DEFAULT_TEMPLATE,
+  });
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -47,6 +108,20 @@ const NotificationPreferences = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const savedTemplate = localStorage.getItem(TEMPLATE_KEY);
+    if (savedTemplate) {
+      try {
+        const parsed = JSON.parse(savedTemplate);
+        setEmailTemplate(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Error loading notification template:', error);
+      }
+    } else {
+      localStorage.setItem(TEMPLATE_KEY, JSON.stringify(emailTemplate));
+    }
+  }, []);
+
   // Save preference changes to localStorage
   const handleToggle = (key) => (event) => {
     const newValue = event.target.checked;
@@ -57,6 +132,13 @@ const NotificationPreferences = () => {
     setLastSaved(new Date());
     
     console.log(`Updated ${key} to ${newValue}`);
+  };
+
+  const handleTemplateChange = (field) => (event) => {
+    const next = { ...emailTemplate, [field]: event.target.value };
+    setEmailTemplate(next);
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify(next));
+    setLastSaved(new Date());
   };
 
   return (
@@ -126,6 +208,44 @@ const NotificationPreferences = () => {
                   </Typography>
                 </Box>
               </Box>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Email Notification Template */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
+                Deal Notification E-Mail
+              </Typography>
+              <TextField
+                label="Empfänger (To)"
+                value={emailTemplate.to}
+                onChange={handleTemplateChange('to')}
+                fullWidth
+                placeholder="fadmin@dna-me.net"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Betreff"
+                value={emailTemplate.subject}
+                onChange={handleTemplateChange('subject')}
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Template (Text/HTML)"
+                value={emailTemplate.html}
+                onChange={handleTemplateChange('html')}
+                fullWidth
+                multiline
+                rows={8}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Verfügbare Variablen: {"{{deal.name}}"}, {"{{deal.value}}"}, {"{{deal.currency}}"}, {"{{deal.date}}"},
+                {"{{deal.link}}"}, {"{{lead.name}}"}, {"{{lead.email}}"}, {"{{company.name}}"}, {"{{stage.name}}"}, {"{{pipeline.name}}"},
+                {"{{stats.customers}}"}, {"{{stats.leads}}"}, {"{{stats.deals}}"}, {"{{stats.revenue_won}}"}, {"{{stats.revenue_total}}"},
+                {"{{stats.open_deals}}"}, {"{{stats.won_deals}}"}, {"{{stats.lost_deals}}"}, {"{{stats.avg_deal}}"}
+              </Typography>
             </Box>
 
             <Divider sx={{ my: 3 }} />

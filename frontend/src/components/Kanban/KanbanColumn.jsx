@@ -35,11 +35,12 @@ const STAGE_COLORS = {
   default: '#64748B',
 };
 
-const getStageColor = (stageId, stageSlug) => {
-  // Versuche mit ID, dann mit Slug
-  return STAGE_COLORS[stageId] || 
-         STAGE_COLORS[stageSlug] || 
-         STAGE_COLORS.default;
+const getStageColor = (stage) => {
+  if (stage?.color) return stage.color;
+  if (stage?.stage_type && STAGE_COLORS[stage.stage_type]) return STAGE_COLORS[stage.stage_type];
+  if (stage?.slug && STAGE_COLORS[stage.slug]) return STAGE_COLORS[stage.slug];
+  if (stage?.id && STAGE_COLORS[stage.id]) return STAGE_COLORS[stage.id];
+  return STAGE_COLORS.default;
 };
 
 const KanbanColumn = ({ 
@@ -54,7 +55,7 @@ const KanbanColumn = ({
   const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
   
   // Hole Stage-Farbe
-  const stageColor = getStageColor(stage.id, stage.slug);
+  const stageColor = getStageColor(stage);
 
   // Deal IDs für SortableContext
   const dealIds = deals.map(d => d.id);

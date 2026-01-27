@@ -8,6 +8,7 @@ import { NotFoundError, ValidationError, ConflictError, BusinessLogicError } fro
 import { getSyncQueue } from '../config/queues.js';
 import { getPipelineService } from './pipelineService.js';
 import { getAutomationEngine } from './automationEngine.js';
+import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
 import type {
   Deal,
   DealStatus,
@@ -78,6 +79,20 @@ export interface DealWithRelations extends Deal {
   lead?: Lead;
   pipeline_name?: string;
   stage_name?: string;
+  lead_first_name?: string | null;
+  lead_last_name?: string | null;
+  lead_email?: string | null;
+  lead_name?: string | null;
+  lead_company?: string | null;
+  assigned_to_name?: string | null;
+  sequence_enrollment_id?: string | null;
+  sequence_id?: string | null;
+  sequence_name?: string | null;
+  sequence_status?: string | null;
+  sequence_current_step?: number | null;
+  sequence_steps_total?: string | number | null;
+  sequence_next_email_due_at?: Date | string | null;
+  sequence_stage_id?: string | null;
 }
 
 // =============================================================================
@@ -207,10 +222,43 @@ export class DealService {
       `SELECT 
         d.*,
         p.name as pipeline_name,
-        ps.name as stage_name
+        ps.name as stage_name,
+        l.first_name as lead_first_name,
+        l.last_name as lead_last_name,
+        l.email as lead_email,
+        CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
+        o.name as lead_company,
+        tm.name as assigned_to_name,
+        seq.sequence_enrollment_id,
+        seq.sequence_id,
+        seq.sequence_name,
+        seq.sequence_status,
+        seq.sequence_current_step,
+        seq.sequence_steps_total,
+        seq.sequence_next_email_due_at,
+        seq.sequence_stage_id
        FROM deals d
        JOIN pipelines p ON p.id = d.pipeline_id
        JOIN pipeline_stages ps ON ps.id = d.stage_id
+       LEFT JOIN leads l ON l.id = d.lead_id
+       LEFT JOIN organizations o ON o.id = l.organization_id
+       LEFT JOIN team_members tm ON tm.email = d.assigned_to
+       LEFT JOIN LATERAL (
+         SELECT 
+           ese.id as sequence_enrollment_id,
+           ese.sequence_id,
+           ese.status as sequence_status,
+           ese.current_step as sequence_current_step,
+           ese.next_email_due_at as sequence_next_email_due_at,
+           ese.stage_id as sequence_stage_id,
+           es.name as sequence_name,
+           (SELECT COUNT(*)::text FROM email_sequence_steps ess WHERE ess.sequence_id = ese.sequence_id) as sequence_steps_total
+         FROM email_sequence_enrollments ese
+         JOIN email_sequences es ON es.id = ese.sequence_id
+         WHERE ese.deal_id = d.id AND ese.status = 'active'
+         ORDER BY ese.enrolled_at DESC
+         LIMIT 1
+       ) seq ON true
        WHERE d.id = $1`,
       [id]
     );
@@ -358,10 +406,43 @@ export class DealService {
       SELECT 
         d.*,
         p.name as pipeline_name,
-        ps.name as stage_name
+        ps.name as stage_name,
+        l.first_name as lead_first_name,
+        l.last_name as lead_last_name,
+        l.email as lead_email,
+        CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
+        o.name as lead_company,
+        tm.name as assigned_to_name,
+        seq.sequence_enrollment_id,
+        seq.sequence_id,
+        seq.sequence_name,
+        seq.sequence_status,
+        seq.sequence_current_step,
+        seq.sequence_steps_total,
+        seq.sequence_next_email_due_at,
+        seq.sequence_stage_id
       FROM deals d
       JOIN pipelines p ON p.id = d.pipeline_id
       JOIN pipeline_stages ps ON ps.id = d.stage_id
+      LEFT JOIN leads l ON l.id = d.lead_id
+      LEFT JOIN organizations o ON o.id = l.organization_id
+      LEFT JOIN team_members tm ON tm.email = d.assigned_to
+      LEFT JOIN LATERAL (
+        SELECT 
+          ese.id as sequence_enrollment_id,
+          ese.sequence_id,
+          ese.status as sequence_status,
+          ese.current_step as sequence_current_step,
+          ese.next_email_due_at as sequence_next_email_due_at,
+          ese.stage_id as sequence_stage_id,
+          es.name as sequence_name,
+          (SELECT COUNT(*)::text FROM email_sequence_steps ess WHERE ess.sequence_id = ese.sequence_id) as sequence_steps_total
+        FROM email_sequence_enrollments ese
+        JOIN email_sequences es ON es.id = ese.sequence_id
+        WHERE ese.deal_id = d.id AND ese.status = 'active'
+        ORDER BY ese.enrolled_at DESC
+        LIMIT 1
+      ) seq ON true
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex}
@@ -387,7 +468,7 @@ export class DealService {
   // Update Deal
   // ===========================================================================
   
-  async updateDeal(id: string, data: UpdateDealInput): Promise<Deal> {
+  async updateDeal(id: string, data: UpdateDealInput): Promise<DealWithRelations> {
     // Check if deal exists
     await this.getDealById(id);
     
@@ -435,7 +516,7 @@ export class DealService {
     }
     
     if (updates.length === 0) {
-      return this.getDealById(id);
+      return this.getDealWithRelations(id);
     }
     
     params.push(id);
@@ -448,7 +529,7 @@ export class DealService {
     `;
     
     const deals = await db.query<Deal>(sql, params);
-    return deals[0];
+    return await this.getDealWithRelations(deals[0].id);
   }
 
   // ===========================================================================
@@ -495,6 +576,12 @@ export class DealService {
        RETURNING *`,
       [data.stage_id, position, id]
     );
+
+    try {
+      await pauseDealEnrollments(deal.id, deal.stage_id);
+    } catch (pauseError) {
+      console.error('[Deal Service] Failed to pause email enrollments:', pauseError);
+    }
     
     // Process stage change automation
     try {
@@ -612,7 +699,7 @@ export class DealService {
   // Update Deal Lead
   // ===========================================================================
   
-  async updateDealLead(id: string, newLeadId: string): Promise<Deal> {
+  async updateDealLead(id: string, newLeadId: string): Promise<DealWithRelations> {
     // Verify deal exists
     const deal = await this.getDealById(id);
     
@@ -648,8 +735,8 @@ export class DealService {
        RETURNING *`,
       [newLeadId, dealName, id]
     );
-    
-    return updatedDeal!;
+
+    return await this.getDealWithRelations(updatedDeal!.id);
   }
 
   // ===========================================================================

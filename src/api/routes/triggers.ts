@@ -16,10 +16,12 @@ import type { PipelineStage, AutomationStageConfig } from '../../types/index.js'
 // =============================================================================
 
 const triggerActionEnum = z.enum([
-  'send_email',
+  'send_notification_email',
+  'enroll_email_sequence',
   'create_moco_project',
   'create_moco_customer',
   'create_moco_offer',
+  'create_moco_invoice_draft',
   'send_cituro_booking',
   'send_slack_message'
 ]);
@@ -109,10 +111,12 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
             action: {
               type: 'string',
               enum: [
-                'send_email',
+                'send_notification_email',
+                'enroll_email_sequence',
                 'create_moco_project',
                 'create_moco_customer',
                 'create_moco_offer',
+                'create_moco_invoice_draft',
                 'send_cituro_booking',
                 'send_slack_message'
               ]

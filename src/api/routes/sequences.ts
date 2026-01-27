@@ -51,8 +51,13 @@ const updateStepSchema = z.object({
 });
 
 const enrollLeadSchema = z.object({
-  lead_id: z.string().uuid(),
+  lead_id: z.string().uuid().optional(),
+  deal_id: z.string().uuid().optional(),
+  stage_id: z.string().uuid().optional(),
   metadata: z.record(z.unknown()).optional()
+}).refine((data) => data.lead_id || data.deal_id, {
+  message: 'lead_id oder deal_id erforderlich',
+  path: ['lead_id']
 });
 
 const idParamSchema = z.object({
@@ -584,11 +589,16 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
         },
         body: {
           type: 'object',
-          required: ['lead_id'],
           properties: {
             lead_id: { type: 'string', format: 'uuid' },
+            deal_id: { type: 'string', format: 'uuid' },
+            stage_id: { type: 'string', format: 'uuid' },
             metadata: { type: 'object' }
-          }
+          },
+          anyOf: [
+            { required: ['lead_id'] },
+            { required: ['deal_id'] }
+          ]
         }
       }
     },
@@ -602,7 +612,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const { lead_id, metadata } = parseResult.data;
+      const { lead_id, deal_id, stage_id, metadata } = parseResult.data;
 
       // Check sequence exists and is active
       const sequence = await db.queryOne<EmailSequence>(
@@ -618,7 +628,28 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
         throw new ValidationError('Sequenz ist nicht aktiv');
       }
 
-      const enrollmentId = await enrollLeadInSequence(lead_id, sequenceId, metadata);
+      let resolvedLeadId = lead_id;
+      let resolvedStageId = stage_id;
+
+      if (!resolvedLeadId && deal_id) {
+        const deal = await db.queryOne<{ lead_id: string; stage_id: string }>(
+          'SELECT lead_id, stage_id FROM deals WHERE id = $1',
+          [deal_id]
+        );
+        resolvedLeadId = deal?.lead_id;
+        if (!resolvedStageId) {
+          resolvedStageId = deal?.stage_id;
+        }
+      }
+
+      if (!resolvedLeadId) {
+        throw new ValidationError('lead_id konnte nicht ermittelt werden');
+      }
+
+      const enrollmentId = await enrollLeadInSequence(resolvedLeadId, sequenceId, metadata, {
+        dealId: deal_id,
+        stageId: resolvedStageId
+      });
 
       if (!enrollmentId) {
         throw new ValidationError('Lead konnte nicht eingeschrieben werden (möglicherweise abgemeldet)');

@@ -40,6 +40,7 @@ export interface PipelineStage {
   slug: string;
   name: string;
   position: number;
+  color?: string | null;
   stage_type?: string;
   automation_config: AutomationStageConfig[];
   created_at: Date;
@@ -276,6 +277,8 @@ export interface EmailSequenceStep {
 export interface EmailSequenceEnrollment {
   id: string;
   lead_id: string;
+  deal_id?: string;
+  stage_id?: string;
   sequence_id: string;
   current_step: number;
   status: EmailEnrollmentStatus;

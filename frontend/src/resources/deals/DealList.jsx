@@ -34,6 +34,7 @@ import {
   Refresh as RefreshIcon,
   ViewKanban as KanbanIcon,
   ViewList as ListIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { KanbanBoard } from '../../components/Kanban';
 
@@ -86,6 +87,33 @@ const ValueField = ({ value }) => {
   );
 };
 
+const SequenceChip = ({ sequence }) => {
+  if (!sequence || sequence.status !== 'active') {
+    return <Typography color="text.secondary">—</Typography>;
+  }
+
+  const stepsTotal = sequence.steps_total ? Number(sequence.steps_total) : null;
+  const currentStep = Number.isFinite(sequence.current_step) ? Number(sequence.current_step) : 0;
+  const nextStep = stepsTotal ? Math.min(currentStep + 1, stepsTotal) : currentStep + 1;
+  const label = sequence.sequence_name
+    ? `${sequence.sequence_name} · ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`
+    : `Aktiv · ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`;
+
+  return (
+    <Chip
+      icon={<EmailIcon sx={{ fontSize: 14 }} />}
+      label={label}
+      size="small"
+      sx={{
+        bgcolor: 'rgba(74, 144, 164, 0.12)',
+        color: '#4A90A4',
+        fontWeight: 500,
+        '& .MuiChip-icon': { color: '#4A90A4' },
+      }}
+    />
+  );
+};
+
 const ListActions = () => (
   <TopToolbar sx={{ gap: 1 }}>
     <FilterButton />
@@ -109,6 +137,7 @@ const DealList = () => {
   });
   const [pipelines, setPipelines] = useState([]);
   const [stages, setStages] = useState([]);
+  const [defaultPipelineId, setDefaultPipelineId] = useState('');
   const refresh = useRefresh();
   const dataProvider = useDataProvider();
 
@@ -124,6 +153,9 @@ const DealList = () => {
         });
         if (isActive) {
           setPipelines(data || []);
+          if (!defaultPipelineId && data?.length > 0) {
+            setDefaultPipelineId(data[0].id);
+          }
         }
       } catch (error) {
         console.error('Failed to load pipelines', error);
@@ -280,6 +312,7 @@ const DealList = () => {
         <KanbanBoard />
       ) : (
         <List
+          filterDefaultValues={defaultPipelineId ? { pipeline_id: defaultPipelineId } : {}}
           filters={dealFilters}
           actions={<ListActions />}
           sort={{ field: 'created_at', order: 'DESC' }}
@@ -335,6 +368,11 @@ const DealList = () => {
               label="Value"
               render={(record) => <ValueField value={record?.value} />}
             />
+            <FunctionField
+              label="E-Mail-Sequenz"
+              render={(record) => <SequenceChip sequence={record?.email_sequence} />}
+            />
+            <TextField source="assigned_to_name" label="Owner" emptyText="—" />
             <TextField source="contact_name" label="Contact" emptyText="—" />
             <DateField source="expected_close" label="Expected Close" />
             <DateField source="created_at" label="Created" showTime={false} />

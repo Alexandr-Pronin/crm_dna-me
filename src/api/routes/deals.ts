@@ -23,6 +23,8 @@ import type { Deal, DealStatus } from '../../types/index.js';
 // Zod Schemas
 // =============================================================================
 
+const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 const createDealSchema = z.object({
   lead_id: z.string().uuid(),
   pipeline_id: z.string().uuid(),
@@ -30,7 +32,7 @@ const createDealSchema = z.object({
   name: z.string().max(255).optional(),
   value: z.number().min(0).optional(),
   currency: z.string().length(3).default('EUR'),
-  expected_close_date: z.string().datetime().optional(),
+  expected_close_date: z.union([z.string().datetime(), dateOnlySchema]).optional(),
   assigned_to: z.string().uuid().optional(),
   assigned_region: z.string().max(50).optional(),
   metadata: z.record(z.unknown()).optional()
@@ -40,7 +42,7 @@ const updateDealSchema = z.object({
   name: z.string().max(255).optional(),
   value: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
-  expected_close_date: z.string().datetime().nullable().optional(),
+  expected_close_date: z.union([z.string().datetime(), dateOnlySchema]).nullable().optional(),
   assigned_to: z.string().uuid().nullable().optional(),
   assigned_region: z.string().max(50).nullable().optional(),
   metadata: z.record(z.unknown()).optional()
@@ -93,6 +95,30 @@ interface IdParams {
 // =============================================================================
 
 function transformDealResponse(deal: DealWithRelations) {
+  const expectedClose = deal.expected_close_date?.toISOString?.() ?? (deal.expected_close_date as unknown as string) ?? null;
+  const leadName = deal.lead_name?.trim() || `${deal.lead_first_name || ''} ${deal.lead_last_name || ''}`.trim() || deal.lead_email || null;
+  const leadEmail = deal.lead_email ?? null;
+  const leadCompany = deal.lead_company ?? null;
+  const stepsTotal = deal.sequence_steps_total !== undefined && deal.sequence_steps_total !== null
+    ? parseInt(String(deal.sequence_steps_total), 10)
+    : null;
+  const currentStep = deal.sequence_current_step !== undefined && deal.sequence_current_step !== null
+    ? Number(deal.sequence_current_step)
+    : null;
+  const nextDueAt = deal.sequence_next_email_due_at?.toISOString?.()
+    ?? (deal.sequence_next_email_due_at as unknown as string)
+    ?? null;
+  const emailSequence = deal.sequence_id ? {
+    enrollment_id: deal.sequence_enrollment_id ?? null,
+    sequence_id: deal.sequence_id,
+    sequence_name: deal.sequence_name ?? null,
+    status: deal.sequence_status ?? null,
+    current_step: currentStep,
+    steps_total: stepsTotal,
+    next_email_due_at: nextDueAt,
+    stage_id: deal.sequence_stage_id ?? null
+  } : null;
+
   return {
     id: deal.id,
     lead_id: deal.lead_id,
@@ -100,11 +126,14 @@ function transformDealResponse(deal: DealWithRelations) {
     stage_id: deal.stage_id,
     position: deal.position,
     name: deal.name ?? null,
+    title: deal.name ?? null,
     value: deal.value ?? null,
     currency: deal.currency,
-    expected_close_date: deal.expected_close_date?.toISOString?.() ?? (deal.expected_close_date as unknown as string) ?? null,
+    expected_close_date: expectedClose,
+    expected_close: expectedClose,
     stage_entered_at: deal.stage_entered_at?.toISOString?.() ?? (deal.stage_entered_at as unknown as string),
     assigned_to: deal.assigned_to ?? null,
+    assigned_to_name: deal.assigned_to_name ?? null,
     assigned_region: deal.assigned_region ?? null,
     assigned_at: deal.assigned_at?.toISOString?.() ?? (deal.assigned_at as unknown as string) ?? null,
     status: deal.status,
@@ -115,7 +144,14 @@ function transformDealResponse(deal: DealWithRelations) {
     created_at: deal.created_at?.toISOString?.() ?? (deal.created_at as unknown as string),
     updated_at: deal.updated_at?.toISOString?.() ?? (deal.updated_at as unknown as string),
     pipeline_name: deal.pipeline_name ?? undefined,
-    stage_name: deal.stage_name ?? undefined
+    stage_name: deal.stage_name ?? undefined,
+    lead_name: leadName,
+    lead_email: leadEmail,
+    lead_company: leadCompany,
+    contact_name: leadName,
+    contact_email: leadEmail,
+    company_name: leadCompany,
+    email_sequence: emailSequence
   };
 }
 

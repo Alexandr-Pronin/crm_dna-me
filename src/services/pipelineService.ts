@@ -468,6 +468,7 @@ export class PipelineService {
     name: string;
     slug?: string;
     position?: number;
+    color?: string;
     stage_type?: string;
     automation_config?: Record<string, unknown>[];
   }): Promise<PipelineStage> {
@@ -510,14 +511,15 @@ export class PipelineService {
     }
     
     const stage = await db.queryOne<PipelineStage>(
-      `INSERT INTO pipeline_stages (pipeline_id, slug, name, position, stage_type, automation_config)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO pipeline_stages (pipeline_id, slug, name, position, color, stage_type, automation_config)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         pipelineId,
         slug,
         data.name,
         position,
+        data.color || null,
         data.stage_type || null,
         JSON.stringify(data.automation_config || [])
       ]
@@ -537,6 +539,7 @@ export class PipelineService {
   async updateStage(stageId: string, data: {
     name?: string;
     slug?: string;
+    color?: string | null;
     stage_type?: string | null;
     automation_config?: Record<string, unknown>[];
   }): Promise<PipelineStage> {
@@ -566,6 +569,10 @@ export class PipelineService {
     if (data.slug !== undefined) {
       updates.push(`slug = $${paramIndex++}`);
       values.push(data.slug);
+    }
+    if (data.color !== undefined) {
+      updates.push(`color = $${paramIndex++}`);
+      values.push(data.color);
     }
     if (data.stage_type !== undefined) {
       updates.push(`stage_type = $${paramIndex++}`);
