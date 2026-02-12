@@ -246,7 +246,7 @@ const Dashboard = () => {
         const activeDeals = deals.filter(d => d.status === 'open').length;
         const pipelineValue = deals
           .filter(d => d.status === 'open')
-          .reduce((sum, d) => sum + (d.value || 0), 0);
+          .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
         setStats({
           totalLeads,

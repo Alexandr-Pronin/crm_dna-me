@@ -65,14 +65,16 @@ export interface EmailTrackingRecord {
 
 export class EmailService {
   private transporter: Transporter | null = null;
+  private marketingTransporter: Transporter | null = null;
   private isConfigured: boolean = false;
   private trackingBaseUrl: string;
 
   constructor() {
-    this.trackingBaseUrl = process.env.TRACKING_BASE_URL || 
-                           process.env.APP_URL || 
+    this.trackingBaseUrl = process.env.TRACKING_BASE_URL ||
+                           process.env.APP_URL ||
                            'http://localhost:3000';
     this.initializeTransporter();
+    this.initializeMarketingTransporter();
   }
 
   // ===========================================================================
@@ -110,6 +112,50 @@ export class EmailService {
 
     this.isConfigured = true;
     console.log(`[EmailService] SMTP konfiguriert: ${smtpHost}:${smtpPort}`);
+  }
+
+  // ===========================================================================
+  // Initialize Marketing SMTP Transporter (optional, falls back to system SMTP)
+  // ===========================================================================
+
+  private initializeMarketingTransporter(): void {
+    const host = process.env.MARKETING_SMTP_HOST;
+    const user = process.env.MARKETING_SMTP_USER;
+    const pass = process.env.MARKETING_SMTP_PASS;
+
+    if (!host || !user || !pass) {
+      console.log('[EmailService] Marketing-SMTP nicht konfiguriert, verwende System-SMTP für Sequenzen.');
+      return;
+    }
+
+    const port = process.env.MARKETING_SMTP_PORT ? parseInt(process.env.MARKETING_SMTP_PORT, 10) : 587;
+    const secure = process.env.MARKETING_SMTP_SECURE === 'true' || port === 465;
+
+    this.marketingTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      ...(process.env.NODE_ENV === 'development' && {
+        tls: { rejectUnauthorized: false }
+      })
+    });
+
+    console.log(`[EmailService] Marketing-SMTP konfiguriert: ${host}:${port}`);
+  }
+
+  // ===========================================================================
+  // Get marketing transport (falls back to system)
+  // ===========================================================================
+
+  private getMarketingTransporter(): Transporter | null {
+    return this.marketingTransporter || this.transporter;
+  }
+
+  private getMarketingFrom(): string {
+    const email = process.env.MARKETING_SMTP_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@dna-me.com';
+    const name = process.env.MARKETING_SMTP_FROM_NAME || process.env.SMTP_FROM_NAME || 'DNA ME';
+    return `${name} <${email}>`;
   }
 
   // ===========================================================================
@@ -265,9 +311,15 @@ export class EmailService {
       trackedHtml = this.addUnsubscribeLink(trackedHtml, tracking.enrollmentId);
     }
 
-    const fromEmail = options.from || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@dna-me.com';
-    const fromName = options.fromName || process.env.SMTP_FROM_NAME || 'DNA ME';
-    const fromAddress = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    // Use marketing transporter for tracked sequence emails
+    const transport = this.getMarketingTransporter();
+    if (!transport) {
+      return { success: false, error: 'Kein SMTP-Transport verfügbar' };
+    }
+
+    const fromAddress = options.from
+      ? (options.fromName ? `${options.fromName} <${options.from}>` : options.from)
+      : this.getMarketingFrom();
 
     try {
       const mailOptions = {
@@ -286,7 +338,7 @@ export class EmailService {
         }
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
+      const info = await transport.sendMail(mailOptions);
       
       console.log(`[EmailService] Tracked E-Mail gesendet: ${options.subject} → ${options.to} (Tracking-ID: ${trackingId})`);
       
@@ -552,9 +604,9 @@ export class EmailService {
     }>(
       `SELECT 
          COUNT(*)::text as total_sent,
-         COUNT(opened_at)::text as total_opened,
-         COUNT(clicked_at)::text as total_clicked,
-         COUNT(unsubscribed_at)::text as total_unsubscribed
+         COUNT(et.opened_at)::text as total_opened,
+         COUNT(et.clicked_at)::text as total_clicked,
+         COUNT(et.unsubscribed_at)::text as total_unsubscribed
        FROM email_tracking et
        JOIN email_sequence_enrollments ese ON et.enrollment_id = ese.id
        WHERE ese.sequence_id = $1`,

@@ -281,13 +281,14 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
       const availableActions = triggerService.getAvailableActions();
 
       // Hole konfigurierte Trigger aus automation_config
-      // Da automation_config ein AutomationStageConfig[] ist, konvertieren wir es
       const configuredTriggers: StageTriggerConfig[] = [];
-      
-      // Für jetzt geben wir ein leeres Array zurück, da die Struktur anders ist
-      // Dies kann später erweitert werden, um AutomationStageConfig zu StageTriggerConfig zu konvertieren
+
       if (stage.automation_config && Array.isArray(stage.automation_config)) {
-        // Hier könnte eine Transformation stattfinden, wenn nötig
+        for (const entry of stage.automation_config) {
+          if ('action' in entry && typeof entry.action === 'string') {
+            configuredTriggers.push(entry as unknown as StageTriggerConfig);
+          }
+        }
       }
 
       return {
@@ -335,10 +336,12 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
                   action: {
                     type: 'string',
                     enum: [
-                      'send_email',
+                      'send_notification_email',
+                      'enroll_email_sequence',
                       'create_moco_project',
                       'create_moco_customer',
                       'create_moco_offer',
+                      'create_moco_invoice_draft',
                       'send_cituro_booking',
                       'send_slack_message'
                     ]

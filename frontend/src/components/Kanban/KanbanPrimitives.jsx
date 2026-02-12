@@ -134,7 +134,12 @@ export const KanbanColumnContainer = ({
               fontWeight={700} 
               sx={{ color: activeColor, lineHeight: 1.2 }}
             >
-              €{totalValue.toLocaleString('de-DE')}
+              {new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(Number(totalValue) || 0)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Gesamtwert

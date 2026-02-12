@@ -236,8 +236,8 @@ const PipelineList = () => {
   };
 
   // Calculate totals
-  const totalDeals = pipelines.reduce((sum, p) => sum + (p.deals_count || 0), 0);
-  const totalValue = pipelines.reduce((sum, p) => sum + (p.total_value || 0), 0);
+  const totalDeals = pipelines.reduce((sum, p) => sum + (Number(p.deals_count) || 0), 0);
+  const totalValue = pipelines.reduce((sum, p) => sum + (Number(p.total_value) || 0), 0);
   const activePipelines = pipelines.filter(p => p.is_active).length;
 
   return (

@@ -840,6 +840,59 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ===========================================================================
+  // POST /api/v1/enrollments/:id/cancel
+  // ===========================================================================
+  /**
+   * Einschreibung abbrechen (endgültig stoppen)
+   */
+  fastify.post<{
+    Params: IdParams;
+  }>(
+    '/enrollments/:id/cancel',
+    {
+      preHandler: validateApiKey,
+      schema: {
+        tags: ['Email Sequences'],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        }
+      }
+    },
+    async (request) => {
+      const { id } = request.params;
+
+      const enrollment = await db.queryOne<EmailSequenceEnrollment>(
+        'SELECT * FROM email_sequence_enrollments WHERE id = $1',
+        [id]
+      );
+
+      if (!enrollment) {
+        throw new NotFoundError('Einschreibung', id);
+      }
+
+      if (enrollment.status === 'unsubscribed' || enrollment.status === 'completed') {
+        return { success: true, message: 'Einschreibung war bereits beendet' };
+      }
+
+      await db.execute(
+        `UPDATE email_sequence_enrollments
+         SET status = 'unsubscribed',
+             unsubscribed_at = NOW(),
+             next_email_due_at = NULL,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [id]
+      );
+
+      return { success: true, message: 'Einschreibung wurde abgebrochen' };
+    }
+  );
+
+  // ===========================================================================
   // GET /api/v1/sequences/:id/stats
   // ===========================================================================
   /**

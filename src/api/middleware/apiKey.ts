@@ -27,7 +27,7 @@ declare module 'fastify' {
  */
 export async function validateApiKey(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> {
   const apiKey = request.headers['x-api-key'];
 
@@ -59,7 +59,7 @@ export async function validateApiKey(
 
 export async function optionalApiKey(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> {
   const apiKey = request.headers['x-api-key'];
 

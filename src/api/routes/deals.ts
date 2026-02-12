@@ -17,7 +17,6 @@ import {
   type ReorderDealsInput
 } from '../../services/dealService.js';
 import { ValidationError } from '../../errors/index.js';
-import type { Deal, DealStatus } from '../../types/index.js';
 
 // =============================================================================
 // Zod Schemas
@@ -105,9 +104,11 @@ function transformDealResponse(deal: DealWithRelations) {
   const currentStep = deal.sequence_current_step !== undefined && deal.sequence_current_step !== null
     ? Number(deal.sequence_current_step)
     : null;
-  const nextDueAt = deal.sequence_next_email_due_at?.toISOString?.()
-    ?? (deal.sequence_next_email_due_at as unknown as string)
-    ?? null;
+  const nextDueAt = deal.sequence_next_email_due_at
+    ? (typeof deal.sequence_next_email_due_at === 'string' 
+        ? deal.sequence_next_email_due_at 
+        : deal.sequence_next_email_due_at.toISOString())
+    : null;
   const emailSequence = deal.sequence_id ? {
     enrollment_id: deal.sequence_enrollment_id ?? null,
     sequence_id: deal.sequence_id,

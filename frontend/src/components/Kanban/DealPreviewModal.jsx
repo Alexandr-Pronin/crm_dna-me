@@ -26,6 +26,7 @@ import {
   MenuItem,
   InputAdornment,
   Autocomplete,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -41,10 +42,11 @@ import {
   OpenInNew as OpenInNewIcon,
   Notes as NotesIcon,
   SwapHoriz as SwapIcon,
+  LinkOff as LinkOffIcon,
 } from '@mui/icons-material';
 import { useDataProvider, useNotify } from 'react-admin';
 import { useNavigate } from 'react-router-dom';
-import { updateDealLead, searchLeads } from '../../providers/dataProvider';
+import { updateDealLead, searchLeads, httpClient, API_URL } from '../../providers/dataProvider';
 
 // DNA ME Farben
 const DNA_COLORS = {
@@ -283,6 +285,29 @@ const DealPreviewModal = ({
   const handleOpenFullPage = () => {
     navigate(`/deals/${deal.id}/show`);
     handleClose();
+  };
+
+  const [cancellingSequence, setCancellingSequence] = useState(false);
+
+  const handleCancelSequence = async () => {
+    const enrollmentId = deal.email_sequence?.enrollment_id;
+    if (!enrollmentId) return;
+    setCancellingSequence(true);
+    try {
+      await httpClient(`${API_URL}/enrollments/${enrollmentId}/cancel`, { method: 'POST', body: JSON.stringify({}) });
+      const updatedDeal = {
+        ...deal,
+        email_sequence: { ...deal.email_sequence, status: 'unsubscribed' },
+      };
+      setDeal(updatedDeal);
+      notify('E-Mail Sequenz wurde entfernt', { type: 'success' });
+      if (onDealUpdated) onDealUpdated(updatedDeal);
+    } catch (err) {
+      console.error('Failed to cancel enrollment:', err);
+      notify('Fehler beim Entfernen der E-Mail Sequenz', { type: 'error' });
+    } finally {
+      setCancellingSequence(false);
+    }
   };
 
   const handleContactClick = () => {
@@ -604,7 +629,7 @@ const DealPreviewModal = ({
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <EmailIcon sx={{ color: stageColor, fontSize: 20 }} />
-                  <Box>
+                  <Box sx={{ flex: 1 }}>
                     <Typography variant="body1" color="text.primary">
                       {emailSequence.sequence_name || 'Aktive Sequenz'}
                     </Typography>
@@ -615,6 +640,18 @@ const DealPreviewModal = ({
                         : ''}
                     </Typography>
                   </Box>
+                  {isEditing && (
+                    <Tooltip title="E-Mail Sequenz entfernen">
+                      <IconButton
+                        size="small"
+                        onClick={handleCancelSequence}
+                        disabled={cancellingSequence}
+                        sx={{ color: DNA_COLORS.error }}
+                      >
+                        {cancellingSequence ? <CircularProgress size={16} /> : <LinkOffIcon fontSize="small" />}
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               </Box>
             )}

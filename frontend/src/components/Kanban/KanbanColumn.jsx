@@ -52,7 +52,7 @@ const KanbanColumn = ({
   onSettingsClick,
 }) => {
   // Berechne Gesamtwert der Deals in dieser Stage
-  const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+  const totalValue = deals.reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
   
   // Hole Stage-Farbe
   const stageColor = getStageColor(stage);
