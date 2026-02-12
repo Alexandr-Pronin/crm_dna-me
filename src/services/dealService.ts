@@ -8,7 +8,6 @@ import { NotFoundError, ValidationError, ConflictError, BusinessLogicError } fro
 import { getSyncQueue } from '../config/queues.js';
 import { getPipelineService } from './pipelineService.js';
 import { getAutomationEngine } from './automationEngine.js';
-import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
 import type {
   Deal,
   DealStatus,
@@ -577,10 +576,19 @@ export class DealService {
       [data.stage_id, position, id]
     );
 
+    // Cancel all active/paused enrollments for this deal (not just pause)
     try {
-      await pauseDealEnrollments(deal.id, deal.stage_id);
+      await db.execute(
+        `UPDATE email_sequence_enrollments
+         SET status = 'unsubscribed',
+             unsubscribed_at = NOW(),
+             next_email_due_at = NULL,
+             updated_at = NOW()
+         WHERE deal_id = $1 AND status IN ('active', 'paused')`,
+        [deal.id]
+      );
     } catch (pauseError) {
-      console.error('[Deal Service] Failed to pause email enrollments:', pauseError);
+      console.error('[Deal Service] Failed to cancel email enrollments:', pauseError);
     }
     
     // Process stage change automation

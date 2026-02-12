@@ -393,12 +393,14 @@ const KanbanBoard = () => {
         await reorderDealsInStage(resolvedNewStageId, nextTargetOrder);
       }
       notify('Deal erfolgreich verschoben', { type: 'success' });
+      // Reload deals to get updated email_sequence status after triggers
+      await loadDeals();
     } catch (err) {
       console.error('Failed to move deal:', err);
       setDeals(previousDeals);
       notify('Fehler beim Verschieben des Deals', { type: 'error' });
     }
-  }, [deals, notify, resolveStageId, isDealInStage, getStageByKey]);
+  }, [deals, notify, resolveStageId, isDealInStage, getStageByKey, loadDeals]);
 
   const handleDragCancel = useCallback(() => {
     setActiveDealId(null);
@@ -574,7 +576,12 @@ const KanbanBoard = () => {
                 Gesamtwert
               </Typography>
               <Typography variant="h6" fontWeight={700} color="primary.main">
-                €{deals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString('de-DE')}
+                {new Intl.NumberFormat('de-DE', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0))}
               </Typography>
             </Box>
             {selectedPipeline.salesCycle && (

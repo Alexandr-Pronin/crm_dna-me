@@ -1,0 +1,228 @@
+# =============================================================================
+# DNA ME CRM — AWS CloudFormation Template (eu-central-1)
+# Portable deployment: no RDS, ALB, Lambda, ElastiCache. Easy migration to Proxmox.
+# =============================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DNA ME CRM - Portable AWS Deployment (eu-central-1). EC2 + Docker Compose with Postgres, Redis, Nginx, Certbot SSL.
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH Key Pair for EC2 access
+
+  InstanceType:
+    Type: String
+    Default: t3.large
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+    Description: EC2 instance type (t3.large = 8GB RAM recommended)
+
+  VolumeSize:
+    Type: Number
+    Default: 30
+    MinValue: 20
+    MaxValue: 500
+    Description: EBS volume size (GB)
+
+  # SSH restricted to this CIDR - CHANGE for production
+  AllowedCidr:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: CIDR block allowed for SSH (e.g. 1.2.3.4/32 for single IP)
+
+  DomainName:
+    Type: String
+    Default: crm.dna-me.com
+    Description: Domain for SSL certificate (DNS must point to Elastic IP)
+
+  LetsEncryptEmail:
+    Type: String
+    Default: admin@dna-me.com
+    Description: Email for Let's Encrypt certificate notifications
+
+Conditions:
+  UseDefaultVPC: !Equals [!Ref 'AWS::NoValue', !Ref 'AWS::NoValue']
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # VPC & Networking (from Plan b742a208)
+  # ---------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-vpc'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-subnet'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-rt'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # ---------------------------------------------------------------------------
+  # Security Group - SSH restricted to AllowedCidr
+  # ---------------------------------------------------------------------------
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName}-sg'
+      GroupDescription: DNA ME CRM - SSH (restricted), HTTP, HTTPS
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCidr
+          Description: SSH (restricted to AllowedCidr)
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP (Certbot ACME, redirect)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-sg'
+
+  # ---------------------------------------------------------------------------
+  # EC2 Instance (t3.large = 8GB RAM)
+  # ---------------------------------------------------------------------------
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64:1}}'
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SecurityGroup
+          SubnetId: !Ref PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref VolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log) 2>&1
+
+          echo "=== DNA ME CRM - EC2 Bootstrap ==="
+          dnf update -y
+
+          # Docker
+          dnf install -y docker
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ec2-user
+
+          # Docker Compose
+          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+
+          # Node.js for migrations
+          dnf install -y nodejs
+
+          mkdir -p /opt/dna-crm
+          chown -R ec2-user:ec2-user /opt/dna-crm
+
+          echo "Bootstrap complete. Run deploy-aws.sh to deploy the application."
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ec2'
+
+  # ---------------------------------------------------------------------------
+  # Elastic IP
+  # ---------------------------------------------------------------------------
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-eip'
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      InstanceId: !Ref EC2Instance
+
+Outputs:
+  PublicIP:
+    Description: Elastic IP (assign to your domain DNS A record)
+    Value: !Ref ElasticIP
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIP'
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance
+
+  SSHCmd:
+    Description: SSH command (run from project root after deploy)
+    Value: !Sub 'ssh -i ~/.ssh/${KeyPairName}.pem ec2-user@${ElasticIP}'
+
+  HealthUrl:
+    Description: Health check URL (after app deployment)
+    Value: !Sub 'http://${ElasticIP}/health'
+
+  DomainHint:
+    Description: Point DNS A record to PublicIP
+    Value: !Sub '${DomainName} -> ${ElasticIP}'

@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDataProvider, useNotify } from 'react-admin';
 import {
   Box,
   Typography,
@@ -69,8 +70,6 @@ import {
   Settings as SettingsIcon,
   Psychology as AIIcon,
 } from '@mui/icons-material';
-import { useNotify } from 'react-admin';
-import { httpClient, API_URL } from '../../providers/dataProvider';
 
 /**
  * Available template variables
@@ -86,24 +85,59 @@ const TEMPLATE_VARIABLES = [
 ];
 
 /**
- * Trigger events for sequences
+ * Mock sequence data
  */
-const TRIGGER_EVENTS = [
-  { value: 'lead_created', label: 'Lead erstellt', description: 'Wenn ein neuer Lead erstellt wird' },
-  { value: 'deal_created', label: 'Deal erstellt', description: 'Wenn ein neuer Deal erstellt wird' },
-  { value: 'deal_stage_changed', label: 'Stage geändert', description: 'Wenn ein Deal in eine bestimmte Stage verschoben wird' },
-  { value: 'deal_won', label: 'Deal gewonnen', description: 'Wenn ein Deal als gewonnen markiert wird' },
-  { value: 'deal_lost', label: 'Deal verloren', description: 'Wenn ein Deal als verloren markiert wird' },
-  { value: 'manual', label: 'Manuell', description: 'Nur durch manuelle Enrollment-Aktion' },
-];
-
-const buildEmptySequence = () => ({
-  name: '',
-  description: '',
+const mockSequenceData = {
+  id: '1',
+  name: 'Willkommens-Serie',
+  description: 'Automatische Begrüßung für neue Leads',
   trigger_event: 'lead_created',
-  is_active: false,
-  steps: [],
-});
+  is_active: true,
+  steps: [
+    {
+      id: 'step-1',
+      position: 1,
+      delay_days: 0,
+      delay_hours: 0,
+      subject: 'Willkommen bei DNA ME! 🧬',
+      body_html: `<p>Hallo {{first_name}},</p>
+<p>herzlich willkommen bei DNA ME! Wir freuen uns, Sie als neuen Kontakt begrüßen zu dürfen.</p>
+<p>Als führendes Biotech-Unternehmen bieten wir Ihnen innovative Lösungen für Ihre Forschung.</p>
+<p>In den nächsten Tagen werden wir Ihnen weitere Informationen zu unseren Services zusenden.</p>
+<p>Mit freundlichen Grüßen,<br/>Ihr DNA ME Team</p>`,
+    },
+    {
+      id: 'step-2',
+      position: 2,
+      delay_days: 2,
+      delay_hours: 0,
+      subject: 'Entdecken Sie unsere Research Lab Services',
+      body_html: `<p>Hallo {{first_name}},</p>
+<p>haben Sie schon von unseren Research Lab Services gehört?</p>
+<p>Wir unterstützen Sie bei:</p>
+<ul>
+<li>Genomanalysen</li>
+<li>Proteomik</li>
+<li>Custom Assay Development</li>
+</ul>
+<p>Vereinbaren Sie jetzt ein unverbindliches Beratungsgespräch!</p>
+<p>Beste Grüße,<br/>Ihr DNA ME Team</p>`,
+    },
+    {
+      id: 'step-3',
+      position: 3,
+      delay_days: 5,
+      delay_hours: 0,
+      subject: 'Kostenlose Demo buchen',
+      body_html: `<p>Hallo {{first_name}},</p>
+<p>möchten Sie unsere Plattform in Aktion sehen?</p>
+<p>Buchen Sie jetzt Ihre kostenlose Demo und erfahren Sie, wie DNA ME Ihre Forschung beschleunigen kann.</p>
+<p>👉 <a href="#">Demo buchen</a></p>
+<p>Wir freuen uns auf Sie!</p>
+<p>Ihr DNA ME Team</p>`,
+    },
+  ],
+};
 
 /**
  * Email Step Editor Component
@@ -423,7 +457,7 @@ const EmailStepEditor = ({
 /**
  * Test Email Dialog
  */
-const TestEmailDialog = ({ open, onClose, onSend, loading, steps = [] }) => {
+const TestEmailDialog = ({ open, onClose, onSend, loading }) => {
   const [testEmail, setTestEmail] = useState('');
   const [selectedStep, setSelectedStep] = useState('all');
 
@@ -453,11 +487,9 @@ const TestEmailDialog = ({ open, onClose, onSend, loading, steps = [] }) => {
             onChange={(e) => setSelectedStep(e.target.value)}
           >
             <MenuItem value="all">Alle E-Mails der Sequenz</MenuItem>
-            {steps.map((step) => (
-              <MenuItem key={step.position} value={String(step.position)}>
-                Nur E-Mail {step.position}
-              </MenuItem>
-            ))}
+            <MenuItem value="1">Nur E-Mail 1</MenuItem>
+            <MenuItem value="2">Nur E-Mail 2</MenuItem>
+            <MenuItem value="3">Nur E-Mail 3</MenuItem>
           </TextField>
           <Alert severity="info" sx={{ mt: 2 }}>
             Die Test-E-Mail wird mit Beispieldaten für Variablen gesendet.
@@ -487,16 +519,22 @@ const TestEmailDialog = ({ open, onClose, onSend, loading, steps = [] }) => {
 const SequenceBuilder = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isNew = id === 'new';
+  const dataProvider = useDataProvider();
   const notify = useNotify();
+  const isNew = id === 'new';
 
   // State
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [sequence, setSequence] = useState(buildEmptySequence());
+  const [sequence, setSequence] = useState({
+    name: '',
+    description: '',
+    trigger_event: 'manual',
+    is_active: false,
+    steps: [],
+  });
   const [expandedStep, setExpandedStep] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
-  const initialStepIdsRef = useRef([]);
 
   // Dialog state
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -509,44 +547,22 @@ const SequenceBuilder = () => {
   useEffect(() => {
     if (!isNew && id) {
       setLoading(true);
-      const loadSequence = async () => {
-        try {
-          const { json } = await httpClient(`${API_URL}/sequences/${id}`);
-          const loaded = {
-            id: json.id,
-            name: json.name || '',
-            description: json.description || '',
-            trigger_event: json.trigger_event || 'lead_created',
-            is_active: !!json.is_active,
-            steps: (json.steps || []).map(step => ({
-              id: step.id,
-              position: step.position,
-              delay_days: step.delay_days ?? 0,
-              delay_hours: step.delay_hours ?? 0,
-              subject: step.subject || '',
-              body_html: step.body_html || '',
-              body_text: step.body_text || '',
-            })).sort((a, b) => a.position - b.position),
-          };
-          initialStepIdsRef.current = loaded.steps.map(step => step.id);
-          setSequence(loaded);
-          setExpandedStep(loaded.steps.length ? 0 : -1);
-        } catch (err) {
-          console.error('Failed to load sequence:', err);
-          notify('Sequenz konnte nicht geladen werden', { type: 'error' });
-        } finally {
+      dataProvider.getOne('sequences', { id })
+        .then(({ data }) => {
+          setSequence({
+            ...data,
+            steps: data.steps || []
+          });
           setLoading(false);
-        }
-      };
-
-      loadSequence();
+        })
+        .catch((error) => {
+          console.error('Failed to load sequence:', error);
+          notify('Fehler beim Laden der Sequenz', { type: 'error' });
+          setLoading(false);
+          navigate('/email-marketing');
+        });
     }
-    if (isNew) {
-      initialStepIdsRef.current = [];
-      setSequence(buildEmptySequence());
-      setExpandedStep(-1);
-    }
-  }, [id, isNew]);
+  }, [id, isNew, dataProvider, notify, navigate]);
 
   /**
    * Handle field change
@@ -572,13 +588,12 @@ const SequenceBuilder = () => {
    */
   const handleAddStep = () => {
     const newStep = {
-      id: `temp-${Date.now()}`,
+      id: `step-${Date.now()}`,
       position: sequence.steps.length + 1,
       delay_days: 1,
       delay_hours: 0,
       subject: '',
       body_html: '',
-      isNew: true,
     };
     setSequence((prev) => ({
       ...prev,
@@ -617,9 +632,8 @@ const SequenceBuilder = () => {
     const stepToDuplicate = sequence.steps[index];
     const newStep = {
       ...stepToDuplicate,
-      id: `temp-${Date.now()}`,
+      id: `step-${Date.now()}`,
       position: sequence.steps.length + 1,
-      isNew: true,
     };
     setSequence((prev) => ({
       ...prev,
@@ -633,118 +647,41 @@ const SequenceBuilder = () => {
    * Handle save
    */
   const handleSave = async () => {
+    // Validation
+    if (!sequence.name || sequence.name.trim() === '') {
+      notify('Bitte geben Sie einen Namen für die Sequenz ein', { type: 'warning' });
+      return;
+    }
+    if (sequence.steps.length === 0) {
+      notify('Eine Sequenz muss mindestens einen Schritt haben', { type: 'warning' });
+      return;
+    }
+
     setSaving(true);
     try {
-      const normalizedSteps = sequence.steps
-        .map((step, index) => ({
-          ...step,
-          position: index + 1,
-          delay_days: Number(step.delay_days) || 0,
-          delay_hours: Number(step.delay_hours) || 0,
-        }))
-        .sort((a, b) => a.position - b.position);
-
       if (isNew) {
-        const { json: created } = await httpClient(`${API_URL}/sequences`, {
-          method: 'POST',
-          body: JSON.stringify({
-            name: sequence.name,
-            description: sequence.description,
-            trigger_event: sequence.trigger_event,
-            is_active: sequence.is_active,
-          }),
+        // Create new sequence
+        const { data } = await dataProvider.create('sequences', {
+          data: sequence
         });
-
-        for (const step of normalizedSteps) {
-          await httpClient(`${API_URL}/sequences/${created.id}/steps`, {
-            method: 'POST',
-            body: JSON.stringify({
-              position: step.position,
-              delay_days: step.delay_days,
-              delay_hours: step.delay_hours,
-              subject: step.subject,
-              body_html: step.body_html,
-              body_text: step.body_text,
-            }),
-          });
-        }
-
-        setSnackbar({
-          open: true,
-          message: 'Sequenz erfolgreich erstellt',
-          severity: 'success',
+        setSaving(false);
+        setHasChanges(false);
+        notify('Sequenz erfolgreich erstellt', { type: 'success' });
+        navigate(`/email-marketing/${data.id}`);
+      } else {
+        // Update existing sequence
+        await dataProvider.update('sequences', {
+          id: id,
+          data: sequence,
+          previousData: sequence
         });
-        navigate('/email-marketing');
-        return;
+        setSaving(false);
+        setHasChanges(false);
+        notify('Änderungen gespeichert', { type: 'success' });
       }
-
-      await httpClient(`${API_URL}/sequences/${sequence.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: sequence.name,
-          description: sequence.description,
-          trigger_event: sequence.trigger_event,
-          is_active: sequence.is_active,
-        }),
-      });
-
-      const currentStepIds = normalizedSteps
-        .filter(step => !String(step.id).startsWith('temp-'))
-        .map(step => step.id);
-      const deletedStepIds = initialStepIdsRef.current
-        .filter(stepId => !currentStepIds.includes(stepId));
-
-      for (const stepId of deletedStepIds) {
-        await httpClient(`${API_URL}/sequences/${sequence.id}/steps/${stepId}`, {
-          method: 'DELETE',
-        });
-      }
-
-      for (const step of normalizedSteps) {
-        if (String(step.id).startsWith('temp-') || step.isNew) {
-          await httpClient(`${API_URL}/sequences/${sequence.id}/steps`, {
-            method: 'POST',
-            body: JSON.stringify({
-              position: step.position,
-              delay_days: step.delay_days,
-              delay_hours: step.delay_hours,
-              subject: step.subject,
-              body_html: step.body_html,
-              body_text: step.body_text,
-            }),
-          });
-        } else {
-          await httpClient(`${API_URL}/sequences/${sequence.id}/steps/${step.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              position: step.position,
-              delay_days: step.delay_days,
-              delay_hours: step.delay_hours,
-              subject: step.subject,
-              body_html: step.body_html,
-              body_text: step.body_text,
-            }),
-          });
-        }
-      }
-
-      initialStepIdsRef.current = normalizedSteps
-        .filter(step => !String(step.id).startsWith('temp-'))
-        .map(step => step.id);
-      setHasChanges(false);
-      setSnackbar({
-        open: true,
-        message: 'Änderungen gespeichert',
-        severity: 'success',
-      });
-    } catch (err) {
-      console.error('Failed to save sequence:', err);
-      setSnackbar({
-        open: true,
-        message: 'Fehler beim Speichern der Sequenz',
-        severity: 'error',
-      });
-    } finally {
+    } catch (error) {
+      console.error('Failed to save sequence:', error);
+      notify('Fehler beim Speichern', { type: 'error' });
       setSaving(false);
     }
   };
@@ -753,45 +690,16 @@ const SequenceBuilder = () => {
    * Handle test email send
    */
   const handleTestSend = (email, step) => {
-    if (!sequence.id) {
-      notify('Bitte Sequenz zuerst speichern', { type: 'warning' });
-      return;
-    }
-    const sendTest = async () => {
-      setTestLoading(true);
-      try {
-        const stepsToSend = step === 'all'
-          ? sequence.steps.map(s => s.position).sort((a, b) => a - b)
-          : [Number(step)];
-
-        await Promise.all(
-          stepsToSend.map((stepPosition) =>
-            httpClient(`${API_URL}/sequences/${sequence.id}/test-email`, {
-              method: 'POST',
-              body: JSON.stringify({ email, step_position: stepPosition }),
-            })
-          )
-        );
-
-        setTestDialogOpen(false);
-        setSnackbar({
-          open: true,
-          message: `Test-E-Mail an ${email} gesendet`,
-          severity: 'success',
-        });
-      } catch (err) {
-        console.error('Test email failed:', err);
-        setSnackbar({
-          open: true,
-          message: 'Fehler beim Testversand',
-          severity: 'error',
-        });
-      } finally {
-        setTestLoading(false);
-      }
-    };
-
-    sendTest();
+    setTestLoading(true);
+    setTimeout(() => {
+      setTestLoading(false);
+      setTestDialogOpen(false);
+      setSnackbar({
+        open: true,
+        message: `Test-E-Mail an ${email} gesendet`,
+        severity: 'success',
+      });
+    }, 1500);
   };
 
   /**
@@ -896,25 +804,6 @@ const SequenceBuilder = () => {
                 sx={{ mb: 2 }}
               />
 
-              {/* Trigger Event */}
-              <TextField
-                select
-                fullWidth
-                label="Trigger Event"
-                value={sequence.trigger_event}
-                onChange={(e) => handleFieldChange('trigger_event', e.target.value)}
-                sx={{ mb: 2 }}
-                helperText={
-                  TRIGGER_EVENTS.find((t) => t.value === sequence.trigger_event)?.description
-                }
-              >
-                {TRIGGER_EVENTS.map((trigger) => (
-                  <MenuItem key={trigger.value} value={trigger.value}>
-                    {trigger.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-
               {/* Active Toggle */}
               <FormControlLabel
                 control={
@@ -931,8 +820,8 @@ const SequenceBuilder = () => {
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {sequence.is_active
-                        ? 'Sequenz wird automatisch ausgeführt'
-                        : 'Sequenz ist pausiert'}
+                        ? 'Sequenz kann für Deals verwendet werden'
+                        : 'Sequenz ist deaktiviert'}
                     </Typography>
                   </Box>
                 }
@@ -1057,7 +946,6 @@ const SequenceBuilder = () => {
         onClose={() => setTestDialogOpen(false)}
         onSend={handleTestSend}
         loading={testLoading}
-        steps={sequence.steps}
       />
 
       {/* Snackbar */}

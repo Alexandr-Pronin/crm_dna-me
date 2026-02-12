@@ -1,12 +1,10 @@
 /**
  * Email Marketing Page
  * Übersicht und Verwaltung von E-Mail-Sequenzen
- * Uses MOCK DATA - Wird später mit echtem API verbunden
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDataProvider, useNotify } from 'react-admin';
-import { httpClient, API_URL } from '../../providers/dataProvider';
 import {
   Box,
   Typography,
@@ -62,18 +60,81 @@ import {
   AccessTime as TimeIcon,
 } from '@mui/icons-material';
 
-
 /**
- * Trigger Event Labels
+ * Mock Data - Wird später durch API ersetzt
  */
-const TRIGGER_LABELS = {
-  lead_created: { label: 'Lead erstellt', color: '#4A90A4' },
-  deal_created: { label: 'Deal erstellt', color: '#6C5CE7' },
-  deal_stage_changed: { label: 'Stage geändert', color: '#F59E0B' },
-  deal_won: { label: 'Deal gewonnen', color: '#28A745' },
-  deal_lost: { label: 'Deal verloren', color: '#DC3545' },
-  manual: { label: 'Manuell', color: '#64748B' },
-};
+const mockSequences = [
+  {
+    id: '1',
+    name: 'Willkommens-Serie',
+    description: 'Automatische Begrüßung für neue Leads',
+    trigger_event: 'lead_created',
+    is_active: true,
+    steps_count: 5,
+    enrolled_count: 128,
+    completed_count: 89,
+    open_rate: 0.68,
+    click_rate: 0.24,
+    created_at: '2025-12-15T10:00:00Z',
+    last_sent_at: '2026-01-22T14:30:00Z',
+  },
+  {
+    id: '2',
+    name: 'Demo Follow-Up',
+    description: 'Nachfass-E-Mails nach Demo-Buchung',
+    trigger_event: 'deal_stage_changed',
+    is_active: true,
+    steps_count: 3,
+    enrolled_count: 45,
+    completed_count: 32,
+    open_rate: 0.82,
+    click_rate: 0.41,
+    created_at: '2025-12-20T10:00:00Z',
+    last_sent_at: '2026-01-21T09:15:00Z',
+  },
+  {
+    id: '3',
+    name: 'Reaktivierungs-Kampagne',
+    description: 'Inaktive Leads wieder aktivieren',
+    trigger_event: 'manual',
+    is_active: false,
+    steps_count: 4,
+    enrolled_count: 256,
+    completed_count: 180,
+    open_rate: 0.35,
+    click_rate: 0.12,
+    created_at: '2025-11-10T10:00:00Z',
+    last_sent_at: '2026-01-15T11:00:00Z',
+  },
+  {
+    id: '4',
+    name: 'Angebots-Erinnerung',
+    description: 'Reminder für ausstehende Angebote',
+    trigger_event: 'deal_stage_changed',
+    is_active: true,
+    steps_count: 2,
+    enrolled_count: 67,
+    completed_count: 54,
+    open_rate: 0.71,
+    click_rate: 0.38,
+    created_at: '2026-01-05T10:00:00Z',
+    last_sent_at: '2026-01-23T08:45:00Z',
+  },
+  {
+    id: '5',
+    name: 'Onboarding-Serie',
+    description: 'Einführung für neue Kunden',
+    trigger_event: 'deal_won',
+    is_active: true,
+    steps_count: 7,
+    enrolled_count: 89,
+    completed_count: 45,
+    open_rate: 0.79,
+    click_rate: 0.52,
+    created_at: '2026-01-10T10:00:00Z',
+    last_sent_at: '2026-01-22T16:20:00Z',
+  },
+];
 
 /**
  * Stats Card Component
@@ -126,42 +187,9 @@ const StatsCard = ({ title, value, subvalue, icon: Icon, color, trend }) => (
 );
 
 /**
- * Trigger Badge Component
- */
-const TriggerBadge = ({ trigger }) => {
-  const config = TRIGGER_LABELS[trigger] || TRIGGER_LABELS.manual;
-  return (
-    <Chip
-      label={config.label}
-      size="small"
-      sx={{
-        bgcolor: `${config.color}15`,
-        color: config.color,
-        border: `1px solid ${config.color}30`,
-        fontWeight: 500,
-        fontSize: '0.7rem',
-      }}
-    />
-  );
-};
-
-/**
  * Rate Display Component
  */
 const RateDisplay = ({ rate, label }) => {
-  if (rate === null || rate === undefined) {
-    return (
-      <Box sx={{ textAlign: 'center' }}>
-        <Typography variant="body2" fontWeight={600} color="text.secondary">
-          —
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {label}
-        </Typography>
-      </Box>
-    );
-  }
-
   const percentage = (rate * 100).toFixed(1);
   const isGood = rate >= 0.5;
   const isMedium = rate >= 0.25 && rate < 0.5;
@@ -270,58 +298,51 @@ const EmailMarketingPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState({});
 
-  const loadSequences = useCallback(async () => {
+  /**
+   * Load sequences from API
+   */
+  useEffect(() => {
+    loadSequences();
+  }, []);
+
+  const loadSequences = async () => {
     setLoading(true);
     setError(null);
     try {
       const { data } = await dataProvider.getList('sequences', {
-        pagination: { page: 1, perPage: 200 },
+        pagination: { page: 1, perPage: 1000 },
         sort: { field: 'created_at', order: 'DESC' },
         filter: {},
       });
-
-      const mapped = (data || []).map(seq => ({
-        ...seq,
-        steps_count: Number(seq.steps_count) || 0,
-        enrolled_count: Number(seq.enrollments_count) || 0,
-        completed_count: 0,
-        open_rate: null,
-        click_rate: null,
-        last_sent_at: seq.last_sent_at || null,
-      }));
-
-      setSequences(mapped);
+      setSequences(data || []);
     } catch (err) {
       console.error('Failed to load sequences:', err);
-      setError('Sequenzen konnten nicht geladen werden');
+      setError('Fehler beim Laden der Sequenzen');
       notify('Fehler beim Laden der Sequenzen', { type: 'error' });
-      setSequences([]);
     } finally {
       setLoading(false);
     }
-  }, [dataProvider, notify]);
-
-  useEffect(() => {
-    loadSequences();
-  }, [loadSequences]);
+  };
 
   /**
    * Handle toggle active status
    */
   const handleToggleActive = async (sequence) => {
     setToggleLoading((prev) => ({ ...prev, [sequence.id]: true }));
+
     try {
       await dataProvider.update('sequences', {
         id: sequence.id,
         data: { is_active: !sequence.is_active },
-        previousData: sequence,
+        previousData: sequence
       });
       setSequences((prev) =>
         prev.map((s) => (s.id === sequence.id ? { ...s, is_active: !s.is_active } : s))
       );
+      notify(sequence.is_active ? 'Sequenz deaktiviert' : 'Sequenz aktiviert', { type: 'success' });
     } catch (err) {
       console.error('Failed to toggle sequence:', err);
-      notify('Status konnte nicht geändert werden', { type: 'error' });
+      notify('Fehler beim Aktualisieren', { type: 'error' });
     } finally {
       setToggleLoading((prev) => ({ ...prev, [sequence.id]: false }));
     }
@@ -342,16 +363,20 @@ const EmailMarketingPage = () => {
     if (!sequenceToDelete) return;
 
     setDeleteLoading(true);
+
     try {
-      await dataProvider.delete('sequences', { id: sequenceToDelete.id });
+      await dataProvider.delete('sequences', {
+        id: sequenceToDelete.id,
+        previousData: sequenceToDelete
+      });
       setSequences((prev) => prev.filter((s) => s.id !== sequenceToDelete.id));
-      setDeleteDialogOpen(false);
-      setSequenceToDelete(null);
       notify('Sequenz gelöscht', { type: 'success' });
     } catch (err) {
       console.error('Failed to delete sequence:', err);
-      notify('Sequenz konnte nicht gelöscht werden', { type: 'error' });
+      notify('Fehler beim Löschen', { type: 'error' });
     } finally {
+      setDeleteDialogOpen(false);
+      setSequenceToDelete(null);
       setDeleteLoading(false);
     }
   };
@@ -381,44 +406,22 @@ const EmailMarketingPage = () => {
   /**
    * Handle duplicate sequence
    */
-  const handleDuplicateClick = (sequence) => {
-    const duplicateSequence = async () => {
-      try {
-        const { data: full } = await dataProvider.getOne('sequences', { id: sequence.id });
-        const { json: created } = await httpClient(`${API_URL}/sequences`, {
-          method: 'POST',
-          body: JSON.stringify({
-            name: `${sequence.name} (Kopie)`,
-            description: sequence.description,
-            trigger_event: sequence.trigger_event,
-            is_active: false,
-          }),
-        });
-
-        const steps = (full?.steps || []).sort((a, b) => a.position - b.position);
-        for (const step of steps) {
-          await httpClient(`${API_URL}/sequences/${created.id}/steps`, {
-            method: 'POST',
-            body: JSON.stringify({
-              position: step.position,
-              delay_days: step.delay_days,
-              delay_hours: step.delay_hours,
-              subject: step.subject,
-              body_html: step.body_html,
-              body_text: step.body_text,
-            }),
-          });
+  const handleDuplicateClick = async (sequence) => {
+    try {
+      const { data } = await dataProvider.create('sequences', {
+        data: {
+          ...sequence,
+          id: undefined,
+          name: `${sequence.name} (Kopie)`,
+          is_active: false,
         }
-
-        notify('Sequenz dupliziert', { type: 'success' });
-        await loadSequences();
-      } catch (err) {
-        console.error('Failed to duplicate sequence:', err);
-        notify('Duplizieren fehlgeschlagen', { type: 'error' });
-      }
-    };
-
-    duplicateSequence();
+      });
+      setSequences((prev) => [data, ...prev]);
+      notify('Sequenz dupliziert', { type: 'success' });
+    } catch (err) {
+      console.error('Failed to duplicate sequence:', err);
+      notify('Fehler beim Duplizieren', { type: 'error' });
+    }
   };
 
   /**
@@ -610,7 +613,6 @@ const EmailMarketingPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Sequenz</TableCell>
-                <TableCell>Trigger</TableCell>
                 <TableCell align="center">Schritte</TableCell>
                 <TableCell>Fortschritt</TableCell>
                 <TableCell align="center">Performance</TableCell>
@@ -693,9 +695,6 @@ const EmailMarketingPage = () => {
                             </Typography>
                           </Box>
                         </Box>
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <TriggerBadge trigger={sequence.trigger_event} />
                       </TableCell>
                       <TableCell align="center">
                         <Chip

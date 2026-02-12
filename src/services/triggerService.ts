@@ -8,7 +8,7 @@ import { getEmailService, EmailOptions } from './emailService.js';
 import { getMocoService } from '../integrations/moco.js';
 import { getSlackService } from '../integrations/slack.js';
 import { getCituroService } from '../integrations/cituro.js';
-import { enrollLeadInSequence } from '../workers/emailSequenceWorker.js';
+import { enrollLeadInSequence, triggerImmediateSend } from '../workers/emailSequenceWorker.js';
 import { NotFoundError, ValidationError } from '../errors/index.js';
 import type { Lead, Deal } from '../types/index.js';
 
@@ -225,6 +225,13 @@ export class TriggerService {
 
     if (!enrollmentId) {
       throw new ValidationError('Lead konnte nicht eingeschrieben werden');
+    }
+
+    // Trigger immediate send so the first email goes out right away
+    try {
+      await triggerImmediateSend(enrollmentId);
+    } catch (err) {
+      console.warn('[TriggerService] Could not queue immediate send:', err);
     }
 
     return {

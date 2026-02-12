@@ -7,6 +7,7 @@ import { db } from '../db/index.js';
 import { getSyncQueue, getNotificationsQueue } from '../config/queues.js';
 import { NotFoundError } from '../errors/index.js';
 import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
+import { getTriggerService } from './triggerService.js';
 import type {
   AutomationRule,
   Lead,
@@ -154,9 +155,37 @@ export class AutomationEngine {
     
     // Process stage-specific automation rules from stage config
     const stageRules = toStage.automation_config || [];
-    
+
     for (const ruleConfig of stageRules) {
-      if (ruleConfig.trigger.type === 'stage_entered') {
+      // Support flat format saved by triggers API: { action, config, enabled }
+      if ('action' in ruleConfig && typeof (ruleConfig as any).action === 'string') {
+        const flatConfig = ruleConfig as any;
+        if (flatConfig.enabled === false) continue;
+        try {
+          const triggerService = getTriggerService();
+          const actionResult = await triggerService.executeAction(
+            flatConfig.action,
+            flatConfig.config || {},
+            {
+              deal_id: deal.id,
+              lead_id: deal.lead_id,
+              stage_id: toStage.id,
+              pipeline_id: toStage.pipeline_id,
+            }
+          );
+          results.actions_taken.push({
+            action: flatConfig.action,
+            success: actionResult.success,
+            ...actionResult.result as Record<string, unknown>,
+          });
+        } catch (error) {
+          console.error(`[Automation Engine] Stage trigger ${flatConfig.action} error:`, error);
+        }
+        continue;
+      }
+
+      // Legacy nested format: { trigger: { type: 'stage_entered' }, action: { type: '...' } }
+      if (ruleConfig.trigger?.type === 'stage_entered') {
         try {
           const actionResult = await this.executeStageAction(ruleConfig, lead, deal);
           results.actions_taken.push(actionResult);

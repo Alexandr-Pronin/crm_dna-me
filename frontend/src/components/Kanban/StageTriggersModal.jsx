@@ -33,6 +33,7 @@ import {
   CalendarMonth as CalendarIcon,
   Send as SendIcon,
   PlayArrow as PlayIcon,
+  Save as SaveIcon,
   Check as CheckIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -181,6 +182,8 @@ const StageTriggersModal = ({
   const [actionFields, setActionFields] = useState({});
   // Validierungsfehler: { actionId: { fieldName: errorMessage } }
   const [validationErrors, setValidationErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [savedConfig, setSavedConfig] = useState([]);
 
   const dataProvider = useDataProvider();
   const notify = useNotify();
@@ -194,6 +197,32 @@ const StageTriggersModal = ({
       setValidationErrors({});
     }
   }, [open]);
+
+  // Load saved trigger config for this stage
+  useEffect(() => {
+    const loadSavedConfig = async () => {
+      if (!open || !stage?.id) return;
+      try {
+        const res = await httpClient(`${API_URL}/stages/${stage.id}/triggers`);
+        const triggers = res?.json?.configured_triggers || [];
+        setSavedConfig(triggers);
+        // Restore selected actions and field values from saved config
+        if (triggers.length > 0) {
+          const restoredActions = {};
+          const restoredFields = {};
+          triggers.forEach(t => {
+            restoredActions[t.action] = true;
+            restoredFields[t.action] = t.config || {};
+          });
+          setSelectedActions(restoredActions);
+          setActionFields(restoredFields);
+        }
+      } catch (err) {
+        console.error('Failed to load stage triggers:', err);
+      }
+    };
+    loadSavedConfig();
+  }, [open, stage?.id]);
 
   useEffect(() => {
     const loadSequences = async () => {
@@ -379,6 +408,31 @@ const StageTriggersModal = ({
   // Anzahl der Fehler für eine Aktion
   const getActionErrorCount = (actionId) => {
     return validationErrors[actionId] ? Object.keys(validationErrors[actionId]).length : 0;
+  };
+
+  // Trigger-Konfiguration speichern (für automatische Ausführung bei Stage-Wechsel)
+  const handleSaveConfig = async () => {
+    if (!stage?.id) return;
+    setSaving(true);
+    try {
+      const triggers = selectedActionsList.map(action => ({
+        action: action.id,
+        name: action.name,
+        config: actionFields[action.id] || {},
+        enabled: true,
+      }));
+      await httpClient(`${API_URL}/stages/${stage.id}/triggers`, {
+        method: 'POST',
+        body: JSON.stringify({ triggers }),
+      });
+      setSavedConfig(triggers);
+      notify('Trigger-Konfiguration gespeichert', { type: 'success' });
+    } catch (err) {
+      console.error('Failed to save trigger config:', err);
+      notify('Fehler beim Speichern der Trigger-Konfiguration', { type: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Trigger ausführen
@@ -647,9 +701,16 @@ const StageTriggersModal = ({
         {/* Rechte Seite: Aktionen */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ p: 2, borderBottom: `1px solid ${DNA_COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-              Aktionen auswählen (Mehrfachauswahl)
-            </Typography>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+                Aktionen auswählen (Mehrfachauswahl)
+              </Typography>
+              {savedConfig.length > 0 && (
+                <Typography variant="caption" color="success.main">
+                  {savedConfig.length} Auto-Trigger gespeichert (werden bei Stage-Wechsel ausgeführt)
+                </Typography>
+              )}
+            </Box>
             {selectedActionCount > 0 && (
               <Chip
                 label={`${selectedActionCount} ausgewählt`}
@@ -938,8 +999,16 @@ const StageTriggersModal = ({
           )}
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button onClick={handleClose} disabled={executing}>
+          <Button onClick={handleClose} disabled={executing || saving}>
             Abbrechen
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleSaveConfig}
+            disabled={saving || executing || selectedActionCount === 0}
+            startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
+          >
+            {saving ? 'Speichern...' : 'Auto-Trigger speichern'}
           </Button>
           <Button
             variant="contained"
@@ -953,8 +1022,8 @@ const StageTriggersModal = ({
               },
             }}
           >
-            {executing 
-              ? 'Wird ausgeführt...' 
+            {executing
+              ? 'Wird ausgeführt...'
               : `${selectedActionCount} Aktion(en) für ${dealCount} Deal(s) ausführen`
             }
           </Button>
