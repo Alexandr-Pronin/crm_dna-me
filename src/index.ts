@@ -54,7 +54,7 @@ const fastify = Fastify({
 // =============================================================================
 
 await fastify.register(cors, {
-  origin: isDev ? true : ['https://crm.dna-me.com'],
+  origin: isDev ? true : (config.corsOrigin ? config.corsOrigin.split(',').map((o) => o.trim()) : ['https://crm.dna-me.com']),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID', 'X-Correlation-ID'],
   credentials: true
@@ -96,7 +96,7 @@ fastify.get('/health', async (): Promise<HealthCheckResponse> => {
   };
 });
 
-fastify.get('/ready', async (request, reply) => {
+fastify.get('/ready', async (_request, reply) => {
   const dbHealthy = await db.healthCheck();
   
   if (!dbHealthy) {
@@ -181,8 +181,8 @@ const shutdown = async (signal: string) => {
     fastify.log.info('Database pool closed');
 
     process.exit(0);
-  } catch (error) {
-    fastify.log.error('Error during shutdown:', error);
+  } catch (error: unknown) {
+    fastify.log.error({ err: error }, 'Error during shutdown');
     process.exit(1);
   }
 };

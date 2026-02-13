@@ -1,0 +1,26 @@
+# =============================================================================
+# DNA ME CRM — DB Instance (Postgres only)
+# Run on DB EC2 instance. Port 5432 accessible from App instance only via SG.
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dna_postgres
+    environment:
+      POSTGRES_DB: dna_marketing
+      POSTGRES_USER: dna
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dna -d dna_marketing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -144,11 +144,11 @@ async function getCampaignById(id: string): Promise<Campaign> {
     [id]
   );
   
-  if (result.rows.length === 0) {
-    throw new NotFoundError('Campaign not found', { campaignId: id });
+  if (result.length === 0) {
+    throw new NotFoundError('Campaign', id);
   }
   
-  return result.rows[0];
+  return result[0];
 }
 
 async function searchCampaigns(filters: CampaignFiltersInput): Promise<PaginatedResponse<Campaign>> {
@@ -219,7 +219,7 @@ async function searchCampaigns(filters: CampaignFiltersInput): Promise<Paginated
     `SELECT COUNT(*) as count FROM campaigns ${whereClause}`,
     params
   );
-  const total = parseInt(countResult.rows[0].count, 10);
+  const total = parseInt(countResult[0].count, 10);
   
   // Get paginated results
   const offset = (filters.page - 1) * filters.limit;
@@ -236,7 +236,7 @@ async function searchCampaigns(filters: CampaignFiltersInput): Promise<Paginated
   const totalPages = Math.ceil(total / filters.limit);
   
   return {
-    data: dataResult.rows,
+    data: dataResult,
     pagination: {
       page: filters.page,
       limit: filters.limit,
@@ -270,7 +270,7 @@ async function createCampaign(input: CreateCampaignInput): Promise<Campaign> {
     ]
   );
   
-  return result.rows[0];
+  return result[0];
 }
 
 async function updateCampaign(id: string, input: UpdateCampaignInput): Promise<Campaign> {
@@ -352,7 +352,7 @@ async function updateCampaign(id: string, input: UpdateCampaignInput): Promise<C
     params
   );
   
-  return result.rows[0];
+  return result[0];
 }
 
 async function deleteCampaign(id: string): Promise<void> {
@@ -380,9 +380,9 @@ async function getCampaignStats(id: string): Promise<CampaignStats> {
     [campaign.utm_campaign]
   );
   
-  const totalLeads = parseInt(leadsResult.rows[0].count, 10) || campaign.leads_generated;
-  const totalDeals = parseInt(dealsResult.rows[0].count, 10) || campaign.deals_created;
-  const totalRevenue = parseFloat(dealsResult.rows[0].total_value) || campaign.revenue_attributed;
+  const totalLeads = parseInt(leadsResult[0].count, 10) || campaign.leads_generated;
+  const totalDeals = parseInt(dealsResult[0].count, 10) || campaign.deals_created;
+  const totalRevenue = parseFloat(dealsResult[0].total_value) || campaign.revenue_attributed;
   
   const conversionRate = totalLeads > 0 ? (totalDeals / totalLeads) * 100 : 0;
   const costPerLead = campaign.spent > 0 && totalLeads > 0 ? campaign.spent / totalLeads : null;
@@ -410,7 +410,7 @@ async function getCampaignCountsByStatus(): Promise<Record<CampaignStatus, numbe
     completed: 0
   };
   
-  for (const row of result.rows) {
+  for (const row of result) {
     counts[row.status] = parseInt(row.count, 10);
   }
   
@@ -436,8 +436,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List campaigns with filtering and pagination',
-        tags: ['Campaigns'],
         querystring: {
           type: 'object',
           properties: {
@@ -508,8 +506,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get campaign statistics summary',
-        tags: ['Campaigns'],
         response: {
           200: {
             type: 'object',
@@ -550,8 +546,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get a campaign by ID',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -603,8 +597,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get detailed statistics for a campaign',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -666,8 +658,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new campaign',
-        tags: ['Campaigns'],
         body: {
           type: 'object',
           required: ['name'],
@@ -736,8 +726,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a campaign',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -817,8 +805,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a campaign',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -884,8 +870,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Activate a campaign',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -942,8 +926,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Pause a campaign',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],
@@ -1000,8 +982,6 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Mark a campaign as completed',
-        tags: ['Campaigns'],
         params: {
           type: 'object',
           required: ['id'],

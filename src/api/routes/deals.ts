@@ -176,8 +176,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List deals with filtering and pagination',
-        tags: ['Deals'],
         querystring: {
           type: 'object',
           properties: {
@@ -248,8 +246,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get deal statistics',
-        tags: ['Deals'],
         querystring: {
           type: 'object',
           properties: {
@@ -295,8 +291,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get a deal by ID',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -348,8 +342,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new deal',
-        tags: ['Deals'],
         body: {
           type: 'object',
           required: ['lead_id', 'pipeline_id'],
@@ -430,8 +422,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -507,8 +497,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Move a deal to a different stage',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -591,8 +579,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Reorder deals within a stage',
-        tags: ['Deals'],
         body: {
           type: 'object',
           required: ['stage_id', 'ordered_ids'],
@@ -651,8 +637,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Close a deal as won or lost',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -737,8 +721,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Reopen a closed deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -808,8 +790,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update the lead associated with a deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -892,8 +872,6 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],

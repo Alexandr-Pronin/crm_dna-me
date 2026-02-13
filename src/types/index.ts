@@ -399,6 +399,7 @@ export interface SyncJob {
   entity_id: string;
   target: 'moco' | 'slack';
   action: string;
+  metadata?: Record<string, unknown>;
 }
 
 // =============================================================================

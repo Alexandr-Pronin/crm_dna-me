@@ -58,8 +58,6 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List organizations',
-        tags: ['Organizations'],
         response: {
           200: {
             type: 'object',
@@ -98,8 +96,6 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get organization by ID',
-        tags: ['Organizations'],
         params: {
           type: 'object',
           required: ['id'],
@@ -132,10 +128,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
     '/organizations',
     {
       preHandler: validateApiKey,
-      schema: {
-        description: 'Create organization',
-        tags: ['Organizations']
-      }
+      schema: {}
     },
     async (request) => {
       const parseResult = createOrganizationSchema.safeParse(request.body);
@@ -162,8 +155,6 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update organization',
-        tags: ['Organizations'],
         params: {
           type: 'object',
           required: ['id'],
@@ -204,8 +195,6 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete organization',
-        tags: ['Organizations'],
         params: {
           type: 'object',
           required: ['id'],

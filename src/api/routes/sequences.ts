@@ -100,7 +100,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         response: {
           200: {
             type: 'object',
@@ -162,7 +161,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -212,7 +210,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         body: {
           type: 'object',
           required: ['name'],
@@ -262,7 +259,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -347,7 +343,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -388,7 +383,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -447,7 +441,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['sequenceId', 'stepId'],
@@ -537,7 +530,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['sequenceId', 'stepId'],
@@ -579,7 +571,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -679,7 +670,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -722,7 +712,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -763,7 +752,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -804,7 +792,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -852,7 +839,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -905,7 +891,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],
@@ -992,7 +977,6 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Email Sequences'],
         params: {
           type: 'object',
           required: ['id'],

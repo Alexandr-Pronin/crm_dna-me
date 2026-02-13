@@ -28,7 +28,7 @@ export interface CreateTaskInput {
 
 export interface UpdateTaskInput {
   title?: string;
-  description?: string;
+  description?: string | null;
   task_type?: string;
   assigned_to?: string | null;
   due_date?: string | null;

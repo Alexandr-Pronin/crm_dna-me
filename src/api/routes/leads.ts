@@ -117,8 +117,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List leads with filtering and pagination',
-        tags: ['Leads'],
         querystring: {
           type: 'object',
           properties: {
@@ -195,8 +193,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get leads that are pending routing',
-        tags: ['Leads'],
         querystring: {
           type: 'object',
           properties: {
@@ -234,8 +230,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get lead statistics',
-        tags: ['Leads'],
         response: {
           200: {
             type: 'object',
@@ -274,8 +268,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get a lead by ID',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -328,8 +320,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new lead',
-        tags: ['Leads'],
         body: {
           type: 'object',
           required: ['email'],
@@ -404,8 +394,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a lead',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -489,8 +477,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a lead',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -558,8 +544,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get events for a lead',
-        tags: ['Leads', 'Events'],
         params: {
           type: 'object',
           required: ['id'],
@@ -617,8 +601,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get score history for a lead',
-        tags: ['Leads', 'Scoring'],
         params: {
           type: 'object',
           required: ['id'],
@@ -681,8 +663,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get intent signals for a lead',
-        tags: ['Leads', 'Intent'],
         params: {
           type: 'object',
           required: ['id'],
@@ -745,8 +725,6 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Manually route a lead to a pipeline',
-        tags: ['Leads', 'Routing'],
         params: {
           type: 'object',
           required: ['id'],

@@ -151,8 +151,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List all pipelines',
-        tags: ['Pipelines'],
         querystring: {
           type: 'object',
           properties: {
@@ -207,8 +205,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get a pipeline by ID',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -273,8 +269,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get all stages for a pipeline',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -320,8 +314,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get all deals in a pipeline',
-        tags: ['Pipelines', 'Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -382,8 +374,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get pipeline metrics and statistics',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -450,8 +440,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new pipeline',
-        tags: ['Pipelines'],
         body: {
           type: 'object',
           required: ['name'],
@@ -516,8 +504,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a pipeline',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -592,8 +578,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a pipeline',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -669,8 +653,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new stage in a pipeline',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -765,8 +747,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Reorder stages in a pipeline',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -854,8 +834,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a stage',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],
@@ -945,8 +923,6 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a stage',
-        tags: ['Pipelines'],
         params: {
           type: 'object',
           required: ['id'],

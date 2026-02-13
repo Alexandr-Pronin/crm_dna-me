@@ -103,7 +103,6 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Triggers'],
         body: {
           type: 'object',
           required: ['action', 'config', 'context'],
@@ -204,7 +203,6 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Triggers', 'Stages'],
         params: {
           type: 'object',
           required: ['id'],
@@ -315,7 +313,6 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        tags: ['Triggers', 'Stages'],
         params: {
           type: 'object',
           required: ['id'],

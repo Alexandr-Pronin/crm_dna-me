@@ -61,8 +61,6 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
     '/email/track/open/:trackingId.gif',
     {
       schema: {
-        tags: ['Email Tracking'],
-        description: 'Tracking pixel for email opens',
         params: {
           type: 'object',
           required: ['trackingId'],
@@ -119,8 +117,6 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
     '/email/track/click/:trackingId',
     {
       schema: {
-        tags: ['Email Tracking'],
-        description: 'Track email link clicks and redirect',
         params: {
           type: 'object',
           required: ['trackingId'],
@@ -194,8 +190,6 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
     '/email/unsubscribe/:enrollmentId',
     {
       schema: {
-        tags: ['Email Tracking'],
-        description: 'Unsubscribe page for email sequences',
         params: {
           type: 'object',
           required: ['enrollmentId'],
@@ -268,8 +262,6 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
     '/email/unsubscribe/:enrollmentId',
     {
       schema: {
-        tags: ['Email Tracking'],
-        description: 'Process unsubscribe request',
         params: {
           type: 'object',
           required: ['enrollmentId'],
@@ -325,8 +317,6 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
     '/email/stats/:trackingId',
     {
       schema: {
-        tags: ['Email Tracking'],
-        description: 'Get tracking statistics for a single email',
         params: {
           type: 'object',
           required: ['trackingId'],
