@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useDataProvider, useRedirect } from 'react-admin';
+import { API_URL } from '../../providers/dataProvider';
 import {
   Card,
   CardContent,
@@ -226,7 +227,7 @@ const Dashboard = () => {
             sort: { field: 'created_at', order: 'DESC' },
             filter: {},
           }),
-          fetch('http://localhost:3000/api/v1/pipelines?with_summary=true', {
+          fetch(`${API_URL}/pipelines?with_summary=true`, {
             headers: {
               'X-API-Key': 'test123',
               'Accept': 'application/json',
@@ -265,7 +266,7 @@ const Dashboard = () => {
         // Get pipeline metrics for the first pipeline
         if (pipelines.length > 0) {
           try {
-            const metricsRes = await fetch(`http://localhost:3000/api/v1/pipelines/${pipelines[0].id}/metrics`, {
+            const metricsRes = await fetch(`${API_URL}/pipelines/${pipelines[0].id}/metrics`, {
               headers: {
                 'X-API-Key': 'test123',
                 'Accept': 'application/json',

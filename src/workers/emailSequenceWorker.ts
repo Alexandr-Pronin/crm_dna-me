@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { Worker, Queue, Job } from 'bullmq';
-import { getRedisConnection } from '../config/redis.js';
+import { redisOptions } from '../config/redis.js';
 import { db } from '../db/index.js';
 import { getEmailService } from '../services/emailService.js';
 import type { Lead, EmailSequence, EmailSequenceStep, EmailSequenceEnrollment } from '../types/index.js';
@@ -51,7 +51,7 @@ let emailSequenceQueue: Queue | null = null;
 export function getEmailSequenceQueue(): Queue {
   if (!emailSequenceQueue) {
     emailSequenceQueue = new Queue(QUEUE_NAME, {
-      connection: getRedisConnection(),
+      connection: redisOptions,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -100,7 +100,7 @@ export function createEmailSequenceWorker(): Worker {
       }
     },
     {
-      connection: getRedisConnection(),
+      connection: redisOptions,
       concurrency: 5,
       limiter: {
         max: 20, // Max 20 emails per minute

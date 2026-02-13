@@ -12,11 +12,12 @@ import type {
   IntentSignal,
   PaginatedResponse
 } from '../types/index.js';
-import type {
-  CreateLeadInput,
-  UpdateLeadInput,
-  LeadFiltersInput,
-  ManualRouteInput
+import {
+  createLeadSchema,
+  type CreateLeadInput,
+  type UpdateLeadInput,
+  type LeadFiltersInput,
+  type ManualRouteInput
 } from '../api/schemas/leads.js';
 
 // =============================================================================
@@ -85,14 +86,18 @@ export class LeadService {
       throw new ValidationError('Email is required to create a new lead');
     }
     
-    const newLead = await this.createLead({
-      email: identifier.email,
-      portal_id: identifier.portal_id,
-      waalaxy_id: identifier.waalaxy_id,
-      linkedin_url: identifier.linkedin_url,
-      lemlist_id: identifier.lemlist_id,
-      ...defaults
-    });
+    const newLead = await this.createLead(
+      createLeadSchema.parse({
+        email: identifier.email,
+        status: 'new',
+        lifecycle_stage: 'lead',
+        portal_id: identifier.portal_id,
+        waalaxy_id: identifier.waalaxy_id,
+        linkedin_url: identifier.linkedin_url,
+        lemlist_id: identifier.lemlist_id,
+        ...defaults
+      })
+    );
     
     return { lead: newLead, created: true };
   }

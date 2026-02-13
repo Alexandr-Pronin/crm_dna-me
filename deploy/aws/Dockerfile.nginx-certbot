@@ -1,0 +1,13 @@
+# Nginx + Certbot for automated SSL (zero AWS lock-in)
+FROM nginx:alpine
+
+RUN apk add --no-cache certbot
+
+COPY init-letsencrypt.sh /init-letsencrypt.sh
+RUN chmod +x /init-letsencrypt.sh
+
+# Entrypoint: init certs, start nginx, run certbot in background for renewal
+COPY entrypoint-nginx-certbot.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

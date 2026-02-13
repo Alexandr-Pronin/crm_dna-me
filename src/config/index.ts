@@ -29,6 +29,7 @@ const configSchema = z.object({
   // Security
   jwtSecret: z.string().min(32),
   webhookSecret: z.string().min(16),
+  corsOrigin: z.string().optional(),
 
   // API Keys (parsed from comma-separated string)
   apiKeys: z.array(z.object({
@@ -121,6 +122,7 @@ function loadConfig(): Config {
     redisUrl: process.env.REDIS_URL,
     jwtSecret: process.env.JWT_SECRET,
     webhookSecret: process.env.WEBHOOK_SECRET,
+    corsOrigin: process.env.CORS_ORIGIN || undefined,
     apiKeys: parseApiKeys(process.env.API_KEYS),
     moco: {
       apiKey: process.env.MOCO_API_KEY || undefined,

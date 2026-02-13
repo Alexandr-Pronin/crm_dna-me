@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useDataProvider, useNotify, useRedirect } from 'react-admin';
+import { API_URL } from '../../providers/dataProvider';
 import {
   Box,
   Typography,
@@ -205,7 +206,7 @@ const PipelineList = () => {
     
     try {
       // Use custom API call with summary
-      const response = await fetch('http://localhost:3000/api/v1/pipelines?with_summary=true', {
+      const response = await fetch(`${API_URL}/pipelines?with_summary=true`, {
         headers: {
           'X-API-Key': 'test123',
           'Accept': 'application/json',

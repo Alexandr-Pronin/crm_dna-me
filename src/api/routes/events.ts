@@ -43,8 +43,6 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Ingest a marketing event for processing',
-        tags: ['Events'],
         body: {
           type: 'object',
           required: ['event_type', 'source', 'occurred_at', 'lead_identifier'],
@@ -159,10 +157,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
     '/events/webhook',
     {
       preHandler: validateHmacSignature,
-      schema: {
-        description: 'Receive events via webhook (HMAC validated)',
-        tags: ['Events']
-      }
+      schema: {}
     },
     async (request, reply) => {
       // Same processing as /events/ingest
@@ -232,8 +227,6 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Bulk import leads',
-        tags: ['Leads', 'Events'],
         body: {
           type: 'object',
           required: ['leads', 'source'],

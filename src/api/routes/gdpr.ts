@@ -92,8 +92,6 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Export all lead data for GDPR compliance',
-        tags: ['GDPR'],
         params: {
           type: 'object',
           required: ['leadId'],
@@ -233,8 +231,6 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete lead and anonymize data for GDPR compliance',
-        tags: ['GDPR'],
         params: {
           type: 'object',
           required: ['leadId'],

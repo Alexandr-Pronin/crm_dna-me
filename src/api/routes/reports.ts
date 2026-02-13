@@ -42,8 +42,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get lead distribution by score tier',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -109,8 +107,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get lead distribution by intent type',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -169,8 +165,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get pipeline funnel metrics with stage analysis',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -252,8 +246,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get campaign attribution metrics with ROI analysis',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -331,8 +323,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get routing effectiveness metrics',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -428,8 +418,6 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get high-level summary of all key metrics',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {

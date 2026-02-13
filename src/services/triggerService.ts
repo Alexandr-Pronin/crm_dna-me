@@ -18,6 +18,7 @@ import type { Lead, Deal } from '../types/index.js';
 
 export type TriggerAction =
   | 'send_notification_email'
+  | 'send_email'
   | 'enroll_email_sequence'
   | 'create_moco_project'
   | 'create_moco_customer'

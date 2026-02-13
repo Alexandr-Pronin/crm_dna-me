@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useNotify, useRedirect } from 'react-admin';
+import { API_URL } from '../../providers/dataProvider';
 import {
   Box,
   Typography,
@@ -236,13 +237,13 @@ const PipelineShow = () => {
     try {
       // Load pipeline with stages and metrics in parallel
       const [pipelineRes, metricsRes] = await Promise.all([
-        fetch(`http://localhost:3000/api/v1/pipelines/${id}?include_stages=true`, {
+        fetch(`${API_URL}/pipelines/${id}?include_stages=true`, {
           headers: {
             'X-API-Key': 'test123',
             'Accept': 'application/json',
           },
         }),
-        fetch(`http://localhost:3000/api/v1/pipelines/${id}/metrics`, {
+        fetch(`${API_URL}/pipelines/${id}/metrics`, {
           headers: {
             'X-API-Key': 'test123',
             'Accept': 'application/json',

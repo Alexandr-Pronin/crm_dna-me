@@ -70,8 +70,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'List team members with filtering and pagination',
-        tags: ['Team'],
         querystring: {
           type: 'object',
           properties: {
@@ -197,8 +195,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get team member statistics',
-        tags: ['Team'],
         response: {
           200: {
             type: 'object',
@@ -289,8 +285,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get a team member by ID',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -351,8 +345,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Create a new team member',
-        tags: ['Team'],
         body: {
           type: 'object',
           required: ['email', 'name', 'role'],
@@ -449,8 +441,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Update a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -610,8 +600,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Delete a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -714,8 +702,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Deactivate a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -780,8 +766,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Activate a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -856,8 +840,6 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
     {
       preHandler: validateApiKey,
       schema: {
-        description: 'Get workload information for a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
