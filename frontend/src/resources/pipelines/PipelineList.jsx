@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useDataProvider, useNotify, useRedirect } from 'react-admin';
-import { API_URL } from '../../providers/dataProvider';
+import { API_URL, API_KEY } from '../../providers/dataProvider';
 import {
   Box,
   Typography,
@@ -160,7 +160,7 @@ const PipelineCard = ({ pipeline, onClick }) => {
         </Grid>
 
         {/* Target Persona */}
-        {pipeline.target_persona && (
+        {pipeline.target_persona && typeof pipeline.target_persona === 'string' && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" color="text.secondary">
               Target Persona
@@ -208,7 +208,7 @@ const PipelineList = () => {
       // Use custom API call with summary
       const response = await fetch(`${API_URL}/pipelines?with_summary=true`, {
         headers: {
-          'X-API-Key': 'test123',
+          'X-API-Key': API_KEY,
           'Accept': 'application/json',
         },
       });

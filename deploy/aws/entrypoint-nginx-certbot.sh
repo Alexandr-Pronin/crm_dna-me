@@ -1,6 +1,7 @@
 #!/bin/sh
 # =============================================================================
 # Nginx + Certbot entrypoint — init dummy certs, obtain real cert, renew loop
+# Script remains as PID 1 to keep container alive.
 # =============================================================================
 
 set -e
@@ -19,9 +20,10 @@ if [ ! -f "${CERTS_DIR}/fullchain.pem" ]; then
     -subj "/CN=${DOMAIN}"
 fi
 
-# 2. Start nginx (background) to serve ACME challenge
+# 2. Start nginx (daemon mode) to serve ACME challenge
 echo "Starting nginx..."
-nginx
+nginx -t && nginx || { echo "Nginx config check failed"; exit 1; }
+sleep 2
 
 # 3. Obtain real cert (or renew)
 echo "Obtaining Let's Encrypt certificate..."
@@ -30,10 +32,10 @@ certbot certonly --webroot -w /var/www/certbot \
   --agree-tos --non-interactive --force-renewal 2>/dev/null || true
 
 # 4. Reload nginx to use real certs
-nginx -s reload
+nginx -s reload 2>/dev/null || true
 
-# 5. Renewal loop (every 12h)
+# 5. Renewal loop — script stays as PID 1
 while true; do
-  sleep 12h
-  certbot renew --webroot -w /var/www/certbot --quiet && nginx -s reload
+  sleep 43200
+  certbot renew --webroot -w /var/www/certbot --quiet 2>/dev/null && nginx -s reload 2>/dev/null || true
 done

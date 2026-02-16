@@ -1,7 +1,7 @@
 # Nginx + Certbot for automated SSL (zero AWS lock-in)
 FROM nginx:alpine
 
-RUN apk add --no-cache certbot
+RUN apk add --no-cache certbot openssl
 
 COPY init-letsencrypt.sh /init-letsencrypt.sh
 RUN chmod +x /init-letsencrypt.sh

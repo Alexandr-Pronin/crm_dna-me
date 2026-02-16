@@ -62,6 +62,13 @@ fi
 # Build DATABASE_URL for App
 DATABASE_URL="postgres://dna:${POSTGRES_PASSWORD}@${DB_PRIVATE_IP}:5432/dna_marketing"
 
+# Extract first API key (before the colon label) for frontend build
+FRONTEND_API_KEY=$(echo "$API_KEYS" | cut -d: -f1)
+if [[ -z "$FRONTEND_API_KEY" ]]; then
+  echo "WARNING: API_KEYS not set in .env.aws, frontend will use default 'test123'"
+  FRONTEND_API_KEY="test123"
+fi
+
 # ---------------------------------------------------------------------------
 # Build and pack
 # ---------------------------------------------------------------------------
@@ -70,7 +77,8 @@ npm run build
 
 echo "=== Step 2: Building frontend ==="
 cd frontend
-VITE_API_URL=/api/v1 npm run build
+# MSYS_NO_PATHCONV=1 prevents Git Bash/MINGW from converting /api/v1 to C:/Program Files/Git/api/v1
+MSYS_NO_PATHCONV=1 VITE_API_URL=/api/v1 VITE_API_KEY="$FRONTEND_API_KEY" VITE_API_FALLBACK="https://${DOMAIN_NAME:-crm.dna-me.net}/api/v1" npm run build
 cd ..
 
 echo "=== Step 3: Packing release ==="
@@ -150,9 +158,7 @@ rm /tmp/release.tar.gz
 mv /tmp/.env.aws .env.aws
 export \$(grep -v '^#' .env.aws 2>/dev/null | xargs) || true
 
-if [ -n "\$DOMAIN_NAME" ] && [ "\$DOMAIN_NAME" != "crm.dna-me.com" ]; then
-  sed "s/crm.dna-me.com/\$DOMAIN_NAME/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
-fi
+sed "s/DOMAIN_NAME/\${DOMAIN_NAME:-crm.dna-me.com}/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
 
 echo "  Running migrations..."
 DATABASE_URL="\${DATABASE_URL}" npm run migrate:up

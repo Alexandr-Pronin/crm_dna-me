@@ -109,7 +109,6 @@ const App = () => {
         <Resource
           name="pipelines"
           list={PipelineList}
-          show={PipelineShow}
           options={{ label: 'Pipelines' }}
         />
 
@@ -131,6 +130,9 @@ const App = () => {
           
           {/* Lead Scoring - REAL API */}
           <Route path="/lead-scoring" element={<LeadScoringPage />} />
+
+          {/* Pipeline Show - Custom Route (avoids react-admin ShowBase wrapper) */}
+          <Route path="/pipelines/:id/show" element={<PipelineShow />} />
 
           {/* Pipeline Settings - REAL API */}
           <Route path="/pipelines/settings" element={<PipelineSettings />} />
