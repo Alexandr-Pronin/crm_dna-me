@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useDataProvider, useRedirect } from 'react-admin';
-import { API_URL } from '../../providers/dataProvider';
+import { API_URL, API_KEY } from '../../providers/dataProvider';
 import {
   Card,
   CardContent,
@@ -229,10 +229,13 @@ const Dashboard = () => {
           }),
           fetch(`${API_URL}/pipelines?with_summary=true`, {
             headers: {
-              'X-API-Key': 'test123',
+              'X-API-Key': API_KEY,
               'Accept': 'application/json',
             },
-          }).then(res => res.json()).catch(() => ({ data: [] })),
+          }).then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          }).catch(() => ({ data: [] })),
         ]);
 
         const leads = leadsRes.data || [];
@@ -268,7 +271,7 @@ const Dashboard = () => {
           try {
             const metricsRes = await fetch(`${API_URL}/pipelines/${pipelines[0].id}/metrics`, {
               headers: {
-                'X-API-Key': 'test123',
+                'X-API-Key': API_KEY,
                 'Accept': 'application/json',
               },
             });

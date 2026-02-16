@@ -7,9 +7,43 @@
 import queryString from 'query-string';
 const { stringify } = queryString;
 
-// API Configuration - HARDCODED FOR DEV MODE (override with VITE_API_URL)
-export const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3000/api/v1';
-const API_KEY = 'test123';
+// API Configuration
+// Production: VITE_API_URL=/api/v1 → resolved via window.location.origin
+// file:// guard: browsers resolve /api/v1 → file:///…/api/v1 (blocked)
+const PRODUCTION_ORIGIN = 'https://crm.dna-me.net';
+const _rawApiUrl = import.meta?.env?.VITE_API_URL || '';
+const _fallbackUrl = import.meta?.env?.VITE_API_FALLBACK || '';
+const _isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
+const _isHttpProtocol = typeof window !== 'undefined' && window.location?.protocol?.startsWith('http');
+
+function _resolveApiUrl() {
+  // 1) Absolute URL given (e.g. http://localhost:3000/api/v1) → use as-is
+  if (_rawApiUrl.startsWith('http')) return _rawApiUrl;
+
+  // 2) Relative URL (/api/v1) served over HTTP(S) → prepend origin
+  if (_rawApiUrl.startsWith('/') && _isHttpProtocol) {
+    return `${window.location.origin}${_rawApiUrl}`;
+  }
+
+  // 3) file:// protocol detected → use explicit fallback or production URL
+  if (_isFileProtocol || !_isHttpProtocol) {
+    const url = _fallbackUrl || `${PRODUCTION_ORIGIN}${_rawApiUrl || '/api/v1'}`;
+    console.warn(
+      `[DNA CRM] App opened via file:// protocol. API requests go to ${url}.\n` +
+      `Bitte die App über ${PRODUCTION_ORIGIN} öffnen!`
+    );
+    return url;
+  }
+
+  // 4) Fallback: relative path on HTTP origin (shouldn't happen, safety net)
+  if (_rawApiUrl) return _rawApiUrl;
+
+  // 5) No VITE_API_URL at all → local dev default
+  return 'http://localhost:3000/api/v1';
+}
+
+export const API_URL = _resolveApiUrl();
+export const API_KEY = import.meta?.env?.VITE_API_KEY || 'test123';
 
 /**
  * Custom HTTP Client with hardcoded API Key header
@@ -42,7 +76,8 @@ export const httpClient = async (url, options = {}) => {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    const error = new Error(errorBody.error?.message || response.statusText);
+    const message = String(errorBody.error?.message || errorBody.message || response.statusText || 'Unknown error');
+    const error = new Error(message);
     error.status = response.status;
     error.body = errorBody;
     throw error;

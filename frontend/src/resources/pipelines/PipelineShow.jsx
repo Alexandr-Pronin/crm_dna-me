@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useNotify, useRedirect } from 'react-admin';
-import { API_URL } from '../../providers/dataProvider';
+import { API_URL, API_KEY } from '../../providers/dataProvider';
 import {
   Box,
   Typography,
@@ -134,7 +134,7 @@ const StageRow = ({ stage, metrics }) => {
       </TableCell>
       <TableCell>
         {stage.stage_type && (
-          <Chip label={stage.stage_type} size="small" variant="outlined" />
+          <Chip label={typeof stage.stage_type === 'string' ? stage.stage_type : JSON.stringify(stage.stage_type)} size="small" variant="outlined" />
         )}
       </TableCell>
       <TableCell align="right">
@@ -193,20 +193,26 @@ const AutomationConfigCard = ({ stages }) => {
               <Typography variant="subtitle2" gutterBottom>
                 {stage.name} (Position {stage.position})
               </Typography>
-              {stage.automation_config.map((config, index) => (
-                <Box key={index} sx={{ ml: 2, mt: 1 }}>
-                  <Chip
-                    size="small"
-                    label={config.type || config.action || 'Custom'}
-                    sx={{ mr: 1 }}
-                  />
-                  {config.template && (
-                    <Typography variant="caption" color="text.secondary">
-                      Template: {config.template}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
+              {stage.automation_config.map((config, index) => {
+                const label = typeof config === 'string'
+                  ? config
+                  : String(config.type || config.action || 'Custom');
+                const template = typeof config.template === 'string' ? config.template : null;
+                return (
+                  <Box key={index} sx={{ ml: 2, mt: 1 }}>
+                    <Chip
+                      size="small"
+                      label={label}
+                      sx={{ mr: 1 }}
+                    />
+                    {template && (
+                      <Typography variant="caption" color="text.secondary">
+                        Template: {template}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              })}
             </Box>
           ))}
         </Box>
@@ -239,13 +245,13 @@ const PipelineShow = () => {
       const [pipelineRes, metricsRes] = await Promise.all([
         fetch(`${API_URL}/pipelines/${id}?include_stages=true`, {
           headers: {
-            'X-API-Key': 'test123',
+            'X-API-Key': API_KEY,
             'Accept': 'application/json',
           },
         }),
         fetch(`${API_URL}/pipelines/${id}/metrics`, {
           headers: {
-            'X-API-Key': 'test123',
+            'X-API-Key': API_KEY,
             'Accept': 'application/json',
           },
         }),
@@ -255,12 +261,12 @@ const PipelineShow = () => {
         throw new Error('Pipeline not found');
       }
       
-      const pipelineData = await pipelineRes.json();
-      setPipeline(pipelineData);
+      const pipelineJson = await pipelineRes.json();
+      setPipeline(pipelineJson.data || pipelineJson);
       
       if (metricsRes.ok) {
-        const metricsData = await metricsRes.json();
-        setMetrics(metricsData);
+        const metricsJson = await metricsRes.json();
+        setMetrics(metricsJson.data || metricsJson);
       }
     } catch (err) {
       console.error('Failed to load pipeline:', err);
@@ -323,7 +329,7 @@ const PipelineShow = () => {
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 300 }}>
-                {pipeline.name}
+                {String(pipeline.name || 'Pipeline')}
               </Typography>
               <StatusChip isActive={pipeline.is_active} />
               {pipeline.is_default && (
@@ -331,7 +337,7 @@ const PipelineShow = () => {
               )}
             </Box>
             <Typography variant="body2" color="text.secondary">
-              {pipeline.description || pipeline.slug}
+              {String(pipeline.description || pipeline.slug || '')}
             </Typography>
           </Box>
         </Box>

@@ -9,7 +9,7 @@ Merged from Plans b0ab4d72 and b742a208 with expert review upgrades.
 | **EC2** | 2× t3.medium (App + DB) |
 | **Region** | eu-central-1 |
 | **VPC** | 10.0.0.0/16, public subnet only (no NAT) |
-| **DB** | Public subnet, no public IP, SG restricts to App |
+| **DB** | Public subnet, Public IP, SG-restricted (5432 from App, 22 from AllowedCidr) |
 | **EBS** | DB volume DeleteOnTermination: false |
 | **Backup** | Cron 3 AM, local + S3 (IAM role) |
 | **AllowedCidr** | Default 1.1.1.1/32 (change to your IP) |
@@ -33,7 +33,7 @@ Internet → Elastic IP → App EC2 (t3.medium)
 ## Deploy Sequence (deploy-aws.sh)
 
 1. Fetch AppPublicIP and DbPrivateIP from CloudFormation
-2. Deploy to DB instance first (via ProxyJump through App)
+2. Deploy to DB instance first (direct SSH via DbPublicIP or ProxyJump)
 3. Wait 45s for Postgres to become healthy
 4. Deploy to App instance (migrate, then docker compose)
 5. Health check

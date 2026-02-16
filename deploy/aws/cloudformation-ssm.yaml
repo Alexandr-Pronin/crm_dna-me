@@ -1,0 +1,338 @@
+# =============================================================================
+# DNA ME CRM — AWS CloudFormation (SSM-only, no SSH)
+# Deployment via AWS Systems Manager. No Key Pair, no port 22.
+# =============================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DNA ME CRM - App + DB instances (SSM deploy, no SSH)
+
+Parameters:
+  DeployBucket:
+    Type: String
+    Description: S3 bucket for deploy artifacts. Create with aws s3 mb s3://YOUR-BUCKET
+
+  DomainName:
+    Type: String
+    Default: crm.dna-me.com
+  LetsEncryptEmail:
+    Type: String
+    Default: admin@dna-me.com
+
+  S3BackupBucket:
+    Type: String
+    Default: ""
+    Description: Optional S3 bucket for off-site backups (e.g. dna-crm-backups)
+
+Conditions:
+  HasS3Bucket: !Not [!Equals [!Ref S3BackupBucket, ""]]
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # VPC & Networking
+  # ---------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-vpc'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-rt'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # ---------------------------------------------------------------------------
+  # IAM Role for App Instance (SSM + S3 deploy)
+  # ---------------------------------------------------------------------------
+  AppInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  AppInstanceS3Policy:
+    Type: AWS::IAM::Policy
+    DependsOn: AppInstanceRole
+    Properties:
+      PolicyName: DeployS3Policy
+      Roles:
+        - !Ref AppInstanceRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${DeployBucket}/*'
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn: AppInstanceRole
+    Properties:
+      InstanceProfileName: !Sub '${AWS::StackName}-app-profile'
+      Roles:
+        - !Ref AppInstanceRole
+
+  # ---------------------------------------------------------------------------
+  # IAM Role for DB Instance (SSM + S3 deploy + optional backup)
+  # ---------------------------------------------------------------------------
+  DbInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  DbInstanceDeployPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: DbInstanceRole
+    Properties:
+      PolicyName: DbDeployS3Policy
+      Roles:
+        - !Ref DbInstanceRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${DeployBucket}/*'
+
+  DbInstanceBackupPolicy:
+    Type: AWS::IAM::Policy
+    Condition: HasS3Bucket
+    DependsOn: DbInstanceRole
+    Properties:
+      PolicyName: DbBackupS3Policy
+      Roles:
+        - !Ref DbInstanceRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:PutObjectAcl
+            Resource: !Sub 'arn:aws:s3:::${S3BackupBucket}/backups/*'
+
+  DbInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn: DbInstanceRole
+    Properties:
+      InstanceProfileName: !Sub '${AWS::StackName}-db-profile'
+      Roles:
+        - !Ref DbInstanceRole
+
+  # ---------------------------------------------------------------------------
+  # Security Groups (no SSH)
+  # ---------------------------------------------------------------------------
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App - HTTP, HTTPS (no SSH, use SSM)
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-app-sg'
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DB - Postgres (5432) from App only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+          Description: Postgres from App only
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-db-sg'
+
+  # ---------------------------------------------------------------------------
+  # EC2 - App Instance
+  # ---------------------------------------------------------------------------
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64:1}}'
+      InstanceType: t3.medium
+      IamInstanceProfile: !Ref AppInstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref AppSecurityGroup
+          SubnetId: !Ref PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log) 2>&1
+          dnf update -y
+          dnf install -y docker aws-cli
+          systemctl enable docker && systemctl start docker
+          usermod -aG docker ec2-user
+          curl -L "https://github.com/docker/compose/releases/download/v2.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          dnf install -y nodejs
+          mkdir -p /opt/dna-crm
+          chown -R ec2-user:ec2-user /opt/dna-crm
+          echo "App bootstrap complete."
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-app'
+
+  # ---------------------------------------------------------------------------
+  # EC2 - DB Instance
+  # ---------------------------------------------------------------------------
+  DbInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64:1}}'
+      InstanceType: t3.medium
+      IamInstanceProfile: !Ref DbInstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref DbSecurityGroup
+          SubnetId: !Ref PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            DeleteOnTermination: false
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -e
+            exec > >(tee /var/log/user-data.log) 2>&1
+            dnf update -y
+            dnf install -y docker aws-cli
+            systemctl enable docker && systemctl start docker
+            usermod -aG docker ec2-user
+            curl -L "https://github.com/docker/compose/releases/download/v2.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            mkdir -p /opt/dna-crm/backups
+            chown -R ec2-user:ec2-user /opt/dna-crm
+            echo "S3_BUCKET=${S3Bucket}" > /opt/dna-crm/.env.backup
+            chown ec2-user:ec2-user /opt/dna-crm/.env.backup
+            echo "0 3 * * * /opt/dna-crm/backup.sh >> /opt/dna-crm/backups/backup.log 2>&1" | crontab -u ec2-user -
+            echo "DB bootstrap complete."
+          - S3Bucket: !Ref S3BackupBucket
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-db'
+
+  # ---------------------------------------------------------------------------
+  # Elastic IP for App
+  # ---------------------------------------------------------------------------
+  AppElasticIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-app-eip'
+
+  AppEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt AppElasticIP.AllocationId
+      InstanceId: !Ref AppInstance
+
+Outputs:
+  AppPublicIP:
+    Description: Elastic IP for App (DNS A record)
+    Value: !Ref AppElasticIP
+  AppInstanceId:
+    Description: Use for SSM deploy
+    Value: !Ref AppInstance
+  DbInstanceId:
+    Description: Use for SSM deploy
+    Value: !Ref DbInstance
+  DbPrivateIP:
+    Description: Use for DATABASE_URL
+    Value: !GetAtt DbInstance.PrivateIp
+  DeployBucket:
+    Value: !Ref DeployBucket
+  SSMCmd:
+    Value: !Sub 'aws ssm start-session --target ${AppInstance} --region ${AWS::Region}'

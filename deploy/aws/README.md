@@ -23,16 +23,25 @@ Portable deployment: **no RDS, ALB, Lambda, ElastiCache**. Postgres, Redis, Ngin
 
 **Required**: Set `AllowedCidr` to your IP (default 1.1.1.1/32 blocks SSH).
 
+**PowerShell (empfohlen unter Windows):**
+```powershell
+.\deploy\aws\Deploy-Stack.ps1 -KeyPairName YOUR_KEY_NAME -AllowedCidr "YOUR_IP/32"
+```
+
+**Bash:**
 ```bash
 aws cloudformation create-stack \
   --stack-name dna-crm-stack \
   --template-body file://deploy/aws/cloudformation.yaml \
   --parameters \
     ParameterKey=KeyPairName,ParameterValue=YOUR_KEY_NAME \
-    ParameterKey=AllowedCidr,ParameterValue=YOUR_IP/32
+    ParameterKey=AllowedCidr,ParameterValue=YOUR_IP/32 \
+  --capabilities CAPABILITY_IAM
 ```
 
-Optional: Add `ParameterKey=S3BackupBucket,ParameterValue=your-backup-bucket` for off-site backups. Create the bucket first.
+Optional: Add `-S3BackupBucket your-backup-bucket` (PowerShell) bzw. `ParameterKey=S3BackupBucket,ParameterValue=your-backup-bucket` (Bash) für Off-Site Backups. Bucket vorher anlegen.
+
+**Note**: DB SSH (port 22) is directly accessible via AllowedCidr, so you can deploy to the DB instance without ProxyJump when your IP is in AllowedCidr.
 
 Wait for stack creation, then get outputs:
 
@@ -55,12 +64,19 @@ cp deploy/aws/.env.aws.example deploy/aws/.env.aws
 
 ### 4. Deploy Application
 
+**Mit SSH (cloudformation.yaml):**
 ```bash
 export SSH_KEY=~/.ssh/your-key.pem
 bash deploy/aws/deploy-aws.sh
 ```
 
-The script fetches AppPublicIP and DbPrivateIP from CloudFormation, deploys to DB first (via SSH to DB public IP or ProxyJump), waits 45s for Postgres, then deploys to App.
+**Mit SSM, ohne SSH (cloudformation-ssm.yaml):**
+```bash
+bash deploy/aws/deploy-aws-ssm.sh
+```
+Siehe Abschnitt "Deployment ohne SSH (SSM)" unten.
+
+The script fetches AppPublicIP and DbPrivateIP from CloudFormation, deploys to DB first (via SSH or SSM), waits 45s for Postgres, then deploys to App.
 
 ### 5. Verify
 
@@ -75,11 +91,66 @@ We recommend a free external uptime monitor for the MVP:
 
 Configure a monitor for `https://your-domain/health` to receive alerts when the app is down.
 
+## Deployment ohne SSH (SSM)
+
+Kein Key Pair, kein Port 22. Deployment via AWS Systems Manager + S3.
+
+1. **S3 Bucket anlegen** (einmalig):
+```bash
+aws s3 mb s3://dna-crm-deploy-YOUR_ACCOUNT_ID --region eu-central-1
+```
+
+2. **Stack mit cloudformation-ssm.yaml erstellen**:
+
+**PowerShell:**
+```powershell
+.\deploy\aws\Deploy-Stack-SSM.ps1 -DeployBucket dna-crm-deploy-YOUR_ACCOUNT_ID
+```
+
+**Bash:**
+```bash
+aws cloudformation create-stack \
+  --stack-name dna-crm-stack \
+  --template-body file://deploy/aws/cloudformation-ssm.yaml \
+  --parameters ParameterKey=DeployBucket,ParameterValue=dna-crm-deploy-YOUR_ACCOUNT_ID \
+  --capabilities CAPABILITY_IAM \
+  --region eu-central-1
+```
+
+3. **Deploy ausführen**:
+
+**Vollautomatisch (empfohlen):**
+```bash
+bash deploy/aws/deploy-full.sh
+```
+Erledigt: .env.aws Validierung, S3-Bucket, Stack, SSM-Wartezeit, App-Deploy.
+
+**Nur App-Deploy (Stack muss existieren):**
+```bash
+bash deploy/aws/deploy-aws-ssm.sh
+```
+
+Interaktiver Zugriff: `aws ssm start-session --target <InstanceId>`
+
+### DNS einrichten
+
+**PowerShell (Route53 oder Anleitung):**
+```powershell
+.\deploy\aws\setup-dns.ps1
+```
+
+**Manuell:** Siehe `deploy/aws/DNS-SETUP.md`
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `cloudformation.yaml` | VPC, 2 EC2 (App + DB), SG, EIP |
+| `cloudformation.yaml` | VPC, 2 EC2 (App + DB), SG, EIP — mit SSH |
+| `cloudformation-ssm.yaml` | Wie oben, aber ohne SSH, mit SSM + S3 Deploy |
+| `Deploy-Stack.ps1` | PowerShell: CloudFormation Stack automatisiert deployen |
+| `deploy-aws-ssm.sh` | Deploy via SSM (kein SSH) |
+| `deploy-full.sh` | Vollautomatisch: Stack + SSM-Warte + Deploy |
+| `Deploy-Stack-SSM.ps1` | PowerShell: SSM-Stack erstellen |
 | `docker-compose.aws.yml` | App services (Redis, Nginx, Certbot, API, Workers, Frontend) |
 | `docker-compose.db.yml` | DB instance: Postgres only |
 | `nginx-aws.conf` | Reverse proxy + SSL |
