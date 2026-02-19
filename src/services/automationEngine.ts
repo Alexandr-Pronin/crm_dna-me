@@ -530,6 +530,28 @@ export class AutomationEngine {
       lead_id: lead.id,
       deal_id: deal?.id
     });
+
+    // Also send email notification to the deal owner
+    if (deal?.assigned_to) {
+      const owner = await db.queryOne<{ email: string; name: string | null }>(
+        'SELECT email, name FROM team_members WHERE id = $1',
+        [deal.assigned_to]
+      );
+      if (owner?.email) {
+        const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email;
+        await notificationsQueue.add('email_notification', {
+          to: owner.email,
+          subject: `[DNA ME] Benachrichtigung: ${leadName}`,
+          html: `<h3>Automatische Benachrichtigung</h3>
+            <p>${message.replace(/\n/g, '<br/>')}</p>
+            <hr/>
+            <p><strong>Lead:</strong> ${leadName} (${lead.email})</p>
+            ${deal ? `<p><strong>Deal:</strong> ${deal.name}</p>` : ''}`,
+          lead_id: lead.id,
+          deal_id: deal?.id
+        });
+      }
+    }
     
     return { action: 'send_notification', success: true, channel };
   }

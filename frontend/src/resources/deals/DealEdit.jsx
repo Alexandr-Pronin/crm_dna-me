@@ -24,7 +24,10 @@ import {
   CardContent,
   Chip,
   Divider,
+  Button,
 } from '@mui/material';
+import { Chat as ChatIcon } from '@mui/icons-material';
+import { ChatPanel } from '../../components/Chat';
 
 /**
  * Status chip for deal status display
@@ -297,19 +300,52 @@ const DealEditForm = () => {
 };
 
 /**
+ * Deal Chat Button (needs record context)
+ */
+const DealChatButton = () => {
+  const record = useRecordContext();
+  const [chatOpen, setChatOpen] = useState(false);
+
+  if (!record) return null;
+
+  return (
+    <>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<ChatIcon />}
+        onClick={() => setChatOpen(true)}
+        sx={{ textTransform: 'none' }}
+      >
+        Chats
+      </Button>
+      {chatOpen && (
+        <ChatPanel
+          dealId={record.id}
+          leadId={record.lead_id}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
+    </>
+  );
+};
+
+/**
  * Main Deal Edit Component
  */
 const DealEdit = () => {
   return (
     <Box sx={{ p: 2 }}>
       {/* Page Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 300 }}>
-          Edit Deal
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Update deal information and stage
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 300 }}>
+            Edit Deal
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Update deal information and stage
+          </Typography>
+        </Box>
       </Box>
 
       <Card>
@@ -318,7 +354,12 @@ const DealEdit = () => {
             redirect="list"
             mutationMode="pessimistic"
           >
-            <DealEditForm />
+            <>
+              <Box sx={{ mb: 2 }}>
+                <DealChatButton />
+              </Box>
+              <DealEditForm />
+            </>
           </Edit>
         </CardContent>
       </Card>

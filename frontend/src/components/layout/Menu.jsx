@@ -15,6 +15,8 @@ import {
   TrendingUp as ScoringIcon,
   Timeline as PipelineIcon,
   Email as EmailIcon,
+  Security as SecurityIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 
 /**
@@ -83,6 +85,14 @@ const Menu = (props) => {
         leftIcon={<PipelineIcon />}
       />
 
+      {/* Communication */}
+      <MenuSection title="Communication" open={open} />
+      <RAMenu.Item
+        to="/chat"
+        primaryText="Chat"
+        leftIcon={<ChatIcon />}
+      />
+
       {/* Analytics Section */}
       <MenuSection title="Analytics" open={open} />
       <RAMenu.Item
@@ -107,6 +117,11 @@ const Menu = (props) => {
         to="/settings"
         primaryText="Settings"
         leftIcon={<SettingsIcon />}
+      />
+      <RAMenu.Item
+        to="/2fa-setup"
+        primaryText="2FA Setup"
+        leftIcon={<SecurityIcon />}
       />
     </RAMenu>
   );

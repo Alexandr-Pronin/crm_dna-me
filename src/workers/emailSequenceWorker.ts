@@ -389,8 +389,8 @@ export async function enrollLeadInSequence(
       return existing.id;
     }
     
-    // Re-enroll if previously completed or paused
-    if (existing.status === 'completed' || existing.status === 'paused') {
+    // Re-enroll if previously completed, paused, or unsubscribed
+    if (existing.status === 'completed' || existing.status === 'paused' || existing.status === 'unsubscribed') {
       await db.execute(
         `UPDATE email_sequence_enrollments 
          SET status = 'active',
@@ -398,6 +398,7 @@ export async function enrollLeadInSequence(
              enrolled_at = NOW(),
              last_email_sent_at = NULL,
              completed_at = NULL,
+             unsubscribed_at = NULL,
              deal_id = $2,
              stage_id = $3,
              metadata = COALESCE($1, metadata),
@@ -420,12 +421,19 @@ export async function enrollLeadInSequence(
       );
       
       console.log(`[EmailSequenceWorker] Lead ${leadId} re-enrolled in sequence ${sequenceId}`);
+
+      try {
+        const queue = getEmailSequenceQueue();
+        await queue.add('process-due-emails-immediate', { type: 'process_due_emails' }, {
+          delay: 5000,
+        });
+      } catch (err) {
+        console.warn('[EmailSequenceWorker] Could not queue immediate processing:', err);
+      }
+
       return existing.id;
     }
     
-    // Don't re-enroll if unsubscribed
-    console.log(`[EmailSequenceWorker] Lead ${leadId} is unsubscribed from sequence ${sequenceId}`);
-    return null;
   }
 
   // Create new enrollment
@@ -446,6 +454,17 @@ export async function enrollLeadInSequence(
     );
 
     console.log(`[EmailSequenceWorker] Lead ${leadId} enrolled in sequence ${sequenceId}`);
+
+    // Trigger immediate processing so the first email is sent without waiting for the cron
+    try {
+      const queue = getEmailSequenceQueue();
+      await queue.add('process-due-emails-immediate', { type: 'process_due_emails' }, {
+        delay: 5000, // 5s delay to let the transaction commit
+      });
+    } catch (err) {
+      console.warn('[EmailSequenceWorker] Could not queue immediate processing:', err);
+    }
+
     return result.id;
   }
 

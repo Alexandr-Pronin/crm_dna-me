@@ -61,7 +61,7 @@ const STAGE_COLORS = {
   default: '#64748B',
 };
 
-const KanbanBoard = () => {
+const KanbanBoard = ({ hideCreateButton = false }) => {
   // Pipeline data from API
   const [pipelines, setPipelines] = useState([]);
   const [pipelinesLoading, setPipelinesLoading] = useState(true);
@@ -507,7 +507,7 @@ const KanbanBoard = () => {
           bgcolor: 'background.paper',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary' }}>
               {selectedPipeline?.name || 'Sales Pipeline'}
@@ -518,8 +518,7 @@ const KanbanBoard = () => {
               </Typography>
             )}
           </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 250 }} size="small">
               <InputLabel id="pipeline-select-label">Pipeline</InputLabel>
               <Select
@@ -536,27 +535,29 @@ const KanbanBoard = () => {
                 ))}
               </Select>
             </FormControl>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreateModal}
-              sx={{
-                bgcolor: 'primary.main',
-                color: 'white',
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(74, 144, 164, 0.3)',
-                '&:hover': {
-                  bgcolor: 'primary.dark',
-                  boxShadow: '0 4px 12px rgba(74, 144, 164, 0.4)',
-                },
-              }}
-            >
-              Deal erstellen
-            </Button>
+            {!hideCreateButton && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreateModal}
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  px: 3,
+                  py: 1,
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(74, 144, 164, 0.3)',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    boxShadow: '0 4px 12px rgba(74, 144, 164, 0.4)',
+                  },
+                }}
+              >
+                Deal erstellen
+              </Button>
+            )}
           </Box>
         </Box>
 

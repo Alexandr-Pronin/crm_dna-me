@@ -31,6 +31,9 @@ const configSchema = z.object({
   webhookSecret: z.string().min(16),
   corsOrigin: z.string().optional(),
 
+  // Encryption (AES-256-GCM for passwords, tokens, etc.)
+  encryptionKey: z.string().regex(/^[0-9a-fA-F]{64}$/, 'Must be 64 hex characters (32 bytes)').optional(),
+
   // API Keys (parsed from comma-separated string)
   apiKeys: z.array(z.object({
     key: z.string(),
@@ -55,6 +58,19 @@ const configSchema = z.object({
   cituro: z.object({
     apiKey: z.string().nullish(),
     subdomain: z.string().nullish(),
+    enabled: z.boolean().default(false)
+  }),
+
+  // LinkedIn Integration
+  linkedin: z.object({
+    clientId: z.string().nullish(),
+    clientSecret: z.string().nullish(),
+    redirectUri: z.string().default('http://localhost:3000/api/v1/linkedin/callback'),
+    // SNAP (Sales Navigator API) partner credentials
+    snapPartnerId: z.string().nullish(),
+    // Third-party gateway (e.g. Unipile)
+    gatewayUrl: z.string().nullish(),
+    gatewayApiKey: z.string().nullish(),
     enabled: z.boolean().default(false)
   }),
 
@@ -123,6 +139,7 @@ function loadConfig(): Config {
     jwtSecret: process.env.JWT_SECRET,
     webhookSecret: process.env.WEBHOOK_SECRET,
     corsOrigin: process.env.CORS_ORIGIN || undefined,
+    encryptionKey: process.env.ENCRYPTION_KEY || undefined,
     apiKeys: parseApiKeys(process.env.API_KEYS),
     moco: {
       apiKey: process.env.MOCO_API_KEY || undefined,
@@ -138,6 +155,15 @@ function loadConfig(): Config {
       apiKey: process.env.CITURO_API_KEY || undefined,
       subdomain: process.env.CITURO_SUBDOMAIN || undefined,
       enabled: parseBoolean(process.env.ENABLE_CITURO, false)
+    },
+    linkedin: {
+      clientId: process.env.LINKEDIN_CLIENT_ID || undefined,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || undefined,
+      redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:3000/api/v1/linkedin/callback',
+      snapPartnerId: process.env.LINKEDIN_SNAP_PARTNER_ID || undefined,
+      gatewayUrl: process.env.LINKEDIN_GATEWAY_URL || undefined,
+      gatewayApiKey: process.env.LINKEDIN_GATEWAY_API_KEY || undefined,
+      enabled: parseBoolean(process.env.ENABLE_LINKEDIN, false)
     },
     smtp: {
       host: process.env.SMTP_HOST || undefined,

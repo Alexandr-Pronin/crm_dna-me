@@ -52,6 +52,8 @@ export const httpClient = async (url, options = {}) => {
   // Correlation ID for distributed tracing
   const correlationId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
+  const token = localStorage.getItem('auth_token');
+
   const headers = new Headers({
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -59,6 +61,7 @@ export const httpClient = async (url, options = {}) => {
     'X-API-Key': API_KEY,
     // Correlation ID for request tracing
     'X-Correlation-ID': correlationId,
+    ...(token && { 'Authorization': `Bearer ${token}` }),
   });
 
   let response;

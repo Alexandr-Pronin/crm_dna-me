@@ -38,15 +38,18 @@ import {
   Alert,
   Pagination,
   Link,
+  Button,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
   EventNote as EventNoteIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
+import LeadImportDialog from './LeadImportDialog';
 import { getLeadEvents } from '../../providers/dataProvider';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -129,10 +132,18 @@ const buildLeadLabel = (lead) => {
 /**
  * Custom actions toolbar
  */
-const ListActions = ({ onCreateClick }) => (
+const ListActions = ({ onCreateClick, onImportClick }) => (
   <TopToolbar>
     <FilterButton />
     <CreateButton onClick={onCreateClick} label="Create Lead" />
+    <Button
+      size="small"
+      startIcon={<UploadIcon />}
+      onClick={onImportClick}
+      sx={{ fontSize: '0.8125rem' }}
+    >
+      Importieren
+    </Button>
     <ExportButton />
   </TopToolbar>
 );
@@ -232,6 +243,7 @@ const ActionsField = ({ record }) => {
  */
 const LeadList = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [recentActivities, setRecentActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState(null);
@@ -245,6 +257,11 @@ const LeadList = () => {
   const handleCreateClick = (e) => {
     e.preventDefault();
     setCreateModalOpen(true);
+  };
+
+  const handleImportClick = (e) => {
+    e?.preventDefault();
+    setImportDialogOpen(true);
   };
 
   const handleCreateSuccess = () => {
@@ -422,7 +439,7 @@ const LeadList = () => {
       {/* Lead List */}
       <RaList
         filters={leadFilters}
-        actions={<ListActions onCreateClick={handleCreateClick} />}
+        actions={<ListActions onCreateClick={handleCreateClick} onImportClick={handleImportClick} />}
         sort={{ field: 'created_at', order: 'DESC' }}
         perPage={25}
         sx={{
@@ -474,6 +491,12 @@ const LeadList = () => {
         open={createModalOpen}
         onClose={handleCreateClose}
         onSuccess={handleCreateSuccess}
+      />
+
+      {/* Import Lead Dialog */}
+      <LeadImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
       />
     </Box>
   );

@@ -13,6 +13,8 @@ import { createSyncWorker } from './syncWorker.js';
 import { createDecayWorker, setupDecayJob } from './decayWorker.js';
 import { createDailyDigestWorker, setupDailyDigestJob } from './dailyDigestWorker.js';
 import { createEmailSequenceWorker, setupEmailSequenceJob } from './emailSequenceWorker.js';
+import { createEmailSyncWorker, setupEmailSyncJob } from './emailSyncWorker.js';
+import { createNotificationWorker } from './notificationWorker.js';
 import { getEmailService } from '../services/emailService.js';
 import { getScoringEngine } from '../services/scoringEngine.js';
 import { getIntentDetector } from '../services/intentDetector.js';
@@ -128,6 +130,17 @@ async function initializeWorkers() {
   } else {
     console.log('⚠️ Email Sequence Worker disabled (SMTP not configured)');
   }
+
+  // Email Sync Worker - synchronizes IMAP email accounts into conversations
+  const emailSyncWorker = createEmailSyncWorker();
+  workers.push(emailSyncWorker);
+  await setupEmailSyncJob();
+  console.log('✅ Email Sync Worker started (scheduled: every 5 minutes, concurrency: 3)');
+
+  // Notification Worker - processes email and Slack notifications
+  const notificationWorker = createNotificationWorker();
+  workers.push(notificationWorker);
+  console.log('✅ Notification Worker started (concurrency: 5)');
 
   console.log(`✅ ${workers.length} worker(s) initialized`);
   console.log('Workers are ready and waiting for jobs...');

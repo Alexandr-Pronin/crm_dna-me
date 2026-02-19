@@ -5,7 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { db } from '../../db/index.js';
 import { getEmailService } from '../../services/emailService.js';
 import { enrollLeadInSequence, pauseEnrollment, resumeEnrollment, triggerImmediateSend } from '../../workers/emailSequenceWorker.js';
@@ -98,7 +98,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/sequences',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         response: {
           200: {
@@ -159,7 +159,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -208,7 +208,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post(
     '/sequences',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -257,7 +257,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -341,7 +341,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -381,7 +381,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id/steps',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -439,7 +439,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:sequenceId/steps/:stepId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -528,7 +528,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:sequenceId/steps/:stepId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -569,7 +569,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id/enroll',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -668,7 +668,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id/enrollments',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -710,7 +710,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/enrollments/:id/pause',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -750,7 +750,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/enrollments/:id/resume',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -790,7 +790,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/enrollments/:id/send-now',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -837,7 +837,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/enrollments/:id/cancel',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -889,7 +889,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -975,7 +975,7 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/sequences/:id/test-email',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

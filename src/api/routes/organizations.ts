@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { ValidationError } from '../../errors/index.js';
 import { getOrganizationService } from '../../services/organizationService.js';
 import type { Organization } from '../../types/index.js';
@@ -56,7 +56,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
   }>(
     '/organizations',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         response: {
           200: {
@@ -94,7 +94,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
   }>(
     '/organizations/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -127,7 +127,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
   }>(
     '/organizations',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {}
     },
     async (request) => {
@@ -153,7 +153,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
   }>(
     '/organizations/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -193,7 +193,7 @@ export async function organizationsRoutes(fastify: FastifyInstance): Promise<voi
   }>(
     '/organizations/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

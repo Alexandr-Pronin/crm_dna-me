@@ -48,6 +48,14 @@ import { PipelineSettings } from './pages/Pipelines';
 import EmailMarketingPage from './pages/EmailMarketing';
 import SequenceBuilder from './pages/EmailMarketing/SequenceBuilder';
 
+// Pages - Chat
+import ChatPage from './pages/Chat';
+
+// Auth Pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import TwoFactorSetup from './pages/auth/TwoFactorSetup';
+
 /**
  * Main Application
  */
@@ -59,6 +67,7 @@ const App = () => {
         <Admin
         dataProvider={dataProvider}
         authProvider={authProvider}
+        loginPage={LoginPage}
         layout={Layout}
         dashboard={Dashboard}
         theme={theme}
@@ -66,6 +75,10 @@ const App = () => {
         defaultTheme="dark"
         disableTelemetry
       >
+        <CustomRoutes noLayout>
+          <Route path="/register" element={<RegisterPage />} />
+        </CustomRoutes>
+
         {/* ============================================== */}
         {/* REAL API Resources                            */}
         {/* ============================================== */}
@@ -122,6 +135,9 @@ const App = () => {
         {/* Custom Routes (Pages with Mock Data)          */}
         {/* ============================================== */}
         <CustomRoutes>
+          {/* Auth - 2FA Setup */}
+          <Route path="/2fa-setup" element={<TwoFactorSetup />} />
+
           {/* Reports - MOCK DATA */}
           <Route path="/reports" element={<ReportsPage />} />
           
@@ -140,6 +156,9 @@ const App = () => {
           {/* Email Marketing - MOCK DATA */}
           <Route path="/email-marketing" element={<EmailMarketingPage />} />
           <Route path="/email-marketing/:id" element={<SequenceBuilder />} />
+
+          {/* Chat - REAL API */}
+          <Route path="/chat" element={<ChatPage />} />
         </CustomRoutes>
       </Admin>
       </div>

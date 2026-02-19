@@ -5,7 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { db } from '../../db/index.js';
 import { ValidationError, NotFoundError } from '../../errors/index.js';
 import type { Campaign, CampaignStatus, PaginatedResponse } from '../../types/index.js';
@@ -434,7 +434,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         querystring: {
           type: 'object',
@@ -504,7 +504,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/campaigns/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         response: {
           200: {
@@ -544,7 +544,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -595,7 +595,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -656,7 +656,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -724,7 +724,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -803,7 +803,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -868,7 +868,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id/activate',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -924,7 +924,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id/pause',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -980,7 +980,7 @@ export async function campaignsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/campaigns/:id/complete',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

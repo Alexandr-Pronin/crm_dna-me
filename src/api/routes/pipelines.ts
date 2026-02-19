@@ -5,6 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getPipelineService } from '../../services/pipelineService.js';
 import { getDealService } from '../../services/dealService.js';
 import { ValidationError } from '../../errors/index.js';
@@ -149,7 +150,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         querystring: {
           type: 'object',
@@ -203,7 +204,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -267,7 +268,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id/stages',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -312,7 +313,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id/deals',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -372,7 +373,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id/metrics',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -438,7 +439,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -502,7 +503,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -576,7 +577,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -651,7 +652,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id/stages',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -745,7 +746,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/pipelines/:id/stages/reorder',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -832,7 +833,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/stages/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -921,7 +922,7 @@ export async function pipelinesRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/stages/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

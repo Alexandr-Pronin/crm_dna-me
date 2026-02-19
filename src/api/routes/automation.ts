@@ -6,6 +6,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { db } from '../../db/index.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getAutomationEngine } from '../../services/automationEngine.js';
 import { NotFoundError, ValidationError } from '../../errors/index.js';
 import type { AutomationRule } from '../../types/index.js';
@@ -66,7 +67,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // GET /automation/rules - List all automation rules
   // ===========================================================================
-  fastify.get('/automation/rules', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/automation/rules', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const query = paginationSchema.parse(request.query);
     const { page, limit, trigger_type, action_type, is_active, pipeline_id } = query;
     const offset = (page - 1) * limit;
@@ -139,7 +140,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // GET /automation/rules/:id - Get single rule
   // ===========================================================================
-  fastify.get('/automation/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/automation/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     const rule = await db.queryOne<AutomationRule & { 
@@ -193,7 +194,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // POST /automation/rules - Create new rule
   // ===========================================================================
-  fastify.post('/automation/rules', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/automation/rules', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const data = createRuleSchema.parse(request.body);
 
     // Validate pipeline_id if provided
@@ -253,7 +254,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // PATCH /automation/rules/:id - Update rule
   // ===========================================================================
-  fastify.patch('/automation/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.patch('/automation/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const data = updateRuleSchema.parse(request.body);
 
@@ -357,7 +358,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // DELETE /automation/rules/:id - Delete rule
   // ===========================================================================
-  fastify.delete('/automation/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.delete('/automation/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     // Check if rule exists first
@@ -389,7 +390,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // GET /automation/rules/:id/logs - Get execution logs for a rule
   // ===========================================================================
-  fastify.get('/automation/rules/:id/logs', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/automation/rules/:id/logs', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { page = 1, limit = 20 } = request.query as { page?: number; limit?: number };
     const offset = (page - 1) * limit;
@@ -449,7 +450,7 @@ export async function automationRoutes(fastify: FastifyInstance): Promise<void> 
   // ===========================================================================
   // GET /automation/stats - Get overall automation statistics
   // ===========================================================================
-  fastify.get('/automation/stats', async () => {
+  fastify.get('/automation/stats', { preHandler: authenticateOrApiKey }, async () => {
     // Rules stats
     const rulesStats = await db.queryOne<{
       total_rules: number;

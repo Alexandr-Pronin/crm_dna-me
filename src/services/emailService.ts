@@ -82,10 +82,10 @@ export class EmailService {
   // ===========================================================================
 
   private initializeTransporter(): void {
-    const smtpHost = process.env.SMTP_HOST;
+    const smtpHost = process.env.SMTP_HOST?.trim();
     const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    const smtpUser = process.env.SMTP_USER?.trim();
+    const smtpPass = process.env.SMTP_PASS?.trim();
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
     if (!smtpHost || !smtpUser || !smtpPass) {
@@ -119,9 +119,9 @@ export class EmailService {
   // ===========================================================================
 
   private initializeMarketingTransporter(): void {
-    const host = process.env.MARKETING_SMTP_HOST;
-    const user = process.env.MARKETING_SMTP_USER;
-    const pass = process.env.MARKETING_SMTP_PASS;
+    const host = process.env.MARKETING_SMTP_HOST?.trim();
+    const user = process.env.MARKETING_SMTP_USER?.trim();
+    const pass = process.env.MARKETING_SMTP_PASS?.trim();
 
     if (!host || !user || !pass) {
       console.log('[EmailService] Marketing-SMTP nicht konfiguriert, verwende System-SMTP für Sequenzen.');

@@ -213,6 +213,10 @@ export interface TeamMember {
   is_active: boolean;
   max_leads: number;
   current_leads: number;
+  password_hash?: string;
+  two_factor_secret?: string;
+  is_two_factor_enabled?: boolean;
+  temp_two_factor_secret?: string;
   created_at: Date;
 }
 
@@ -308,6 +312,104 @@ export interface EmailTracking {
 }
 
 export type EmailEnrollmentStatus = 'active' | 'paused' | 'completed' | 'unsubscribed';
+
+// =============================================================================
+// Chat System Types
+// =============================================================================
+
+export interface Conversation {
+  id: string;
+  lead_id?: string;
+  deal_id?: string;
+  type: ConversationType;
+  status: ConversationStatus;
+  subject?: string;
+  participant_emails: string[];
+  last_message_at?: Date;
+  created_by_id?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id?: string;
+  message_type: MessageType;
+  direction: MessageDirection;
+  status: MessageStatus;
+  sender_email?: string;
+  sender_name?: string;
+  recipients: MessageRecipient[];
+  subject?: string;
+  body_html?: string;
+  body_text?: string;
+  metadata: Record<string, unknown>;
+  attachments: MessageAttachment[];
+  external_id?: string;
+  email_thread_id?: string;
+  sent_at?: Date;
+  read_at?: Date;
+  replied_at?: Date;
+  error_message?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailAccount {
+  id: string;
+  team_member_id: string;
+  email_address: string;
+  imap_host?: string;
+  imap_port?: number;
+  imap_username?: string;
+  imap_password?: string;
+  smtp_host?: string;
+  smtp_port?: number;
+  smtp_username?: string;
+  smtp_password?: string;
+  sync_enabled: boolean;
+  last_sync_at?: Date;
+  sync_status: EmailSyncStatus;
+  sync_error?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LinkedInConnection {
+  id: string;
+  team_member_id: string;
+  linkedin_profile_id?: string;
+  access_token?: string;
+  refresh_token?: string;
+  token_expires_at?: Date;
+  profile_data: Record<string, unknown>;
+  is_active: boolean;
+  last_sync_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MessageRecipient {
+  email: string;
+  name?: string;
+  type: 'to' | 'cc' | 'bcc';
+}
+
+export interface MessageAttachment {
+  filename: string;
+  content_type: string;
+  size: number;
+  url?: string;
+  storage_key?: string;
+}
+
+export type ConversationType = 'direct' | 'group' | 'internal';
+export type ConversationStatus = 'active' | 'archived' | 'closed';
+export type MessageType = 'email' | 'linkedin' | 'internal_note' | 'task';
+export type MessageDirection = 'inbound' | 'outbound' | 'internal';
+export type MessageStatus = 'draft' | 'sending' | 'sent' | 'error';
+export type EmailSyncStatus = 'idle' | 'syncing' | 'error';
 
 // =============================================================================
 // Enums / Union Types

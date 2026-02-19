@@ -5,7 +5,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { validateHmacSignature } from '../middleware/hmac.js';
 import {
   ingestEventSchema,
@@ -41,7 +41,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/events/ingest',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -225,7 +225,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/bulk',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
