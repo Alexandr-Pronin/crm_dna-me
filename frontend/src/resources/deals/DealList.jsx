@@ -13,8 +13,6 @@ import {
   NumberField,
   useDataProvider,
   useRefresh,
-  TopToolbar,
-  FilterButton,
   CreateButton,
   SearchInput,
   SelectInput,
@@ -114,12 +112,49 @@ const SequenceChip = ({ sequence }) => {
   );
 };
 
-const ListActions = () => (
-  <TopToolbar sx={{ gap: 1 }}>
-    <FilterButton />
-    <CreateButton label="Deal erstellen" />
-  </TopToolbar>
-);
+/** Einheitliche Toolbar: Ansicht, Create, Refresh (unter Überschrift) */
+const DealsToolbar = ({ viewMode, onViewChange }) => {
+  const refresh = useRefresh();
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={onViewChange}
+        size="small"
+      >
+        <ToggleButton value="list">
+          <Tooltip title="Listenansicht">
+            <ListIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="kanban">
+          <Tooltip title="Kanban Board">
+            <KanbanIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <CreateButton
+        label="Deal erstellen"
+        variant="contained"
+        sx={{
+          fontWeight: 600,
+          textTransform: 'none',
+          px: 2,
+          boxShadow: '0 2px 8px rgba(74, 144, 164, 0.3)',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(74, 144, 164, 0.4)',
+          },
+        }}
+      />
+      <Tooltip title="Aktualisieren">
+        <IconButton onClick={refresh} size="small">
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
 
 
 // localStorage Key für Ansichts-Persistenz
@@ -138,7 +173,6 @@ const DealList = () => {
   const [pipelines, setPipelines] = useState([]);
   const [stages, setStages] = useState([]);
   const [defaultPipelineId, setDefaultPipelineId] = useState('');
-  const refresh = useRefresh();
   const dataProvider = useDataProvider();
 
   useEffect(() => {
@@ -265,56 +299,40 @@ const DealList = () => {
   }, [pipelines, pipelineMap, stages]);
 
   const dealFilters = [
+    <SelectInput source="pipeline_id" label="Pipeline" choices={pipelineChoices} alwaysOn />,
+    <SelectInput source="stage_id" label="Stage" choices={stageChoices} alwaysOn />,
     <SearchInput source="q" alwaysOn placeholder="Search deals..." />,
-    <SelectInput source="pipeline_id" label="Pipeline" choices={pipelineChoices} />,
-    <SelectInput source="stage_id" label="Stage" choices={stageChoices} />,
   ];
+
+  const pageHeader = (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="h4" sx={{ fontWeight: 300 }}>
+        Deals
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {viewMode === 'kanban' ? 'Drag & Drop für Pipeline-Management' : 'Verwalten Sie Ihre Sales Pipeline'}
+      </Typography>
+      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <DealsToolbar viewMode={viewMode} onViewChange={handleViewChange} />
+      </Box>
+    </Box>
+  );
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Page Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 300 }}>
-            Deals
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {viewMode === 'kanban' ? 'Drag & Drop für Pipeline-Management' : 'Verwalten Sie Ihre Sales Pipeline'}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewChange}
-            size="small"
-          >
-            <ToggleButton value="list">
-              <Tooltip title="Listenansicht">
-                <ListIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton value="kanban">
-              <Tooltip title="Kanban Board">
-                <KanbanIcon fontSize="small" />
-              </Tooltip>
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <Tooltip title="Aktualisieren">
-            <IconButton onClick={refresh}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
       {viewMode === 'kanban' ? (
-        <KanbanBoard />
+        <>
+          {pageHeader}
+          <KanbanBoard hideCreateButton />
+        </>
       ) : (
-        <List
-          filterDefaultValues={defaultPipelineId ? { pipeline_id: defaultPipelineId } : {}}
-          filters={dealFilters}
-          actions={<ListActions />}
+        <>
+          {pageHeader}
+          <List
+            title={false}
+            actions={false}
+            filterDefaultValues={defaultPipelineId ? { pipeline_id: defaultPipelineId } : {}}
+            filters={dealFilters}
           sort={{ field: 'created_at', order: 'DESC' }}
           perPage={25}
           empty={
@@ -378,6 +396,7 @@ const DealList = () => {
             <DateField source="created_at" label="Created" showTime={false} />
           </Datagrid>
         </List>
+        </>
       )}
     </Box>
   );

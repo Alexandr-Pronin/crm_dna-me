@@ -437,18 +437,37 @@ export class PipelineRouter {
   ): Promise<void> {
     const notificationsQueue = getNotificationsQueue();
     
+    const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email;
+    const slackMessage = `🎯 Lead Routed!\n` +
+      `${leadName} (${lead.email})\n` +
+      `→ ${pipeline.name}\n` +
+      `Intent: ${intent} (${lead.intent_confidence}% confidence)\n` +
+      `Score: ${lead.total_score}\n` +
+      `Assigned: ${owner?.email || 'Unassigned'}`;
+
     await notificationsQueue.add('slack_notification', {
       channel: '#hot-leads',
       type: 'lead_routed',
-      message: `🎯 Lead Routed!\n` +
-               `${lead.first_name || ''} ${lead.last_name || ''} (${lead.email})\n` +
-               `→ ${pipeline.name}\n` +
-               `Intent: ${intent} (${lead.intent_confidence}% confidence)\n` +
-               `Score: ${lead.total_score}\n` +
-               `Assigned: ${owner?.email || 'Unassigned'}`,
+      message: slackMessage,
       lead_id: lead.id,
       deal_id: deal.id
     });
+
+    if (owner?.email) {
+      await notificationsQueue.add('email_notification', {
+        to: owner.email,
+        subject: `[DNA ME] Neuer Lead: ${leadName}`,
+        html: `<h3>Neuer Lead zugewiesen</h3>
+          <p><strong>Name:</strong> ${leadName}</p>
+          <p><strong>E-Mail:</strong> ${lead.email}</p>
+          <p><strong>Pipeline:</strong> ${pipeline.name}</p>
+          <p><strong>Intent:</strong> ${intent} (${lead.intent_confidence}% Konfidenz)</p>
+          <p><strong>Score:</strong> ${lead.total_score}</p>
+          <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/deals/${deal.id}">Deal anzeigen</a></p>`,
+        lead_id: lead.id,
+        deal_id: deal.id
+      });
+    }
   }
   
   /**

@@ -5,7 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getTriggerService, type TriggerAction } from '../../services/triggerService.js';
 import { db } from '../../db/index.js';
 import { ValidationError, NotFoundError } from '../../errors/index.js';
@@ -101,7 +101,7 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/triggers/execute',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -201,7 +201,7 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/stages/:id/triggers',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -311,7 +311,7 @@ export async function triggersRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/stages/:id/triggers',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import {
   createTeamMemberSchema,
   updateTeamMemberSchema,
@@ -68,7 +68,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         querystring: {
           type: 'object',
@@ -193,7 +193,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         response: {
           200: {
@@ -283,7 +283,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -343,7 +343,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -439,7 +439,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -598,7 +598,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -700,7 +700,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/deactivate',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -764,7 +764,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/activate',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -838,7 +838,7 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/workload',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

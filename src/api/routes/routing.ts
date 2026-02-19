@@ -5,6 +5,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getPipelineRouter } from '../../services/pipelineRouter.js';
 import { getRoutingQueue } from '../../config/queues.js';
 import { ROUTING_CONFIG } from '../../config/routingConfig.js';
@@ -40,7 +41,7 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /routing/config - Get routing configuration
   // ===========================================================================
   
-  fastify.get('/routing/config', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/routing/config', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     return {
       success: true,
       data: {
@@ -59,7 +60,7 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /routing/stats - Get routing statistics
   // ===========================================================================
   
-  fastify.get('/routing/stats', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/routing/stats', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const stats = await router.getRoutingStats();
     
     return {
@@ -72,12 +73,10 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /routing/evaluate/:id - Trigger routing evaluation for a lead
   // ===========================================================================
   
-  fastify.post(
+  fastify.post<{ Params: { id: string } }>(
     '/routing/evaluate/:id',
-    async (
-      request: FastifyRequest<{ Params: { id: string } }>,
-      reply: FastifyReply
-    ) => {
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
       const params = evaluateParamsSchema.safeParse(request.params);
       
       if (!params.success) {
@@ -111,12 +110,10 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /routing/manual/:id - Manually route a lead
   // ===========================================================================
   
-  fastify.post(
+  fastify.post<{ Params: { id: string }; Body: unknown }>(
     '/routing/manual/:id',
-    async (
-      request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
-      reply: FastifyReply
-    ) => {
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
       const params = evaluateParamsSchema.safeParse(request.params);
       const body = manualRouteSchema.safeParse(request.body);
       
@@ -157,12 +154,10 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /routing/batch-evaluate - Queue routing evaluation for multiple leads
   // ===========================================================================
   
-  fastify.post(
+  fastify.post<{ Body: unknown }>(
     '/routing/batch-evaluate',
-    async (
-      request: FastifyRequest<{ Body: unknown }>,
-      reply: FastifyReply
-    ) => {
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
       const body = batchEvaluateSchema.safeParse(request.body);
       
       if (!body.success) {
@@ -200,7 +195,7 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /routing/queue-status - Get routing queue status
   // ===========================================================================
   
-  fastify.get('/routing/queue-status', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/routing/queue-status', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const routingQueue = getRoutingQueue();
     
     const [waiting, active, completed, failed] = await Promise.all([
@@ -226,12 +221,10 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /routing/unrouted - Get leads ready for routing
   // ===========================================================================
   
-  fastify.get(
+  fastify.get<{ Querystring: { limit?: string; min_score?: string } }>(
     '/routing/unrouted',
-    async (
-      request: FastifyRequest<{ Querystring: { limit?: string; min_score?: string } }>,
-      reply: FastifyReply
-    ) => {
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit || '50', 10), 200);
       const minScore = parseInt(request.query.min_score || '0', 10);
       
@@ -259,12 +252,10 @@ export async function routingRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /routing/manual-review - Get leads needing manual review
   // ===========================================================================
   
-  fastify.get(
+  fastify.get<{ Querystring: { limit?: string } }>(
     '/routing/manual-review',
-    async (
-      request: FastifyRequest<{ Querystring: { limit?: string } }>,
-      reply: FastifyReply
-    ) => {
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit || '50', 10), 200);
       
       const leads = await db.query<Lead>(`

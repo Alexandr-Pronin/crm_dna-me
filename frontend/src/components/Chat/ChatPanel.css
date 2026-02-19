@@ -1,0 +1,875 @@
+/* ===================================================================
+ * ChatPanel.css – Chat System Styles
+ * Dark-mode biotech theme matching the DNA ME CRM design system
+ *
+ * Color reference (from palette.js):
+ *   primary:   #4A90A4 (teal)
+ *   secondary: #6C5CE7 (purple)
+ *   success:   #28A745 / #80c856
+ *   warning:   #F59E0B
+ *   error:     #DC3545 / #ff6666
+ *   bg-paper:  rgba(18, 18, 26, 0.8)
+ *   text:      #e0e0e0 / #a0a0a0 / #666666
+ *   divider:   #2a2a3a
+ * =================================================================== */
+
+/* -------------------------------------------------------------------
+ * 1. DRAWER / PANEL – slide-in animation & layout
+ * ------------------------------------------------------------------- */
+
+.chat-panel-drawer {
+  animation: chatSlideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes chatSlideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Subtle glow on the left border of the drawer */
+.chat-panel-drawer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(74, 144, 164, 0) 0%,
+    rgba(74, 144, 164, 0.4) 30%,
+    rgba(74, 144, 164, 0.4) 70%,
+    rgba(74, 144, 164, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------------------
+ * 2. SCROLLBAR – chat-specific slim scrollbar
+ * ------------------------------------------------------------------- */
+
+.chat-panel-drawer ::-webkit-scrollbar,
+.chat-page-container ::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-panel-drawer ::-webkit-scrollbar-track,
+.chat-page-container ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-panel-drawer ::-webkit-scrollbar-thumb,
+.chat-page-container ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.chat-panel-drawer ::-webkit-scrollbar-thumb:hover,
+.chat-page-container ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Firefox scrollbar */
+.chat-panel-drawer *,
+.chat-page-container * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* -------------------------------------------------------------------
+ * 3. CONVERSATION LIST ITEMS – hover, active, focus
+ * ------------------------------------------------------------------- */
+
+.chat-conversation-item {
+  position: relative;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+  outline: none;
+}
+
+.chat-conversation-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.chat-conversation-item:active {
+  transform: scale(0.995);
+}
+
+.chat-conversation-item:focus-visible {
+  outline: 2px solid rgba(74, 144, 164, 0.5);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.chat-conversation-item--active {
+  background-color: rgba(74, 144, 164, 0.12) !important;
+  border-left-color: #4A90A4 !important;
+}
+
+.chat-conversation-item--active:hover {
+  background-color: rgba(74, 144, 164, 0.18) !important;
+}
+
+/* Unread indicator pulse */
+.chat-conversation-item--unread .MuiBadge-badge {
+  animation: unreadPulse 2s ease-in-out infinite;
+}
+
+@keyframes unreadPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 144, 164, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(74, 144, 164, 0); }
+}
+
+/* -------------------------------------------------------------------
+ * 4. MESSAGE BUBBLES – inbound, outbound, internal
+ * ------------------------------------------------------------------- */
+
+.chat-message-bubble {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+  position: relative;
+}
+
+.chat-message-bubble:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Outbound messages (own) */
+.chat-message-bubble--outbound {
+  background-color: rgba(74, 144, 164, 0.1);
+  border: 1px solid rgba(74, 144, 164, 0.18);
+  border-radius: 12px 12px 4px 12px;
+}
+
+.chat-message-bubble--outbound:hover {
+  background-color: rgba(74, 144, 164, 0.14);
+  border-color: rgba(74, 144, 164, 0.25);
+}
+
+/* Inbound messages (other) */
+.chat-message-bubble--inbound {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px 12px 12px 4px;
+}
+
+.chat-message-bubble--inbound:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Internal notes */
+.chat-message-bubble--internal {
+  background-color: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 12px;
+  border-left: 3px solid rgba(245, 158, 11, 0.5);
+}
+
+.chat-message-bubble--internal:hover {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+  border-left-color: rgba(245, 158, 11, 0.6);
+}
+
+/* LinkedIn messages */
+.chat-message-bubble--linkedin {
+  border-left: 3px solid rgba(10, 102, 194, 0.5);
+}
+
+/* Message body content */
+.chat-message-body a {
+  color: #6AAFC2;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(106, 175, 194, 0.3);
+  transition: border-color 0.15s ease;
+}
+
+.chat-message-body a:hover {
+  border-bottom-color: rgba(106, 175, 194, 0.7);
+}
+
+.chat-message-body p {
+  margin: 0 0 0.5em 0;
+}
+
+.chat-message-body p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-message-body img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 4px 0;
+}
+
+.chat-message-body blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  color: #a0a0a0;
+  font-style: italic;
+}
+
+.chat-message-body code {
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.chat-message-body pre {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 10px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.8em;
+}
+
+/* -------------------------------------------------------------------
+ * 5. MESSAGE TYPE BADGES
+ * ------------------------------------------------------------------- */
+
+.chat-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.chat-type-badge--email {
+  background-color: rgba(74, 144, 164, 0.12);
+  color: #6AAFC2;
+}
+
+.chat-type-badge--linkedin {
+  background-color: rgba(10, 102, 194, 0.12);
+  color: #4A90D9;
+}
+
+.chat-type-badge--internal {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #FBBF24;
+}
+
+.chat-type-badge--task {
+  background-color: rgba(108, 92, 231, 0.12);
+  color: #8B7EEB;
+}
+
+/* -------------------------------------------------------------------
+ * 6. MESSAGE STATUS ICONS – transitions & hover
+ * ------------------------------------------------------------------- */
+
+.message-status-sending {
+  color: #98a2b3;
+  animation: statusFade 1.5s ease-in-out infinite;
+}
+
+@keyframes statusFade {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.message-status-sent {
+  color: #80c856;
+  transition: transform 0.15s ease;
+}
+
+.message-status-sent:hover {
+  transform: scale(1.15);
+}
+
+.message-status-error {
+  color: #ff6666;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.message-status-error:hover {
+  transform: scale(1.15);
+}
+
+/* Retry button */
+.message-retry-button {
+  transition: color 0.15s ease, transform 0.15s ease;
+  color: #ff6666;
+}
+
+.message-retry-button:hover {
+  color: #ff8888;
+  transform: rotate(-90deg);
+}
+
+/* -------------------------------------------------------------------
+ * 7. TYPING INDICATOR – animated bouncing dots
+ * ------------------------------------------------------------------- */
+
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.3;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.chat-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 8px;
+  min-height: 28px;
+  animation: typingFadeIn 0.2s ease-out;
+}
+
+@keyframes typingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #4A90A4;
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+.chat-typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.chat-typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chat-typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* -------------------------------------------------------------------
+ * 8. MESSAGE COMPOSER – input area styling
+ * ------------------------------------------------------------------- */
+
+.chat-composer {
+  border-top: 1px solid #2a2a3a;
+  background-color: rgba(18, 18, 26, 0.6);
+  transition: background-color 0.15s ease;
+}
+
+.chat-composer:focus-within {
+  background-color: rgba(18, 18, 26, 0.8);
+}
+
+.chat-composer-input .MuiOutlinedInput-root {
+  background-color: rgba(255, 255, 255, 0.03);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  font-size: 0.875rem;
+}
+
+.chat-composer-input .MuiOutlinedInput-root:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.chat-composer-input .MuiOutlinedInput-root.Mui-focused {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Send button */
+.chat-send-button {
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease !important;
+}
+
+.chat-send-button:hover:not(.Mui-disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(74, 144, 164, 0.3) !important;
+}
+
+.chat-send-button:active:not(.Mui-disabled) {
+  transform: scale(0.95);
+}
+
+/* -------------------------------------------------------------------
+ * 9. DATE SEPARATOR – divider between date groups
+ * ------------------------------------------------------------------- */
+
+.chat-date-separator {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  gap: 12px;
+}
+
+.chat-date-separator::before,
+.chat-date-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+.chat-date-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #666666;
+  padding: 2px 10px;
+  background: rgba(18, 18, 26, 0.8);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------
+ * 10. CONNECTION STATUS – real-time indicator
+ * ------------------------------------------------------------------- */
+
+.chat-connection-dot {
+  transition: color 0.3s ease;
+}
+
+.chat-connection-dot--connected {
+  color: #80c856;
+  animation: none;
+}
+
+.chat-connection-dot--polling {
+  color: #F59E0B;
+}
+
+.chat-connection-dot--reconnecting {
+  color: #F59E0B;
+  animation: reconnectPulse 1.5s ease-in-out infinite;
+}
+
+.chat-connection-dot--error {
+  color: #ff6666;
+}
+
+.chat-connection-dot--connecting {
+  color: #98a2b3;
+  animation: reconnectPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes reconnectPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* -------------------------------------------------------------------
+ * 11. EMPTY STATE – no conversations or messages
+ * ------------------------------------------------------------------- */
+
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  animation: emptyFadeIn 0.3s ease-out;
+}
+
+@keyframes emptyFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-empty-state-icon {
+  opacity: 0.15;
+  margin-bottom: 16px;
+  font-size: 56px !important;
+}
+
+/* -------------------------------------------------------------------
+ * 12. CHAT PAGE – full-width two-panel layout
+ * ------------------------------------------------------------------- */
+
+.chat-page-container {
+  display: flex;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* Left sidebar panel */
+.chat-page-sidebar {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2a2a3a;
+  background-color: rgba(10, 14, 35, 0.6);
+  position: relative;
+  transition: width 0.2s ease;
+}
+
+/* Right border glow for sidebar */
+.chat-page-sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(74, 144, 164, 0) 0%,
+    rgba(74, 144, 164, 0.2) 50%,
+    rgba(74, 144, 164, 0) 100%
+  );
+  pointer-events: none;
+}
+
+/* Right content panel */
+.chat-page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: rgba(10, 14, 35, 0.3);
+}
+
+/* -------------------------------------------------------------------
+ * 13. CHAT HEADER – conversation header area
+ * ------------------------------------------------------------------- */
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #2a2a3a;
+  background-color: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.chat-header-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header-subtitle {
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------
+ * 14. SEARCH BAR – conversation search
+ * ------------------------------------------------------------------- */
+
+.chat-search-bar .MuiOutlinedInput-root {
+  background-color: rgba(255, 255, 255, 0.03);
+  font-size: 0.8125rem;
+  transition: background-color 0.15s ease;
+}
+
+.chat-search-bar .MuiOutlinedInput-root:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.chat-search-bar .MuiOutlinedInput-root.Mui-focused {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* -------------------------------------------------------------------
+ * 15. TABS – conversation filter tabs
+ * ------------------------------------------------------------------- */
+
+.chat-tabs {
+  min-height: 36px;
+}
+
+.chat-tabs .MuiTab-root {
+  min-height: 36px;
+  text-transform: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  transition: color 0.15s ease;
+}
+
+.chat-tabs .MuiTabs-indicator {
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, #4A90A4, #6AAFC2);
+}
+
+/* -------------------------------------------------------------------
+ * 16. ATTACHMENT CHIPS – file attachment pills
+ * ------------------------------------------------------------------- */
+
+.chat-attachment-chip {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.chat-attachment-chip:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.chat-attachment-chip .MuiChip-icon {
+  font-size: 14px;
+  color: #a0a0a0;
+}
+
+/* -------------------------------------------------------------------
+ * 17. MESSAGE AVATAR
+ * ------------------------------------------------------------------- */
+
+.chat-message-avatar {
+  transition: transform 0.1s ease;
+}
+
+.chat-message-avatar:hover {
+  transform: scale(1.08);
+}
+
+/* -------------------------------------------------------------------
+ * 18. NEW MESSAGE ANIMATION – fade-in for arriving messages
+ * ------------------------------------------------------------------- */
+
+.chat-message-enter {
+  animation: messageSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -------------------------------------------------------------------
+ * 19. DIALOG – new conversation dialog
+ * ------------------------------------------------------------------- */
+
+.chat-create-dialog .MuiDialog-paper {
+  border-radius: 16px;
+  border: 1px solid rgba(74, 144, 164, 0.15);
+  background-color: rgba(18, 18, 26, 0.95);
+  backdrop-filter: blur(16px);
+}
+
+.chat-create-dialog .MuiDialogTitle-root {
+  font-weight: 600;
+  font-size: 1rem;
+  padding-bottom: 8px;
+}
+
+/* -------------------------------------------------------------------
+ * 20. RESPONSIVE – mobile & tablet adjustments
+ * ------------------------------------------------------------------- */
+
+/* Tablet (small) */
+@media (max-width: 900px) {
+  .chat-page-sidebar {
+    width: 280px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .chat-panel-drawer {
+    width: 100vw !important;
+  }
+
+  .chat-page-container {
+    flex-direction: column;
+    height: calc(100vh - 48px);
+  }
+
+  .chat-page-sidebar {
+    width: 100%;
+    height: 100%;
+    border-right: none;
+    border-bottom: 1px solid #2a2a3a;
+  }
+
+  .chat-page-sidebar::after {
+    display: none;
+  }
+
+  .chat-page-sidebar--hidden {
+    display: none;
+  }
+
+  .chat-page-content {
+    height: 100%;
+  }
+
+  .chat-page-content--hidden {
+    display: none;
+  }
+
+  /* Larger touch targets */
+  .chat-conversation-item {
+    padding: 12px 16px !important;
+  }
+
+  /* Bigger composer area on mobile */
+  .chat-composer {
+    padding: 10px 12px;
+  }
+}
+
+/* -------------------------------------------------------------------
+ * 21. SKELETON / LOADING – animated placeholders
+ * ------------------------------------------------------------------- */
+
+.chat-skeleton-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* -------------------------------------------------------------------
+ * 22. FOCUS & ACCESSIBILITY
+ * ------------------------------------------------------------------- */
+
+.chat-panel-drawer *:focus-visible,
+.chat-page-container *:focus-visible {
+  outline: 2px solid rgba(74, 144, 164, 0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove outline on mouse click (keep for keyboard) */
+.chat-panel-drawer *:focus:not(:focus-visible),
+.chat-page-container *:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen reader only (visually hidden) */
+.chat-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -------------------------------------------------------------------
+ * 23. TRANSITIONS / MOTION – reduced motion preference
+ * ------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-panel-drawer {
+    animation: none;
+  }
+
+  .chat-typing-dot {
+    animation: none;
+    opacity: 0.6;
+  }
+
+  .chat-message-enter {
+    animation: none;
+  }
+
+  .message-status-sending {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .chat-connection-dot--reconnecting,
+  .chat-connection-dot--connecting {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .chat-conversation-item--unread .MuiBadge-badge {
+    animation: none;
+  }
+
+  .chat-skeleton-line {
+    animation: none;
+  }
+}
+
+/* -------------------------------------------------------------------
+ * 24. PRINT – hide chat in print mode
+ * ------------------------------------------------------------------- */
+
+@media print {
+  .chat-panel-drawer,
+  .chat-page-container {
+    display: none !important;
+  }
+}

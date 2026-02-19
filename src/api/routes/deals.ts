@@ -5,7 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { 
   getDealService,
   type CreateDealInput,
@@ -174,7 +174,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         querystring: {
           type: 'object',
@@ -244,7 +244,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         querystring: {
           type: 'object',
@@ -289,7 +289,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -340,7 +340,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -420,7 +420,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -495,7 +495,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/move',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -577,7 +577,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/reorder',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         body: {
           type: 'object',
@@ -635,7 +635,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/close',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -719,7 +719,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/reopen',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -788,7 +788,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/lead',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -870,7 +870,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

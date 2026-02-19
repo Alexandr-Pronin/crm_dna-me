@@ -5,6 +5,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getEmailService, EmailService } from '../../services/emailService.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError } from '../../errors/index.js';
@@ -316,6 +317,7 @@ export async function emailRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/email/stats/:trackingId',
     {
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

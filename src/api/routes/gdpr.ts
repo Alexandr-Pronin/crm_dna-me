@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError } from '../../errors/index.js';
 import type { Lead, Organization, MarketingEvent, ScoreHistory, IntentSignal, Deal, Task } from '../../types/index.js';
@@ -90,7 +90,7 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/gdpr/export/:leadId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',
@@ -229,7 +229,7 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/gdpr/delete/:leadId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
         params: {
           type: 'object',

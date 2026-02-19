@@ -5,8 +5,10 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getMocoService } from '../../integrations/moco.js';
 import { getCituroService } from '../../integrations/cituro.js';
+import { getLinkedInService } from '../../services/linkedinService.js';
 import { getSyncQueue } from '../../config/queues.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError, BusinessLogicError } from '../../errors/index.js';
@@ -42,7 +44,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // GET /integrations/moco/status - Check Moco connection status
   // ===========================================================================
 
-  fastify.get('/integrations/moco/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.get('/integrations/moco/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
     const isConfigured = mocoService.isConfigured();
     
     if (!isConfigured) {
@@ -67,12 +69,12 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // POST /integrations/moco/sync/:leadId - Manually trigger Moco sync for lead
   // ===========================================================================
 
-  fastify.post('/integrations/moco/sync/lead/:leadId', async (
-    request: FastifyRequest<{ 
-      Params: { leadId: string };
-      Body: z.infer<typeof manualMocoSyncSchema>;
-    }>, 
-    _reply: FastifyReply
+  fastify.post<{ 
+    Params: { leadId: string };
+    Body: z.infer<typeof manualMocoSyncSchema>;
+  }>('/integrations/moco/sync/lead/:leadId', { preHandler: authenticateOrApiKey }, async (
+    request, 
+    _reply
   ) => {
     const { leadId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_customer' });
@@ -120,12 +122,12 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // POST /integrations/moco/sync/deal/:dealId - Manually trigger Moco sync for deal
   // ===========================================================================
 
-  fastify.post('/integrations/moco/sync/deal/:dealId', async (
-    request: FastifyRequest<{ 
-      Params: { dealId: string };
-      Body: z.infer<typeof manualMocoSyncSchema>;
-    }>, 
-    _reply: FastifyReply
+  fastify.post<{ 
+    Params: { dealId: string };
+    Body: z.infer<typeof manualMocoSyncSchema>;
+  }>('/integrations/moco/sync/deal/:dealId', { preHandler: authenticateOrApiKey }, async (
+    request, 
+    _reply
   ) => {
     const { dealId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_offer' });
@@ -211,9 +213,9 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // GET /integrations/moco/customer/:email - Find Moco customer by email
   // ===========================================================================
 
-  fastify.get('/integrations/moco/customer/:email', async (
-    request: FastifyRequest<{ Params: { email: string } }>,
-    _reply: FastifyReply
+  fastify.get<{ Params: { email: string } }>('/integrations/moco/customer/:email', { preHandler: authenticateOrApiKey }, async (
+    request,
+    _reply
   ) => {
     const { email } = request.params;
 
@@ -234,7 +236,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // GET /integrations/cituro/status - Check Cituro connection status
   // ===========================================================================
 
-  fastify.get('/integrations/cituro/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.get('/integrations/cituro/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
     const isConfigured = cituroService.isConfigured();
     
     if (!isConfigured) {
@@ -259,7 +261,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // GET /integrations/status - Get status of all integrations
   // ===========================================================================
 
-  fastify.get('/integrations/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.get('/integrations/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
     const mocoConfigured = mocoService.isConfigured();
     let mocoConnected = false;
 
@@ -276,6 +278,10 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
       cituroConnected = connectionTest.connected;
     }
 
+    // LinkedIn API availability check
+    const linkedinService = getLinkedInService();
+    const linkedinStatus = await linkedinService.checkApiAvailability();
+
     return {
       moco: {
         configured: mocoConfigured,
@@ -291,6 +297,16 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
         configured: cituroConfigured,
         connected: cituroConnected,
         enabled: config.cituro.enabled
+      },
+      linkedin: {
+        configured: linkedinService.isConfigured(),
+        mode: linkedinStatus.mode,
+        messaging_available: linkedinStatus.messaging_available,
+        profile_read_available: linkedinStatus.profile_read_available,
+        oauth_configured: linkedinStatus.oauth_configured,
+        gateway_configured: linkedinStatus.gateway_configured,
+        snap_configured: linkedinStatus.snap_configured,
+        enabled: config.linkedin.enabled
       }
     };
   });

@@ -185,3 +185,6 @@ Interaktiver Zugriff: `aws ssm start-session --target <InstanceId>`
 - **CORS**: `src/index.ts` reads `CORS_ORIGIN` from env
 - **API URLs**: Frontend uses `VITE_API_URL=/api/v1` for production
 - **Dashboard/PipelineList**: Use `API_URL` from dataProvider
+
+
+bash deploy/aws/deploy-aws-ssm.sh

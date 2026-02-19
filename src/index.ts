@@ -5,11 +5,13 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
 import { config, isDev } from './config/index.js';
 import { db, closePool } from './db/index.js';
 import { getRedisConnection, closeRedisConnection } from './config/redis.js';
 import { initializeQueues, closeQueues } from './config/queues.js';
 import { errorHandler, notFoundHandler } from './api/middleware/errorHandler.js';
+import { authRoutes } from './api/routes/auth.js';
 import { eventsRoutes } from './api/routes/events.js';
 import { leadsRoutes } from './api/routes/leads.js';
 import { scoringRoutes } from './api/routes/scoring.js';
@@ -27,6 +29,9 @@ import { organizationsRoutes } from './api/routes/organizations.js';
 import { triggersRoutes } from './api/routes/triggers.js';
 import { emailRoutes } from './api/routes/email.js';
 import { sequencesRoutes } from './api/routes/sequences.js';
+import { conversationsRoutes } from './api/routes/conversations.js';
+import { linkedinRoutes } from './api/routes/linkedin.js';
+import { emailAccountsRoutes } from './api/routes/emailAccounts.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -58,6 +63,18 @@ await fastify.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID', 'X-Correlation-ID'],
   credentials: true
+});
+
+await fastify.register(jwt, {
+  secret: config.jwtSecret
+});
+
+fastify.decorate('authenticate', async (request: any, reply: any) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
 });
 
 // =============================================================================
@@ -138,6 +155,7 @@ fastify.get('/', async () => {
 // API Routes
 // =============================================================================
 
+await fastify.register(authRoutes, { prefix: '/api/v1' });
 await fastify.register(eventsRoutes, { prefix: '/api/v1' });
 await fastify.register(leadsRoutes, { prefix: '/api/v1' });
 await fastify.register(scoringRoutes, { prefix: '/api/v1' });
@@ -155,6 +173,9 @@ await fastify.register(organizationsRoutes, { prefix: '/api/v1' });
 await fastify.register(triggersRoutes, { prefix: '/api/v1' });
 await fastify.register(emailRoutes, { prefix: '/api/v1' });
 await fastify.register(sequencesRoutes, { prefix: '/api/v1' });
+await fastify.register(conversationsRoutes, { prefix: '/api/v1' });
+await fastify.register(linkedinRoutes, { prefix: '/api/v1' });
+await fastify.register(emailAccountsRoutes, { prefix: '/api/v1' });
 
 // =============================================================================
 // Graceful Shutdown

@@ -44,9 +44,11 @@ import {
   Timeline as TimelineIcon,
   Refresh as RefreshIcon,
   Event as EventIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import { ScoreHistory, EventTimeline } from './components';
+import { ChatPanel } from '../../components/Chat';
 import { recalculateLeadScores, ingestLeadEvent, getLeadEvents } from '../../providers/dataProvider';
 import AssociatedObjectsPanel from '../../components/AssociatedObjectsPanel';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
@@ -633,6 +635,7 @@ const LeadContent = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [notesRefreshKey, setNotesRefreshKey] = useState(0);
   const [associations, setAssociations] = useState({ companies: [] });
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
   const handleRecalculate = () => {
     // Increment key to force ScoreHistory refresh
@@ -705,6 +708,19 @@ const LeadContent = () => {
   return (
     <Box sx={{ p: 3 }}>
       <LeadHeader />
+
+      {/* Chat Button */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ChatIcon />}
+          onClick={() => setChatPanelOpen(true)}
+          sx={{ textTransform: 'none' }}
+        >
+          Chats
+        </Button>
+      </Box>
 
       <Box sx={{ display: 'flex', gap: 3 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -789,6 +805,14 @@ const LeadContent = () => {
 
         <AssociatedObjectsPanel associations={associations} />
       </Box>
+
+      {/* Chat Panel */}
+      {chatPanelOpen && (
+        <ChatPanel
+          leadId={record.id}
+          onClose={() => setChatPanelOpen(false)}
+        />
+      )}
     </Box>
   );
 };
