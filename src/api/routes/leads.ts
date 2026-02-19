@@ -19,6 +19,7 @@ import {
   type LeadResponse,
   type LeadListResponse
 } from '../schemas/leads.js';
+import { db } from '../../db/index.js';
 import { getLeadService } from '../../services/leadService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { Lead, MarketingEvent, ScoreHistory, IntentSignal } from '../../types/index.js';

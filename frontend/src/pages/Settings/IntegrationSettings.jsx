@@ -82,8 +82,8 @@ const IntegrationSettings = () => {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [copySuccess, setCopySuccess] = useState(null);
 
-  // Webhook URL for event ingestion (constructed from window location)
-  const webhookUrl = `${window.location.protocol}//${window.location.hostname}:3000/api/v1/events/ingest`;
+  // Webhook URL for event ingestion (same origin in production; no :3000)
+  const webhookUrl = `${window.location.origin}/api/v1/events/ingest`;
 
   // Fetch integration status
   const fetchStatus = useCallback(async (showLoader = true) => {
