@@ -693,6 +693,8 @@ export class EmailSyncService {
       );
     }
 
+    if (!lead) return null;
+
     // Check if there's a deal for this lead to link to
     const deal = await db.queryOne<{ id: string }>(
       `SELECT id FROM deals

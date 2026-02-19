@@ -53,7 +53,8 @@ aws cloudformation describe-stacks --stack-name dna-crm-stack \
 
 ### 2. Point DNS to Elastic IP
 
-Create A record: `crm.dna-me.com` → `<Elastic IP>`
+Create **A record**: `crm.dna-me.net` → `<Elastic IP>` (siehe `deploy/aws/DNS-SETUP.md`).  
+**SSL/HTTPS** richtet Certbot (Let's Encrypt) automatisch ein — Anleitung: `deploy/aws/SSL-SETUP.md`.
 
 ### 3. Configure Environment
 
@@ -80,8 +81,8 @@ The script fetches AppPublicIP and DbPrivateIP from CloudFormation, deploys to D
 
 ### 5. Verify
 
-- https://crm.dna-me.com (or https://\<Elastic IP\>)
-- https://crm.dna-me.com/health
+- https://crm.dna-me.net (oder https://\<Elastic IP\>)
+- https://crm.dna-me.net/health
 
 ### 6. Monitoring (MVP)
 
@@ -156,6 +157,7 @@ Interaktiver Zugriff: `aws ssm start-session --target <InstanceId>`
 | `nginx-aws.conf` | Reverse proxy + SSL |
 | `Dockerfile.nginx-certbot` | Nginx + Certbot for automated SSL |
 | `init-letsencrypt.sh` | Dummy certs before first Let's Encrypt run |
+| `SSL-SETUP.md` | SSL/HTTPS mit Certbot (und Hinweis zu AWS ACM) |
 | `backup.sh` | `pg_dump` to local volume + S3 upload (cron 3 AM) |
 | `deploy-aws.sh` | Build, pack, upload, deploy |
 | `.env.aws.example` | Environment template |
@@ -185,6 +187,5 @@ Interaktiver Zugriff: `aws ssm start-session --target <InstanceId>`
 - **CORS**: `src/index.ts` reads `CORS_ORIGIN` from env
 - **API URLs**: Frontend uses `VITE_API_URL=/api/v1` for production
 - **Dashboard/PipelineList**: Use `API_URL` from dataProvider
-
 
 bash deploy/aws/deploy-aws-ssm.sh

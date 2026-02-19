@@ -97,7 +97,7 @@ services:
       - certbot_webroot:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
     environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:-crm.dna-me.com}
+      - DOMAIN_NAME=${DOMAIN_NAME:-crm.dna-me.net}
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@dna-me.com}
     depends_on:
       - api

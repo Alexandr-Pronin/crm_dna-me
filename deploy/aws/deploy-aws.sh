@@ -158,7 +158,7 @@ rm /tmp/release.tar.gz
 mv /tmp/.env.aws .env.aws
 export \$(grep -v '^#' .env.aws 2>/dev/null | xargs) || true
 
-sed "s/DOMAIN_NAME/\${DOMAIN_NAME:-crm.dna-me.com}/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
+sed "s/DOMAIN_NAME/${DOMAIN_NAME:-crm.dna-me.net}/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
 
 echo "  Running migrations..."
 DATABASE_URL="\${DATABASE_URL}" npm run migrate:up
