@@ -10,6 +10,7 @@ import {
   LinkedIn as LinkedInIcon,
   StickyNote2 as NoteIcon,
   Task as TaskIcon,
+  Warning as LeadInitiatedIcon,
 } from '@mui/icons-material';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -56,6 +57,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
     status,
     created_by_avatar,
     created_by_name,
+    initiated_by_lead,
   } = conversation;
 
   const displayName = subject || deal_name || lead_name || 'Konversation';
@@ -92,7 +94,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
         borderColor: isActive ? 'primary.main' : 'transparent',
       }}
     >
-      {/* Avatar */}
+      {/* Avatar: red circle + ! for lead-initiated chats, else creator avatar */}
       <Badge
         badgeContent={unread_count}
         color="primary"
@@ -100,18 +102,37 @@ function ConversationListItem({ conversation, onClick, isActive }) {
         invisible={unread_count === 0}
         sx={{ '& .MuiBadge-badge': { fontSize: 10, minWidth: 18, height: 18 } }}
       >
-        <Avatar
-          src={created_by_avatar}
-          sx={{
-            width: 40,
-            height: 40,
-            bgcolor: isActive ? 'primary.dark' : 'rgba(255,255,255,0.08)',
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          {!created_by_avatar ? initials(avatarName) : null}
-        </Avatar>
+        {initiated_by_lead ? (
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              bgcolor: 'error.main',
+              color: 'error.contrastText',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            title="Chat vom Lead gestartet"
+          >
+            <LeadInitiatedIcon sx={{ fontSize: 22 }} />
+          </Box>
+        ) : (
+          <Avatar
+            src={created_by_avatar}
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: isActive ? 'primary.dark' : 'rgba(255,255,255,0.08)',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {!created_by_avatar ? initials(avatarName) : null}
+          </Avatar>
+        )}
       </Badge>
 
       {/* Text content */}

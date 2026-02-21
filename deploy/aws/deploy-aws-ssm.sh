@@ -89,7 +89,8 @@ fi
 echo "  App: $APP_INSTANCE | DB: $DB_INSTANCE | Bucket: $DEPLOY_BUCKET"
 
 # ---------------------------------------------------------------------------
-# Require .env.aws
+# Require .env.aws (source for ALL app env on AWS, including SMTP/MARKETING_SMTP)
+# If you changed SMTP password in .env locally, update deploy/aws/.env.aws too!
 # ---------------------------------------------------------------------------
 if [[ ! -f deploy/aws/.env.aws ]]; then
   echo "ERROR: deploy/aws/.env.aws not found. Copy from .env.aws.example and fill POSTGRES_PASSWORD."
@@ -99,6 +100,10 @@ source deploy/aws/.env.aws 2>/dev/null || true
 if [[ -z "$POSTGRES_PASSWORD" ]]; then
   echo "ERROR: POSTGRES_PASSWORD not set in deploy/aws/.env.aws"
   exit 1
+fi
+if [[ -z "${SMTP_PASS:-}" ]] || [[ "$SMTP_PASS" == "your_password" ]] || [[ "$SMTP_PASS" == "CHANGE_ME"* ]]; then
+  echo "WARNING: SMTP_PASS in deploy/aws/.env.aws is empty or placeholder — email sending on AWS may fail."
+  echo "         Update deploy/aws/.env.aws with the same SMTP/MARKETING_SMTP credentials as in .env"
 fi
 
 DATABASE_URL="postgres://dna:${POSTGRES_PASSWORD}@${DB_PRIVATE_IP}:5432/dna_marketing"

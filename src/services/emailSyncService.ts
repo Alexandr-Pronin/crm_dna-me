@@ -669,8 +669,8 @@ export class EmailSyncService {
     createdById: string,
     senderName?: string,
   ): Promise<string | null> {
-    let lead = await db.queryOne<{ id: string }>(
-      'SELECT id FROM leads WHERE email = $1',
+    let lead = await db.queryOne<{ id: string; first_name: string | null; last_name: string | null }>(
+      'SELECT id, first_name, last_name FROM leads WHERE email = $1',
       [contactEmail],
     );
 
@@ -679,7 +679,7 @@ export class EmailSyncService {
       const firstName = nameParts[0] || contactEmail.split('@')[0];
       const lastName = nameParts.slice(1).join(' ') || null;
 
-      lead = await db.queryOne<{ id: string }>(
+      const inserted = await db.queryOne<{ id: string }>(
         `INSERT INTO leads (
           email, first_name, last_name, status, lifecycle_stage,
           first_touch_source, first_touch_date, created_at, updated_at
@@ -687,9 +687,19 @@ export class EmailSyncService {
         RETURNING id`,
         [contactEmail, firstName, lastName],
       );
+      lead = inserted ? { id: inserted.id, first_name: firstName, last_name: lastName } : null;
 
       console.log(
         `${LOG_PREFIX} Auto-created lead for unknown sender ${contactEmail} (id=${lead?.id})`
+      );
+    } else if (senderName && (!lead.first_name?.trim() || !lead.last_name)) {
+      // Sync name from email when lead exists but has no or incomplete name
+      const nameParts = (senderName || '').split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || contactEmail.split('@')[0];
+      const lastName = nameParts.slice(1).join(' ') || null;
+      await db.query(
+        "UPDATE leads SET first_name = COALESCE(NULLIF(TRIM(first_name), ''), $2), last_name = COALESCE(NULLIF(TRIM(last_name), ''), $3), updated_at = NOW() WHERE id = $1",
+        [lead.id, firstName, lastName],
       );
     }
 
@@ -704,12 +714,13 @@ export class EmailSyncService {
       [lead.id],
     );
 
-    // Use ConversationService.findOrCreateConversation
+    // Use ConversationService.findOrCreateConversation (lead wrote first → initiated_by_lead = true)
     const conversation = await this.conversationService.findOrCreateConversation(
       lead.id,
       deal?.id ?? null,
       createdById,
       subject,
+      true,
     );
 
     return conversation.id;

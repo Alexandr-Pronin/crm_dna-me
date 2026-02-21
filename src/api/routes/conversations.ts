@@ -139,6 +139,8 @@ function transformConversationResponse(conversation: ConversationWithDetails) {
     deal_status: conversation.deal_status ?? null,
     created_by_name: conversation.created_by_name ?? null,
     created_by_email: conversation.created_by_email ?? null,
+    created_by_avatar: conversation.created_by_avatar ?? null,
+    initiated_by_lead: conversation.initiated_by_lead ?? false,
     // Counts
     unread_count: conversation.unread_count ?? 0,
     message_count: conversation.message_count ?? 0,

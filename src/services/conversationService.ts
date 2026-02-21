@@ -58,6 +58,8 @@ export interface ConversationWithDetails extends Conversation {
   deal_status?: string;
   created_by_name?: string;
   created_by_email?: string;
+  created_by_avatar?: string | null;
+  initiated_by_lead?: boolean;
   unread_count?: number;
   message_count?: number;
   last_message_preview?: string;
@@ -618,12 +620,14 @@ export class ConversationService {
   /**
    * Finds an active conversation for a lead/deal pair, or creates a new one.
    * Used by EmailSyncService when matching incoming emails.
+   * @param initiatedByLead - true when the conversation was started by the lead (e.g. first message was inbound)
    */
   async findOrCreateConversation(
     leadId: string | null,
     dealId: string | null,
     createdById: string,
-    subject?: string
+    subject?: string,
+    initiatedByLead: boolean = false
   ): Promise<Conversation> {
     if (!leadId && !dealId) {
       throw new ValidationError('Either lead_id or deal_id must be provided');
@@ -661,15 +665,15 @@ export class ConversationService {
     const conversation = await db.queryOne<Conversation>(
       `INSERT INTO conversations (
         lead_id, deal_id, type, status, subject,
-        participant_emails, created_by_id,
+        participant_emails, created_by_id, initiated_by_lead,
         created_at, updated_at
       ) VALUES (
         $1, $2, 'direct', 'active', $3,
-        '[]'::jsonb, $4,
+        '[]'::jsonb, $4, $5,
         NOW(), NOW()
       )
       RETURNING *`,
-      [leadId, dealId, subject ?? null, createdById]
+      [leadId, dealId, subject ?? null, createdById, initiatedByLead]
     );
 
     if (!conversation) {

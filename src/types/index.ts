@@ -328,6 +328,7 @@ export interface Conversation {
   participant_emails: string[];
   last_message_at?: Date;
   created_by_id?: string;
+  initiated_by_lead?: boolean;
   created_at: Date;
   updated_at: Date;
 }
