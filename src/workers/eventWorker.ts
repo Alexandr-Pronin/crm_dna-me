@@ -367,6 +367,7 @@ async function updateLeadFromMetadata(
 
 /**
  * Creates or links an organization to a lead.
+ * Supports optional industry, company_size, and country from CSV/bulk import metadata.
  */
 async function createOrLinkOrganization(
   leadId: string,
@@ -374,6 +375,9 @@ async function createOrLinkOrganization(
 ): Promise<void> {
   const companyName = metadata.company_name as string;
   const companyDomain = metadata.company_domain as string;
+  const industry = (metadata.industry as string) || null;
+  const companySize = (metadata.company_size as string) || null;
+  const country = (metadata.country as string) || null;
   
   if (!companyName && !companyDomain) return;
   
@@ -384,15 +388,22 @@ async function createOrLinkOrganization(
       SELECT id FROM organizations WHERE domain = $1
     `, [companyDomain]);
   }
+
+  // Also try to find by name if no domain match
+  if (!org && companyName) {
+    org = await db.queryOne<{ id: string }>(`
+      SELECT id FROM organizations WHERE name = $1
+    `, [companyName]);
+  }
   
   // Create organization if not found
   if (!org && companyName) {
     org = await db.queryOne<{ id: string }>(`
-      INSERT INTO organizations (name, domain)
-      VALUES ($1, $2)
+      INSERT INTO organizations (name, domain, industry, company_size, country)
+      VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (portal_id) DO NOTHING
       RETURNING id
-    `, [companyName, companyDomain || null]);
+    `, [companyName, companyDomain || null, industry, companySize, country]);
   }
   
   // Link to lead
@@ -436,6 +447,9 @@ async function storeEvent(event: {
   delete cleanMetadata.job_title;
   delete cleanMetadata.company_name;
   delete cleanMetadata.company_domain;
+  delete cleanMetadata.industry;
+  delete cleanMetadata.company_size;
+  delete cleanMetadata.country;
   
   const result = await db.queryOne<MarketingEvent>(`
     INSERT INTO events (

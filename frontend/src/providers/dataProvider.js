@@ -801,6 +801,26 @@ export const findMocoCustomer = async (email) => {
 };
 
 // ==========================================
+// Bulk Import API (CSV Import)
+// ==========================================
+
+/**
+ * Bulk import leads via POST /leads/bulk
+ * @param {Object} payload
+ * @param {Array} payload.leads - Array of lead objects (email required)
+ * @param {string} payload.source - Import source identifier
+ * @param {boolean} [payload.skip_duplicates=true] - Skip existing emails
+ * @returns {Promise<Object>} { success, message, batch_id, total_leads, queued_at }
+ */
+export const bulkImportLeads = async (payload) => {
+  const { json } = await httpClient(`${API_URL}/leads/bulk`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return json;
+};
+
+// ==========================================
 // Routing Configuration API
 // ==========================================
 

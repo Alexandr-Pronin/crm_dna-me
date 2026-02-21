@@ -47,7 +47,7 @@ import {
   Chat as ChatIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
-import { ScoreHistory, EventTimeline } from './components';
+import { ScoreHistory, EventTimeline, ImportedNoteCard } from './components';
 import { ChatPanel } from '../../components/Chat';
 import { recalculateLeadScores, ingestLeadEvent, getLeadEvents } from '../../providers/dataProvider';
 import AssociatedObjectsPanel from '../../components/AssociatedObjectsPanel';
@@ -733,6 +733,7 @@ const LeadContent = () => {
                 <IntentSummary />
                 <ActivityComposer onActivityLogged={handleActivityLogged} />
                 <NotesList refreshKey={notesRefreshKey} />
+                <ImportedNoteCard onImported={() => setChatPanelOpen(true)} />
               </Box>
             </Grid>
 

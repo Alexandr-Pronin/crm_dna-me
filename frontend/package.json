@@ -25,6 +25,7 @@
     "framer-motion": "^12.29.0",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.23",
+    "papaparse": "^5.5.3",
     "qrcode.react": "^4.2.0",
     "query-string": "^9.3.1",
     "react": "^19.2.0",

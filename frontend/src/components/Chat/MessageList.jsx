@@ -166,6 +166,9 @@ function MessageBubble({ msg, isOwn, conversation, currentUserEmail, onRetry }) 
             <TypeIcon sx={{ fontSize: 12 }} />
             {config.label}
           </span>
+          {msg.metadata?.imported && (
+            <Chip label="Importiert" size="small" sx={{ height: 18, fontSize: '0.7rem' }} color="default" variant="outlined" />
+          )}
           {msg.direction === 'inbound' && (
             <InboundIcon sx={{ fontSize: 12, color: '#4A90A4' }} />
           )}
