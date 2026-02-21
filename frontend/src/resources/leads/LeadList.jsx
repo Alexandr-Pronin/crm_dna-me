@@ -45,11 +45,11 @@ import {
   Visibility as ViewIcon,
   Edit as EditIcon,
   EventNote as EventNoteIcon,
-  Upload as UploadIcon,
+  TableChart as TableChartIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
-import LeadImportDialog from './LeadImportDialog';
+import CsvImportDialog from './CsvImportDialog';
 import { getLeadEvents } from '../../providers/dataProvider';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -132,17 +132,17 @@ const buildLeadLabel = (lead) => {
 /**
  * Custom actions toolbar
  */
-const ListActions = ({ onCreateClick, onImportClick }) => (
+const ListActions = ({ onCreateClick, onCsvImportClick }) => (
   <TopToolbar>
     <FilterButton />
     <CreateButton onClick={onCreateClick} label="Create Lead" />
     <Button
       size="small"
-      startIcon={<UploadIcon />}
-      onClick={onImportClick}
+      startIcon={<TableChartIcon />}
+      onClick={onCsvImportClick}
       sx={{ fontSize: '0.8125rem' }}
     >
-      Importieren
+      CSV Import
     </Button>
     <ExportButton />
   </TopToolbar>
@@ -243,7 +243,7 @@ const ActionsField = ({ record }) => {
  */
 const LeadList = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [recentActivities, setRecentActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState(null);
@@ -259,9 +259,9 @@ const LeadList = () => {
     setCreateModalOpen(true);
   };
 
-  const handleImportClick = (e) => {
+  const handleCsvImportClick = (e) => {
     e?.preventDefault();
-    setImportDialogOpen(true);
+    setCsvImportOpen(true);
   };
 
   const handleCreateSuccess = () => {
@@ -439,7 +439,7 @@ const LeadList = () => {
       {/* Lead List */}
       <RaList
         filters={leadFilters}
-        actions={<ListActions onCreateClick={handleCreateClick} onImportClick={handleImportClick} />}
+        actions={<ListActions onCreateClick={handleCreateClick} onCsvImportClick={handleCsvImportClick} />}
         sort={{ field: 'created_at', order: 'DESC' }}
         perPage={25}
         sx={{
@@ -493,10 +493,10 @@ const LeadList = () => {
         onSuccess={handleCreateSuccess}
       />
 
-      {/* Import Lead Dialog */}
-      <LeadImportDialog
-        open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
+      {/* CSV Import Dialog */}
+      <CsvImportDialog
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
       />
     </Box>
   );

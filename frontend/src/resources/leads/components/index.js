@@ -4,3 +4,4 @@
  */
 export { ScoreHistory, CATEGORY_CONFIG } from './ScoreHistory';
 export { EventTimeline, SOURCE_CONFIG, getEventLabel, getEventIcon } from './EventTimeline';
+export { default as ImportedNoteCard } from './ImportedNoteCard';
