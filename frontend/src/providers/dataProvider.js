@@ -720,6 +720,30 @@ export const getMocoStatus = async () => {
 };
 
 /**
+ * Get Moco config for UI (subdomain + api_configured). API key is never returned.
+ * @returns {Promise<{ subdomain: string, api_configured: boolean }>}
+ */
+export const getMocoConfig = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/config`);
+  return json;
+};
+
+/**
+ * Save Moco API key and/or subdomain.
+ * @param {Object} params
+ * @param {string} [params.api_key] - New API key (omit or empty to leave unchanged)
+ * @param {string} [params.subdomain] - Subdomain
+ * @returns {Promise<Object>}
+ */
+export const saveMocoConfig = async (params = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/config`, {
+    method: 'PUT',
+    body: JSON.stringify(params),
+  });
+  return json;
+};
+
+/**
  * Get Cituro connection status with connection test
  * @returns {Promise<Object>} Cituro status with connection details
  */

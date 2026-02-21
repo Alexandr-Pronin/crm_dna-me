@@ -276,6 +276,7 @@ const DealCard = ({ deal, stageColor = '#6C5CE7', onClick }) => {
             {deal.assigned_to_name && (
               <Tooltip title={deal.assigned_to_name}>
                 <Avatar
+                  src={deal.assigned_to_avatar}
                   sx={{
                     width: 24,
                     height: 24,
@@ -285,7 +286,7 @@ const DealCard = ({ deal, stageColor = '#6C5CE7', onClick }) => {
                     color: 'white',
                   }}
                 >
-                  {getInitials(deal.assigned_to_name)}
+                  {!deal.assigned_to_avatar ? getInitials(deal.assigned_to_name) : null}
                 </Avatar>
               </Tooltip>
             )}

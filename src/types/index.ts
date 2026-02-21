@@ -213,6 +213,7 @@ export interface TeamMember {
   is_active: boolean;
   max_leads: number;
   current_leads: number;
+  avatar?: string | null;
   password_hash?: string;
   two_factor_secret?: string;
   is_two_factor_enabled?: boolean;

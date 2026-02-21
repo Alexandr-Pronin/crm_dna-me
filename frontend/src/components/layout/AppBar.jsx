@@ -10,7 +10,7 @@ import {
   ToggleThemeButton,
   LoadingIndicator,
 } from 'react-admin';
-import { Box, Typography, Chip, IconButton, Tooltip, Divider } from '@mui/material';
+import { Box, Typography, Chip, IconButton, Tooltip, Divider, Avatar } from '@mui/material';
 import { Biotech as BiotechIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 
 const ROLE_LABELS = {
@@ -24,6 +24,11 @@ const ROLE_LABELS = {
 /**
  * Custom UserMenu with role above logout
  */
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
+}
+
 const CustomUserMenu = () => {
   const { data: identity } = useGetIdentity();
   const role = identity?.role || 'admin';
@@ -32,13 +37,21 @@ const CustomUserMenu = () => {
 
   return (
     <UserMenu>
-      <Box sx={{ px: 2, py: 1.5 }}>
-        <Typography variant="body2" fontWeight={500}>
-          {displayName}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-          {roleLabel}
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
+        <Avatar
+          src={identity?.avatar}
+          sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: '0.9rem' }}
+        >
+          {!identity?.avatar ? getInitials(displayName) : null}
+        </Avatar>
+        <Box>
+          <Typography variant="body2" fontWeight={500}>
+            {displayName}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+            {roleLabel}
+          </Typography>
+        </Box>
       </Box>
       <Divider sx={{ my: 1 }} />
       <Logout />

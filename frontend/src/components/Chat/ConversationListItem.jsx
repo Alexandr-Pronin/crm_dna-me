@@ -54,9 +54,12 @@ function ConversationListItem({ conversation, onClick, isActive }) {
     unread_count = 0,
     type: convType,
     status,
+    created_by_avatar,
+    created_by_name,
   } = conversation;
 
   const displayName = subject || deal_name || lead_name || 'Konversation';
+  const avatarName = created_by_name || displayName;
   const preview = last_message_preview
     ? last_message_preview.replace(/<[^>]*>/g, '').slice(0, 80)
     : 'Keine Nachrichten';
@@ -98,6 +101,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
         sx={{ '& .MuiBadge-badge': { fontSize: 10, minWidth: 18, height: 18 } }}
       >
         <Avatar
+          src={created_by_avatar}
           sx={{
             width: 40,
             height: 40,
@@ -106,7 +110,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
             fontWeight: 600,
           }}
         >
-          {initials(displayName)}
+          {!created_by_avatar ? initials(avatarName) : null}
         </Avatar>
       </Badge>
 

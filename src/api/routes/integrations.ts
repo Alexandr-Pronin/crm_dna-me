@@ -13,6 +13,12 @@ import { getSyncQueue } from '../../config/queues.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError, BusinessLogicError } from '../../errors/index.js';
 import { config } from '../../config/index.js';
+import {
+  loadIntegrationSettingsCache,
+  getMocoConfigForApi,
+  setMocoConfig
+} from '../../config/integrationSettings.js';
+import { invalidateMocoService } from '../../integrations/moco.js';
 import type { SyncJob, Lead, Deal } from '../../types/index.js';
 
 // =============================================================================
@@ -31,12 +37,16 @@ const mocoWebhookSchema = z.object({
   data: z.record(z.unknown()).optional()
 });
 
+const mocoConfigSchema = z.object({
+  api_key: z.string().optional(),
+  subdomain: z.string().optional()
+});
+
 // =============================================================================
 // Routes Plugin
 // =============================================================================
 
 export async function integrationsRoutes(fastify: FastifyInstance): Promise<void> {
-  const mocoService = getMocoService();
   const cituroService = getCituroService();
   const syncQueue = getSyncQueue();
 
@@ -45,25 +55,57 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // ===========================================================================
 
   fastify.get('/integrations/moco/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const mocoService = getMocoService();
     const isConfigured = mocoService.isConfigured();
-    
+    const mocoConfig = getMocoConfigForApi();
+
     if (!isConfigured) {
       return {
         status: 'not_configured',
         message: 'Moco API key or subdomain not configured',
-        enabled: config.features.mocoSync
+        enabled: config.features.mocoSync,
+        subdomain: mocoConfig.subdomain
       };
     }
 
     const connectionTest = await mocoService.testConnection();
-    
+
     return {
       status: connectionTest.connected ? 'connected' : 'disconnected',
       message: connectionTest.error || 'Connection successful',
       enabled: config.features.mocoSync,
-      subdomain: config.moco.subdomain
+      subdomain: mocoConfig.subdomain
     };
   });
+
+  // GET /integrations/moco/config - Get Moco config for UI (subdomain + api_configured, no api_key)
+  fastify.get('/integrations/moco/config', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const c = getMocoConfigForApi();
+    return { subdomain: c.subdomain ?? '', api_configured: c.api_configured };
+  });
+
+  // PUT /integrations/moco/config - Save Moco API key and/or subdomain from UI
+  fastify.put<{ Body: z.infer<typeof mocoConfigSchema> }>(
+    '/integrations/moco/config',
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
+      const body = mocoConfigSchema.parse(request.body || {});
+      if (!body.api_key && body.subdomain === undefined) {
+        throw new ValidationError('Bitte mindestens api_key oder subdomain angeben.');
+      }
+      await setMocoConfig({
+        api_key: body.api_key,
+        subdomain: body.subdomain
+      });
+      invalidateMocoService();
+      const c = getMocoConfigForApi();
+      return reply.code(200).send({
+        message: 'Moco-Konfiguration gespeichert.',
+        subdomain: c.subdomain ?? '',
+        api_configured: c.api_configured
+      });
+    }
+  );
 
   // ===========================================================================
   // POST /integrations/moco/sync/:leadId - Manually trigger Moco sync for lead
@@ -76,6 +118,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
     request, 
     _reply
   ) => {
+    const mocoService = getMocoService();
     const { leadId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_customer' });
     
@@ -129,6 +172,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
     request, 
     _reply
   ) => {
+    const mocoService = getMocoService();
     const { dealId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_offer' });
     
@@ -217,6 +261,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
     request,
     _reply
   ) => {
+    const mocoService = getMocoService();
     const { email } = request.params;
 
     if (!mocoService.isConfigured()) {
@@ -262,6 +307,7 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // ===========================================================================
 
   fastify.get('/integrations/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const mocoService = getMocoService();
     const mocoConfigured = mocoService.isConfigured();
     let mocoConnected = false;
 

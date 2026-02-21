@@ -684,8 +684,11 @@ const TeamManagement = () => {
                   >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar sx={{ bgcolor: getRoleConfig(member.role).color, width: 36, height: 36 }}>
-                          {member.name?.charAt(0) || '?'}
+                        <Avatar
+                          src={member.avatar}
+                          sx={{ bgcolor: getRoleConfig(member.role).color, width: 36, height: 36 }}
+                        >
+                          {!member.avatar ? (member.name?.charAt(0) || '?') : null}
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={500}>

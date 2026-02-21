@@ -104,6 +104,7 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
     >
       {/* Avatar */}
       <Avatar
+        src={msg.sender_avatar}
         className="chat-message-avatar"
         sx={{
           width: 32,
@@ -114,7 +115,7 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
           mt: 0.5,
         }}
       >
-        {initials(senderName(msg))}
+        {!msg.sender_avatar ? initials(senderName(msg)) : null}
       </Avatar>
 
       {/* Content */}

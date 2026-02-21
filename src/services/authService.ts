@@ -52,10 +52,17 @@ export class AuthService {
     return parseInt(res?.count || '0', 10);
   }
 
-  async createUser(email: string, passwordHash: string, name: string, role: string, isActive: boolean = true) {
+  async createUser(
+    email: string,
+    passwordHash: string,
+    name: string,
+    role: string,
+    isActive: boolean = true,
+    avatar: string | null = null
+  ) {
     const user = await db.queryOne<TeamMember>(
-      'INSERT INTO team_members (email, password_hash, name, role, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [email, passwordHash, name, role, isActive]
+      'INSERT INTO team_members (email, password_hash, name, role, is_active, avatar) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [email, passwordHash, name, role, isActive, avatar]
     );
     return user;
   }

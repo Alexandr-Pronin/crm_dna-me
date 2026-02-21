@@ -3,6 +3,7 @@
  * Integrated with real Team Management API
  */
 import { useState } from 'react';
+import { useGetIdentity, useNotify } from 'react-admin';
 import {
   Box,
   Typography,
@@ -18,6 +19,8 @@ import {
   Chip,
   Tabs,
   Tab,
+  IconButton,
+  Popover,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -28,6 +31,20 @@ import {
   Settings as SettingsIcon,
   ViewKanban as PipelineIcon,
 } from '@mui/icons-material';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import { API_URL } from '../../providers/dataProvider';
+
+// Avatar-Dateien aus /public/avatars (wie auf RegisterPage)
+const AVATAR_FILES = (() => {
+  const list = [];
+  for (let row = 1; row <= 5; row++) {
+    for (let col = 1; col <= 9; col++) list.push(`row-${row}-column-${col}.png`);
+  }
+  for (let row = 6; row <= 9; row++) {
+    for (let col = 5; col <= 9; col++) list.push(`row-${row}-column-${col}.png`);
+  }
+  return list;
+})();
 import TeamManagement from './TeamManagement';
 import IntegrationSettings from './IntegrationSettings';
 import SystemConfig from './SystemConfig';
@@ -49,12 +66,66 @@ const TabPanel = ({ children, value, index, ...other }) => {
   );
 };
 
+const ROLE_LABELS = {
+  admin: 'Administrator',
+  ae: 'Account Executive',
+  bdr: 'BDR',
+  partnership_manager: 'Partnership Manager',
+  marketing_manager: 'Marketing Manager',
+};
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
+}
+
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const { data: identity, refetch: refetchIdentity } = useGetIdentity();
+  const [avatarAnchor, setAvatarAnchor] = useState(null);
+  const [localAvatar, setLocalAvatar] = useState(null);
+  const notify = useNotify();
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
+
+  const avatarPickerOpen = Boolean(avatarAnchor);
+  const handleAvatarClick = (e) => setAvatarAnchor(e.currentTarget);
+  const handleAvatarPickerClose = () => setAvatarAnchor(null);
+
+  const handleSelectAvatar = async (filename) => {
+    const avatarPath = `/avatars/${filename}`;
+    if (!identity?.id) return;
+    const token = localStorage.getItem('auth_token');
+    try {
+      const response = await fetch(`${API_URL}/team/${identity.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ avatar: avatarPath }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Avatar konnte nicht gespeichert werden');
+      }
+      const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+      localStorage.setItem('auth_user', JSON.stringify({ ...user, avatar: avatarPath }));
+      setLocalAvatar(avatarPath);
+      refetchIdentity?.();
+      notify('Avatar wurde aktualisiert.', { type: 'success' });
+    } catch (e) {
+      notify(e.message || 'Fehler beim Speichern des Avatars', { type: 'warning' });
+    }
+    handleAvatarPickerClose();
+  };
+
+  const displayName = identity?.fullName || identity?.name || 'Admin User';
+  const displayEmail = identity?.email || 'admin@dna-me.net';
+  const roleLabel = identity?.role ? (ROLE_LABELS[identity.role] || identity.role) : 'Administrator';
+  const currentAvatar = localAvatar ?? identity?.avatar;
 
   return (
     <Box sx={{ p: 3, width: '100%', maxWidth: '100%' }}>
@@ -94,32 +165,124 @@ const SettingsPage = () => {
                   <Typography variant="h6">Profile</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main', fontSize: 24 }}>
-                    A
-                  </Avatar>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      '&:hover .profile-avatar-overlay': { opacity: 1 },
+                    }}
+                  >
+                    <IconButton
+                      onClick={handleAvatarClick}
+                      className="profile-avatar-overlay"
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1,
+                        opacity: currentAvatar ? 0 : 1,
+                        transition: 'opacity 0.2s',
+                        bgcolor: 'rgba(0,0,0,0.5)',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                      }}
+                    >
+                      <AddPhotoAlternateIcon fontSize="small" />
+                    </IconButton>
+                    <Avatar
+                      src={currentAvatar}
+                      onClick={handleAvatarClick}
+                      sx={{
+                        width: 64,
+                        height: 64,
+                        bgcolor: 'primary.main',
+                        fontSize: 24,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {!currentAvatar ? getInitials(displayName) : null}
+                    </Avatar>
+                  </Box>
                   <Box>
                     <Typography variant="subtitle1" fontWeight={500}>
-                      Admin User
+                      {displayName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      admin@dna-me.net
+                      {displayEmail}
                     </Typography>
-                    <Chip label="Administrator" size="small" sx={{ mt: 0.5 }} />
+                    <Chip label={roleLabel} size="small" sx={{ mt: 0.5 }} />
                   </Box>
                 </Box>
+                <Popover
+                  open={avatarPickerOpen}
+                  anchorEl={avatarAnchor}
+                  onClose={handleAvatarPickerClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                  PaperProps={{
+                    sx: {
+                      p: 1.5,
+                      maxHeight: 320,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    },
+                  }}
+                >
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, px: 0.5 }}>
+                    Avatar wählen
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(6, 1fr)',
+                      gap: 0.5,
+                      overflow: 'auto',
+                    }}
+                  >
+                    {AVATAR_FILES.map((filename) => (
+                      <Box
+                        key={filename}
+                        component="button"
+                        type="button"
+                        onClick={() => handleSelectAvatar(filename)}
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          p: 0,
+                          border: '2px solid transparent',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          bgcolor: 'transparent',
+                          '&:hover': { borderColor: 'primary.main' },
+                          '&:focus': { outline: 'none', borderColor: 'primary.main' },
+                        }}
+                      >
+                        <img
+                          src={`/avatars/${filename}`}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                </Popover>
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <TextField
                     label="Full Name"
-                    defaultValue="Admin User"
+                    value={displayName}
                     fullWidth
                     size="small"
+                    InputProps={{ readOnly: true }}
                   />
                   <TextField
                     label="Email"
-                    defaultValue="admin@dna-me.net"
+                    value={displayEmail}
                     fullWidth
                     size="small"
+                    InputProps={{ readOnly: true }}
                   />
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                     Profile updates will be available in a future version.

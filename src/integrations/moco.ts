@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config/index.js';
+import { getMocoRuntimeConfig } from '../config/integrationSettings.js';
 
 // =============================================================================
 // Types
@@ -165,8 +166,9 @@ export class MocoService {
   private subdomain: string;
 
   constructor(apiKey?: string, subdomain?: string) {
-    this.apiKey = apiKey || config.moco.apiKey || '';
-    this.subdomain = subdomain || config.moco.subdomain || '';
+    const runtime = getMocoRuntimeConfig();
+    this.apiKey = apiKey ?? runtime.apiKey ?? config.moco.apiKey ?? '';
+    this.subdomain = subdomain ?? runtime.subdomain ?? config.moco.subdomain ?? '';
 
     if (!this.apiKey || !this.subdomain) {
       console.warn('⚠️ MocoService: API key or subdomain not configured');
@@ -574,6 +576,11 @@ export function getMocoService(): MocoService {
     mocoServiceInstance = new MocoService();
   }
   return mocoServiceInstance;
+}
+
+/** Invalidate singleton so next getMocoService() uses fresh config (e.g. after UI save). */
+export function invalidateMocoService(): void {
+  mocoServiceInstance = null;
 }
 
 export default getMocoService;

@@ -18,6 +18,7 @@ import {
   Tooltip,
   Skeleton,
   Paper,
+  TextField,
 } from '@mui/material';
 import {
   CheckCircle as ConnectedIcon,
@@ -29,7 +30,7 @@ import {
   Link as LinkIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { getIntegrationsStatus, getMocoStatus, getCituroStatus } from '../../providers/dataProvider';
+import { getIntegrationsStatus, getMocoStatus, getCituroStatus, getMocoConfig, saveMocoConfig } from '../../providers/dataProvider';
 
 // Status color mapping
 const getStatusColor = (status) => {
@@ -81,6 +82,10 @@ const IntegrationSettings = () => {
   const [cituroDetails, setCituroDetails] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [copySuccess, setCopySuccess] = useState(null);
+  const [mocoConfig, setMocoConfig] = useState({ subdomain: '', api_configured: false });
+  const [mocoForm, setMocoForm] = useState({ api_key: '', subdomain: '' });
+  const [savingMoco, setSavingMoco] = useState(false);
+  const [mocoSaveError, setMocoSaveError] = useState(null);
 
   // Webhook URL for event ingestion (same origin in production; no :3000)
   const webhookUrl = `${window.location.origin}/api/v1/events/ingest`;
@@ -161,10 +166,47 @@ const IntegrationSettings = () => {
     }
   };
 
-  // Initial fetch
+  // Load Moco config for form (subdomain prefill; API key never returned)
+  const loadMocoConfig = useCallback(async () => {
+    try {
+      const c = await getMocoConfig();
+      setMocoConfig(c);
+      setMocoForm((prev) => ({ ...prev, subdomain: c.subdomain || '' }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Save Moco config (API key optional)
+  const saveMocoConfigHandler = async () => {
+    setSavingMoco(true);
+    setMocoSaveError(null);
+    try {
+      const payload = {};
+      if (mocoForm.api_key.trim() !== '') payload.api_key = mocoForm.api_key.trim();
+      if (mocoForm.subdomain !== undefined) payload.subdomain = mocoForm.subdomain.trim() || undefined;
+      if (Object.keys(payload).length === 0) {
+        setMocoSaveError('Bitte API-Key und/oder Subdomain angeben.');
+        return;
+      }
+      await saveMocoConfig(payload);
+      setMocoForm((prev) => ({ ...prev, api_key: '' }));
+      await loadMocoConfig();
+      await fetchStatus(false);
+    } catch (err) {
+      setMocoSaveError(err?.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setSavingMoco(false);
+    }
+  };
+
+  // Initial fetch + Moco config
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
+  useEffect(() => {
+    if (!loading) loadMocoConfig();
+  }, [loading, loadMocoConfig]);
 
   if (loading) {
     return (
@@ -319,6 +361,47 @@ const IntegrationSettings = () => {
 
               <Divider sx={{ my: 2 }} />
 
+              {/* Moco Config: API Key & Subdomain */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Konfiguration
+                </Typography>
+                <TextField
+                  size="small"
+                  fullWidth
+                  type="password"
+                  label="API Key"
+                  placeholder={mocoConfig.api_configured ? '•••••••• (leer = unverändert)' : 'API Key eingeben'}
+                  value={mocoForm.api_key}
+                  onChange={(e) => setMocoForm((prev) => ({ ...prev, api_key: e.target.value }))}
+                  autoComplete="off"
+                />
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Subdomain"
+                  placeholder="z. B. testing"
+                  value={mocoForm.subdomain}
+                  onChange={(e) => setMocoForm((prev) => ({ ...prev, subdomain: e.target.value }))}
+                />
+                {mocoSaveError && (
+                  <Alert severity="error" sx={{ py: 0 }} onClose={() => setMocoSaveError(null)}>
+                    <Typography variant="caption">{mocoSaveError}</Typography>
+                  </Alert>
+                )}
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={saveMocoConfigHandler}
+                  disabled={savingMoco}
+                  startIcon={savingMoco ? <CircularProgress size={16} /> : null}
+                >
+                  {savingMoco ? 'Speichern...' : 'Speichern'}
+                </Button>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
               {/* Actions */}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -341,8 +424,8 @@ const IntegrationSettings = () => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                   <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
                   <Typography variant="caption" color="text.secondary">
-                    API Key und Subdomain werden via Environment Variables konfiguriert (.env Datei).
-                    Änderungen erfordern einen Server-Neustart.
+                    API Key und Subdomain können hier gespeichert werden (werden in der Datenbank gespeichert).
+                    Fallback: .env (MOCO_API_KEY, MOCO_SUBDOMAIN).
                   </Typography>
                 </Box>
               </Paper>

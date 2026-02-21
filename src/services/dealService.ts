@@ -84,6 +84,7 @@ export interface DealWithRelations extends Deal {
   lead_name?: string | null;
   lead_company?: string | null;
   assigned_to_name?: string | null;
+  assigned_to_avatar?: string | null;
   sequence_enrollment_id?: string | null;
   sequence_id?: string | null;
   sequence_name?: string | null;
@@ -228,6 +229,7 @@ export class DealService {
         CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
         o.name as lead_company,
         tm.name as assigned_to_name,
+        tm.avatar as assigned_to_avatar,
         seq.sequence_enrollment_id,
         seq.sequence_id,
         seq.sequence_name,
@@ -412,6 +414,7 @@ export class DealService {
         CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
         o.name as lead_company,
         tm.name as assigned_to_name,
+        tm.avatar as assigned_to_avatar,
         seq.sequence_enrollment_id,
         seq.sequence_id,
         seq.sequence_name,

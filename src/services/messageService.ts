@@ -55,6 +55,7 @@ export interface GetMessagesOptions {
 export interface MessageWithSender extends Message {
   sender_member_name?: string;
   sender_member_email?: string;
+  sender_avatar?: string | null;
 }
 
 // =============================================================================
@@ -255,7 +256,8 @@ export class MessageService {
       `SELECT
         m.*,
         tm.name  AS sender_member_name,
-        tm.email AS sender_member_email
+        tm.email AS sender_member_email,
+        tm.avatar AS sender_avatar
        FROM messages m
        LEFT JOIN team_members tm ON tm.id = m.sender_id
        WHERE m.conversation_id = $1
@@ -289,7 +291,8 @@ export class MessageService {
       `SELECT
         m.*,
         tm.name  AS sender_member_name,
-        tm.email AS sender_member_email
+        tm.email AS sender_member_email,
+        tm.avatar AS sender_avatar
        FROM messages m
        LEFT JOIN team_members tm ON tm.id = m.sender_id
        WHERE m.conversation_id = $1
