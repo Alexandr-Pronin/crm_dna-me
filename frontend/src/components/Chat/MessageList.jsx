@@ -61,13 +61,39 @@ function groupByDate(messages) {
   return Object.values(groups);
 }
 
-function senderName(msg) {
+/**
+ * Display name for a message:
+ * - Outbound/Internal: CRM user (sender_member_name or sender_name)
+ * - Inbound: Lead name from conversation (if sender matches lead_email) or from email (sender_name/sender_email)
+ */
+function getMessageDisplayName(msg, conversation) {
+  if (msg.direction === 'inbound') {
+    const fromEmail = msg.sender_email || '';
+    const leadName =
+      conversation?.lead_email && fromEmail.toLowerCase() === conversation.lead_email?.toLowerCase() && conversation.lead_name
+        ? conversation.lead_name
+        : null;
+    return leadName || msg.sender_name || msg.sender_email || 'Unbekannt';
+  }
   return msg.sender_member_name || msg.sender_name || msg.sender_email || 'System';
+}
+
+/**
+ * Avatar URL for a message: only CRM users (outbound/internal) have avatar; inbound = no image (use initials).
+ */
+function getMessageAvatar(msg) {
+  if (msg.direction === 'inbound') return null;
+  return msg.sender_avatar || null;
 }
 
 function initials(name) {
   if (!name) return '?';
-  return name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
 }
 
 function stripHtml(html) {
@@ -75,10 +101,13 @@ function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
+function MessageBubble({ msg, isOwn, conversation, currentUserEmail, onRetry }) {
   const config = TYPE_CONFIG[msg.message_type] || TYPE_CONFIG.email;
   const TypeIcon = config.icon;
   const isInternal = msg.direction === 'internal';
+
+  const displayName = getMessageDisplayName(msg, conversation);
+  const avatarSrc = getMessageAvatar(msg);
 
   const bubbleClassName = [
     'chat-message-bubble',
@@ -102,9 +131,9 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
         alignSelf: isOwn ? 'flex-end' : 'flex-start',
       }}
     >
-      {/* Avatar */}
+      {/* Avatar: CRM user image or lead initials */}
       <Avatar
-        src={msg.sender_avatar}
+        src={avatarSrc}
         className="chat-message-avatar"
         sx={{
           width: 32,
@@ -115,12 +144,12 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
           mt: 0.5,
         }}
       >
-        {!msg.sender_avatar ? initials(senderName(msg)) : null}
+        {!avatarSrc ? initials(displayName) : null}
       </Avatar>
 
       {/* Content */}
       <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
-        {/* Header */}
+        {/* Header: each message shows its sender name (user or lead) */}
         <Box
           sx={{
             display: 'flex',
@@ -131,7 +160,7 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
           }}
         >
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            {senderName(msg)}
+            {displayName}
           </Typography>
           <span className={`chat-type-badge chat-type-badge--${msg.message_type}`}>
             <TypeIcon sx={{ fontSize: 12 }} />
@@ -224,7 +253,7 @@ function MessageBubble({ msg, isOwn, currentUserEmail, onRetry }) {
   );
 }
 
-function MessageList({ messages = [], currentUserEmail, onRetry }) {
+function MessageList({ messages = [], conversation = null, currentUserEmail, onRetry }) {
   const endRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -266,18 +295,17 @@ function MessageList({ messages = [], currentUserEmail, onRetry }) {
             <span className="chat-date-label">{group.label}</span>
           </div>
 
-          {/* Messages in this date group */}
+          {/* Messages in this date group: only outbound (our messages) on the right; inbound and Notiz on the left */}
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             {group.messages.map((msg) => {
-              const isOwn =
-                msg.direction === 'outbound' ||
-                (currentUserEmail && msg.sender_email === currentUserEmail);
+              const isOwn = msg.direction === 'outbound';
 
               return (
                 <MessageBubble
                   key={msg.id}
                   msg={msg}
                   isOwn={isOwn}
+                  conversation={conversation}
                   currentUserEmail={currentUserEmail}
                   onRetry={onRetry}
                 />

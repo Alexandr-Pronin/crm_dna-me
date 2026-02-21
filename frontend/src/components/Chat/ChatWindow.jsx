@@ -195,6 +195,7 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
       {/* Messages */}
       <MessageList
         messages={allMessages}
+        conversation={conversation}
         currentUserEmail={currentUserEmail}
         onRetry={handleRetry}
       />
