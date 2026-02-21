@@ -135,6 +135,7 @@ function transformDealResponse(deal: DealWithRelations) {
     stage_entered_at: deal.stage_entered_at?.toISOString?.() ?? (deal.stage_entered_at as unknown as string),
     assigned_to: deal.assigned_to ?? null,
     assigned_to_name: deal.assigned_to_name ?? null,
+    assigned_to_avatar: deal.assigned_to_avatar ?? null,
     assigned_region: deal.assigned_region ?? null,
     assigned_at: deal.assigned_at?.toISOString?.() ?? (deal.assigned_at as unknown as string) ?? null,
     status: deal.status,

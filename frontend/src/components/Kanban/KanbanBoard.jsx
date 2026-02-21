@@ -29,6 +29,7 @@ import {
   useSensors,
   MeasuringStrategy,
 } from '@dnd-kit/core';
+import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { arrayMove } from '@dnd-kit/sortable';
 
 import { PIPELINE_LIST as FALLBACK_PIPELINES, getPipelineById as getFallbackPipeline } from '../../constants/pipelines';
@@ -620,6 +621,7 @@ const KanbanBoard = ({ hideCreateButton = false }) => {
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
           measuring={measuringConfig}
+          modifiers={[snapCenterToCursor]}
         >
           <Box
             sx={{

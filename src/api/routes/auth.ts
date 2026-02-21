@@ -18,7 +18,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post<{ Body: RegisterInput }>(
     '/auth/register',
     async (request, reply) => {
-      const { email, password, name, role } = request.body;
+      const { email, password, name, role, avatar } = request.body;
 
       const existingUser = await authService.findUserByEmail(email);
       if (existingUser) {
@@ -34,23 +34,25 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
       const isActive = isFirstUser; // Only first user is active by default
 
       const passwordHash = await authService.hashPassword(password);
-      const user = await authService.createUser(email, passwordHash, name, userRole, isActive);
+      const user = await authService.createUser(email, passwordHash, name, userRole, isActive, avatar ?? null);
 
       if (!user) {
         throw new Error('Failed to create user');
       }
 
+      const userPayload = { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar ?? undefined };
+
       if (!isActive) {
         return reply.code(201).send({
           message: 'Registration successful. Please wait for an administrator to approve your account.',
-          user: { id: user.id, email: user.email, name: user.name, role: user.role, is_active: user.is_active }
+          user: { ...userPayload, is_active: user.is_active }
         });
       }
 
       // Generate token for active users
       const token = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
 
-      return { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token };
+      return { user: userPayload, token };
     }
   );
 
@@ -75,7 +77,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const token = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
-      return { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token };
+      return { user: { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar ?? undefined }, token };
     }
   );
 
@@ -145,7 +147,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       const jwtToken = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
-      return { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token: jwtToken };
+      return { user: { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar ?? undefined }, token: jwtToken };
     }
   );
 }

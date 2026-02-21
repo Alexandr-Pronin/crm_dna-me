@@ -717,16 +717,17 @@ const DealPreviewModal = ({
                     Zugewiesen an
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar 
-                      sx={{ 
-                        width: 32, 
-                        height: 32, 
+                    <Avatar
+                      src={deal.assigned_to_avatar}
+                      sx={{
+                        width: 32,
+                        height: 32,
                         bgcolor: alpha(stageColor, 0.2),
                         color: stageColor,
                         fontSize: '0.75rem',
                       }}
                     >
-                      {getInitials(deal.assigned_to_name)}
+                      {!deal.assigned_to_avatar ? getInitials(deal.assigned_to_name) : null}
                     </Avatar>
                     <Typography variant="body2" color="text.primary">
                       {deal.assigned_to_name}

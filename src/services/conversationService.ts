@@ -216,6 +216,7 @@ export class ConversationService {
         d_main.status AS deal_status,
         tm.name AS created_by_name,
         tm.email AS created_by_email,
+        tm.avatar AS created_by_avatar,
         (
           SELECT COUNT(*)::int FROM messages m
           WHERE m.conversation_id = c.id
@@ -316,6 +317,7 @@ export class ConversationService {
         d.status AS deal_status,
         tm.name AS created_by_name,
         tm.email AS created_by_email,
+        tm.avatar AS created_by_avatar,
         (
           SELECT COUNT(*)::int FROM messages m
           WHERE m.conversation_id = c.id

@@ -46,6 +46,7 @@ function transformTeamMemberResponse(member: TeamMember): TeamMemberResponse {
     is_active: member.is_active,
     max_leads: member.max_leads,
     current_leads: member.current_leads,
+    avatar: member.avatar ?? null,
     created_at: member.created_at?.toISOString?.() ?? (member.created_at as unknown as string)
   };
 }
@@ -456,7 +457,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
             role: { type: 'string', enum: ['bdr', 'ae', 'partnership_manager', 'marketing_manager', 'admin'] },
             region: { type: ['string', 'null'], maxLength: 50 },
             is_active: { type: 'boolean' },
-            max_leads: { type: 'integer', minimum: 0, maximum: 1000 }
+            max_leads: { type: 'integer', minimum: 0, maximum: 1000 },
+            avatar: { type: ['string', 'null'], maxLength: 512 }
           }
         },
         response: {
@@ -556,6 +558,12 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
       if (data.max_leads !== undefined) {
         updates.push(`max_leads = $${paramIndex}`);
         params.push(data.max_leads);
+        paramIndex++;
+      }
+      
+      if (data.avatar !== undefined) {
+        updates.push(`avatar = $${paramIndex}`);
+        params.push(data.avatar);
         paramIndex++;
       }
       

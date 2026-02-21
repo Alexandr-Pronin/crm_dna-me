@@ -7,6 +7,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { config, isDev } from './config/index.js';
+import { loadIntegrationSettingsCache } from './config/integrationSettings.js';
 import { db, closePool } from './db/index.js';
 import { getRedisConnection, closeRedisConnection } from './config/redis.js';
 import { initializeQueues, closeQueues } from './config/queues.js';
@@ -230,6 +231,10 @@ const start = async () => {
       throw new Error(`Failed to connect to database: ${err.message}`);
     }
     fastify.log.info('✅ Database connected');
+
+    // Load DB-backed integration config (Moco, etc.) into memory
+    await loadIntegrationSettingsCache();
+    fastify.log.info('✅ Integration settings cache loaded');
 
     // Initialize Redis connection
     fastify.log.info('Connecting to Redis...');

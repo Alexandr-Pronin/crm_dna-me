@@ -229,6 +229,10 @@ frontend/src/
 
 ---
 
+## Benutzerhandbuch
+
+- **[BENUTZERHANDBUCH.md](./BENUTZERHANDBUCH.md)** — Ausführliche Anleitung für Endnutzer: Rollen, Registrierung, Organisationen, Leads/Kunden, Kartenansicht (Chat-Button, Notizen), Tasks, Pipelines, Chats, Deals (Liste & Kanban), Automatisierungen, E-Mail-Marketing, empfohlene Screenshots.
+
 ## Lizenz & Support
 
 - **Lizenz:** Privat — Alle Rechte vorbehalten

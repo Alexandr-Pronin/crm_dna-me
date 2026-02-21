@@ -10,6 +10,7 @@ export const registerSchema = z.object({
   password: z.string().min(8),
   name: z.string(),
   role: z.string().optional(), // Default handled in service
+  avatar: z.string().max(512).optional(),
 });
 
 export const verify2FASchema = z.object({
