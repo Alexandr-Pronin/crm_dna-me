@@ -16,6 +16,7 @@ import {
   type BulkImportResponse
 } from '../schemas/events.js';
 import { getEventsQueue } from '../../config/queues.js';
+import { getLeadService } from '../../services/leadService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { EventProcessingJob } from '../../types/index.js';
 
@@ -24,7 +25,45 @@ import type { EventProcessingJob } from '../../types/index.js';
 // =============================================================================
 
 export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
-  
+
+  // ===========================================================================
+  // GET /api/v1/events — all recent events (dashboard activity feed)
+  // ===========================================================================
+  fastify.get<{
+    Querystring: { limit?: string; offset?: string };
+    Reply: { data: Array<unknown> };
+  }>(
+    '/events',
+    {
+      preHandler: authenticateOrApiKey,
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+            offset: { type: 'integer', minimum: 0, default: 0 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              total: { type: 'integer' }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 50;
+      const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0;
+      const leadService = getLeadService();
+      const { data, total } = await leadService.getRecentEvents({ limit, offset });
+      return reply.send({ data, total });
+    }
+  );
+
   // ===========================================================================
   // POST /api/v1/events/ingest
   // ===========================================================================

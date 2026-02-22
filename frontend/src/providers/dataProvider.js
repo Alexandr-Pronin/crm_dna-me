@@ -129,6 +129,16 @@ const dataProvider = {
   getList: async (resource, params) => {
     const { page, perPage } = params.pagination || { page: 1, perPage: 25 };
     const { field, order } = params.sort || { field: 'id', order: 'DESC' };
+
+    // GET /events — global activity feed (limit/offset)
+    if (resource === 'events') {
+      const offset = (page - 1) * perPage;
+      const url = `${API_URL}/events?limit=${perPage}&offset=${offset}`;
+      const { json } = await httpClient(url);
+      const data = json.data || [];
+      const total = typeof json.total === 'number' ? json.total : data.length;
+      return { data, total };
+    }
     
     // Map React-Admin params to backend format
     const query = {
