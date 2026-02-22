@@ -113,6 +113,12 @@ export function useConversationPolling(conversationId) {
       return;
     }
 
+    // Clear messages when switching to another conversation so the previous
+    // conversation’s messages (e.g. a note we just sent) don’t appear in the new one.
+    setMessages([]);
+    lastFetchRef.current = null;
+    setTypingUsers([]);
+
     let cancelled = false;
     sseGaveUpRef.current = false;
 

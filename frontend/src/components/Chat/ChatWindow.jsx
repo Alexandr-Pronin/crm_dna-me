@@ -53,6 +53,8 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setConversation(null);
+    setInitialMessages([]);
 
     (async () => {
       try {

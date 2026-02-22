@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+frontend/beispiel_component_another_crm/
 
 # Environment files
 .env

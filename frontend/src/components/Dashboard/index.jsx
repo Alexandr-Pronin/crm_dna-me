@@ -35,6 +35,7 @@ import {
   Phone as PhoneIcon,
   Business as BusinessIcon,
 } from '@mui/icons-material';
+import RecentActivitiesCard from './RecentActivitiesCard';
 
 /**
  * KPI Card Component
@@ -489,6 +490,11 @@ const Dashboard = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Letzte Aktivitäten – alle Lead-Events (Notizen, Import, Portal, etc.) */}
+      <Box sx={{ mt: 3 }}>
+        <RecentActivitiesCard />
+      </Box>
     </Box>
   );
 };
