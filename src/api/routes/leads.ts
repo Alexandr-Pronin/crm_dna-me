@@ -21,6 +21,7 @@ import {
 } from '../schemas/leads.js';
 import { db } from '../../db/index.js';
 import { getLeadService } from '../../services/leadService.js';
+import { recordActivity, type ActivitySource } from '../../services/activityService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { Lead, MarketingEvent, ScoreHistory, IntentSignal } from '../../types/index.js';
 
@@ -370,12 +371,31 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
       }
       
       const lead = await leadService.createLead(parseResult.data);
-      
+      const userId = (request as { user?: { id: string } }).user?.id;
+      const validSources: ActivitySource[] = ['waalaxy', 'portal', 'lemlist', 'ads', 'conference', 'website', 'linkedin', 'manual', 'api', 'import'];
+      const source: ActivitySource = validSources.includes(lead.first_touch_source as ActivitySource) ? (lead.first_touch_source as ActivitySource) : 'manual';
+
+      recordActivity({
+        lead_id: lead.id,
+        event_type: 'lead_created',
+        event_category: 'activity',
+        source,
+        metadata: {
+          email: lead.email,
+          first_name: lead.first_name,
+          last_name: lead.last_name,
+          created_by: userId,
+        },
+        update_lead_activity: true,
+      }).catch((err) => {
+        request.log.warn({ err }, 'Failed to record lead_created activity');
+      });
+
       request.log.info({
         leadId: lead.id,
         email: lead.email
       }, 'Lead created');
-      
+
       return reply.code(201).send(transformLeadResponse(lead));
     }
   );

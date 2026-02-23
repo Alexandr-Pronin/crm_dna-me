@@ -11,6 +11,7 @@ import { getEmailService } from './emailService.js';
 import { NotFoundError, ValidationError, AuthorizationError, BusinessLogicError } from '../errors/index.js';
 import { decrypt } from '../utils/crypto.js';
 import { getLinkedInService } from './linkedinService.js';
+import { recordActivity, type ActivitySource } from './activityService.js';
 import type {
   Message,
   MessageType,
@@ -217,6 +218,45 @@ export class MessageService {
 
     // 5. Publish real-time event
     await this.publishMessageEvent(conversationId, message);
+
+    // 6. Record activity for "Letzte Aktivitäten" (dashboard)
+    if (conversation.lead_id) {
+      const meta = (data.metadata ?? {}) as Record<string, unknown>;
+      const eventType =
+        direction === 'inbound'
+          ? 'email_received'
+          : direction === 'outbound'
+            ? 'email_sent'
+            : 'note_created';
+      const source: ActivitySource =
+        meta.import_source === 'eml_drop'
+          ? 'import'
+          : meta.sync_source === 'imap'
+            ? 'api'
+            : 'manual';
+      const recipient =
+        direction === 'outbound'
+          ? (data.recipients?.[0] as { email?: string; name?: string } | undefined)
+          : undefined;
+      recordActivity({
+        lead_id: conversation.lead_id,
+        event_type: eventType,
+        event_category: 'activity',
+        source,
+        metadata: {
+          subject: data.subject,
+          sender_email: data.sender_email,
+          sender_name: data.sender_name,
+          direction,
+          message_id: message.id,
+          ...(recipient && { to_email: recipient.email, to_name: recipient.name }),
+        },
+        occurred_at: message.sent_at ? new Date(message.sent_at) : undefined,
+        update_lead_activity: true,
+      }).catch((err) => {
+        console.warn('[MessageService] Failed to record activity event:', (err as Error).message);
+      });
+    }
 
     return message;
   }

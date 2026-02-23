@@ -6,6 +6,7 @@
 import { db } from '../db/index.js';
 import { NotFoundError, ValidationError, ConflictError, BusinessLogicError } from '../errors/index.js';
 import { getSyncQueue } from '../config/queues.js';
+import { recordActivity, type ActivitySource } from './activityService.js';
 import { getPipelineService } from './pipelineService.js';
 import { getAutomationEngine } from './automationEngine.js';
 import type {
@@ -106,7 +107,14 @@ export class DealService {
   // Create Deal
   // ===========================================================================
   
-  async createDeal(data: CreateDealInput): Promise<Deal> {
+  /**
+   * @param data - Deal data
+   * @param activityContext - Optional: who created (for "Letzte Aktivitäten") and source (manual vs api/routing)
+   */
+  async createDeal(
+    data: CreateDealInput,
+    activityContext?: { created_by?: string; source?: ActivitySource },
+  ): Promise<Deal> {
     // Verify lead exists
     const lead = await db.queryOne<Lead>(
       'SELECT * FROM leads WHERE id = $1',
@@ -193,7 +201,28 @@ export class DealService {
     ];
     
     const deals = await db.query<Deal>(sql, params);
-    return deals[0];
+    const deal = deals[0];
+    if (!deal) {
+      throw new BusinessLogicError('Failed to create deal');
+    }
+
+    recordActivity({
+      lead_id: deal.lead_id,
+      event_type: 'deal_created',
+      event_category: 'activity',
+      source: activityContext?.source ?? 'manual',
+      metadata: {
+        deal_id: deal.id,
+        deal_name: deal.name,
+        pipeline_id: deal.pipeline_id,
+        created_by: activityContext?.created_by,
+      },
+      update_lead_activity: true,
+    }).catch((err) => {
+      console.warn('[DealService] Failed to record deal_created activity:', (err as Error).message);
+    });
+
+    return deal;
   }
 
   // ===========================================================================
