@@ -37,6 +37,7 @@ import {
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
 import CsvImportDialog from './CsvImportDialog';
+import { useRightDrawer } from '../../contexts/RightDrawerContext';
 
 /**
  * Custom filters for the lead list
@@ -76,25 +77,6 @@ const leadFilters = [
   />,
   <TextInput source="email" label="Email" />,
 ];
-
-/**
- * Custom actions toolbar
- */
-const ListActions = ({ onCreateClick, onCsvImportClick }) => (
-  <TopToolbar>
-    <FilterButton />
-    <CreateButton onClick={onCreateClick} label="Create Lead" />
-    <Button
-      size="small"
-      startIcon={<TableChartIcon />}
-      onClick={onCsvImportClick}
-      sx={{ fontSize: '0.8125rem' }}
-    >
-      CSV Import
-    </Button>
-    <ExportButton />
-  </TopToolbar>
-);
 
 /**
  * Full Name field renderer
@@ -190,6 +172,7 @@ const ActionsField = ({ record }) => {
  * Main Lead List Component
  */
 const LeadList = () => {
+  const { openRecord } = useRightDrawer();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const refresh = useRefresh();
@@ -218,27 +201,35 @@ const LeadList = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Page Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 300 }}>
-            Leads
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage and track your sales leads
-          </Typography>
-        </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={refresh}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 300 }}>Leads</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage and track your sales leads
+        </Typography>
       </Box>
-
-      {/* Lead List */}
       <RaList
+        title=" "
         filters={leadFilters}
-        actions={<ListActions onCreateClick={handleCreateClick} onCsvImportClick={handleCsvImportClick} />}
+        actions={
+          <TopToolbar sx={{ minHeight: 'auto', p: 0 }}>
+            <FilterButton />
+            <CreateButton onClick={handleCreateClick} label="Create Lead" />
+            <Button
+              size="small"
+              startIcon={<TableChartIcon />}
+              onClick={handleCsvImportClick}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              CSV Import
+            </Button>
+            <ExportButton />
+            <Tooltip title="Refresh">
+              <IconButton onClick={refresh} size="small" sx={{ ml: 0.5 }}>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </TopToolbar>
+        }
         sort={{ field: 'created_at', order: 'DESC' }}
         perPage={25}
         sx={{
@@ -250,7 +241,7 @@ const LeadList = () => {
         }}
       >
         <Datagrid
-          rowClick="show"
+          rowClick={(id) => { openRecord('leads', id); return false; }}
           bulkActionButtons={false}
           sx={{
             '& .RaDatagrid-headerCell': {

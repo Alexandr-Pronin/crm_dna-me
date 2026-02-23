@@ -31,7 +31,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   fastify.get<{
     Querystring: { limit?: string; offset?: string };
-    Reply: { data: Array<unknown> };
+    Reply: { data: Array<unknown>; total: number };
   }>(
     '/events',
     {

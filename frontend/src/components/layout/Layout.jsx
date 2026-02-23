@@ -5,13 +5,15 @@ import { Layout as RALayout } from 'react-admin';
 import AppBar from './AppBar';
 import Menu from './Menu';
 import { BeamsBackground } from '../ui/BeamsBackground';
+import { RightDrawerProvider } from '../../contexts/RightDrawerContext';
+import RightDrawer from '../RightDrawer/RightDrawer';
 
 /**
  * Custom Layout with DNA ME AppBar and Menu
  */
 const Layout = (props) => {
   return (
-    <>
+    <RightDrawerProvider>
       <div style={{ position: 'fixed', inset: 0, zIndex: -1 }}>
         <BeamsBackground intensity="medium" />
       </div>
@@ -80,7 +82,8 @@ const Layout = (props) => {
         },
       }}
     />
-    </>
+      <RightDrawer />
+    </RightDrawerProvider>
   );
 };
 
