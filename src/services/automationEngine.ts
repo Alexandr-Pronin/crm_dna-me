@@ -6,6 +6,7 @@
 import { db } from '../db/index.js';
 import { getSyncQueue, getNotificationsQueue } from '../config/queues.js';
 import { NotFoundError } from '../errors/index.js';
+import { recordActivity } from './activityService.js';
 import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
 import { getTriggerService } from './triggerService.js';
 import type {
@@ -656,16 +657,23 @@ export class AutomationEngine {
       `, [pipeline.id]);
       
       if (firstStage) {
-        await db.execute(`
+        const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
+        const deal = await db.queryOne<Deal>(`
           INSERT INTO deals (lead_id, pipeline_id, stage_id, name, status)
           VALUES ($1, $2, $3, $4, 'open')
           ON CONFLICT (lead_id, pipeline_id) DO NOTHING
-        `, [
-          lead.id, 
-          pipeline.id, 
-          firstStage.id, 
-          `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim()
-        ]);
+          RETURNING *
+        `, [lead.id, pipeline.id, firstStage.id, dealName]);
+        if (deal) {
+          recordActivity({
+            lead_id: deal.lead_id,
+            event_type: 'deal_created',
+            event_category: 'activity',
+            source: 'api',
+            metadata: { deal_id: deal.id, deal_name: deal.name, pipeline_id: deal.pipeline_id },
+            update_lead_activity: true,
+          }).catch((err) => console.warn('[Automation] Failed to record deal_created activity:', (err as Error).message));
+        }
       }
     }
     

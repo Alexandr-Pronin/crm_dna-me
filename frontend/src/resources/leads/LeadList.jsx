@@ -33,10 +33,12 @@ import {
   Visibility as ViewIcon,
   Edit as EditIcon,
   TableChart as TableChartIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
 import CsvImportDialog from './CsvImportDialog';
+import { EmailDropZone as EmailImportDialog } from './components';
 import { useRightDrawer } from '../../contexts/RightDrawerContext';
 
 /**
@@ -175,6 +177,7 @@ const LeadList = () => {
   const { openRecord } = useRightDrawer();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [emlImportOpen, setEmlImportOpen] = useState(false);
   const refresh = useRefresh();
   const notify = useNotify();
   const dataProvider = useDataProvider();
@@ -221,6 +224,14 @@ const LeadList = () => {
               sx={{ fontSize: '0.8125rem' }}
             >
               CSV Import
+            </Button>
+            <Button
+              size="small"
+              startIcon={<EmailIcon />}
+              onClick={() => setEmlImportOpen(true)}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              EML Import
             </Button>
             <ExportButton />
             <Tooltip title="Refresh">
@@ -287,6 +298,13 @@ const LeadList = () => {
       <CsvImportDialog
         open={csvImportOpen}
         onClose={() => setCsvImportOpen(false)}
+      />
+
+      {/* EML Email Import Dialog */}
+      <EmailImportDialog
+        open={emlImportOpen}
+        onClose={() => setEmlImportOpen(false)}
+        onImported={() => refresh()}
       />
     </Box>
   );

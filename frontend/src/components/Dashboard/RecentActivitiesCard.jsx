@@ -46,8 +46,18 @@ const formatRelativeTime = (value) => {
   return formatDistanceToNow(dateValue, { addSuffix: true, locale: de });
 };
 
+const EVENT_TYPE_LABELS = {
+  eml_import: 'E-Mail importiert',
+  note_created: 'Notiz erstellt',
+  email_sent: 'E-Mail gesendet',
+  email_received: 'E-Mail erhalten',
+  lead_created: 'Lead erstellt',
+  deal_created: 'Deal erstellt',
+};
+
 const humanizeEventType = (eventType) => {
   if (!eventType) return 'Aktivität aktualisiert';
+  if (EVENT_TYPE_LABELS[eventType]) return EVENT_TYPE_LABELS[eventType];
   return eventType
     .split('_')
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
@@ -123,9 +133,15 @@ const RecentActivitiesCard = () => {
               const sourceLabel = entry.source
                 ? SOURCE_LABELS[entry.source] || entry.source
                 : null;
+              const meta = entry.metadata || {};
+              const detail =
+                entry.event_type === 'deal_created' && meta.deal_name
+                  ? `„${meta.deal_name}"`
+                  : (meta.subject ? `„${meta.subject}"` : null);
               const secondaryText = [
                 formatRelativeTime(entry.occurred_at),
                 sourceLabel ? `Quelle: ${sourceLabel}` : null,
+                detail,
               ]
                 .filter(Boolean)
                 .join(' • ');

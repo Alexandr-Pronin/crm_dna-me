@@ -6,7 +6,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticateOrApiKey } from '../middleware/auth.js';
-import { 
+import {
   getDealService,
   type CreateDealInput,
   type UpdateDealInput,
@@ -397,14 +397,18 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
       
-      const deal = await dealService.createDeal(parseResult.data);
-      
+      const userId = (request as { user?: { id: string } }).user?.id;
+      const deal = await dealService.createDeal(parseResult.data, {
+        created_by: userId,
+        source: 'manual',
+      });
+
       request.log.info({
         dealId: deal.id,
         leadId: deal.lead_id,
         pipelineId: deal.pipeline_id
       }, 'Deal created');
-      
+
       return reply.code(201).send(transformDealResponse(deal));
     }
   );
