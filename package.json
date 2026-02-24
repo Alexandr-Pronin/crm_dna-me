@@ -18,6 +18,8 @@
     "test": "vitest",
     "test:e2e": "tsx scripts/test-e2e.ts",
     "test:smtp": "tsx scripts/test-smtp.ts",
+    "test:cituro": "tsx scripts/test-cituro.ts",
+    "cituro:create-webhook": "tsx scripts/cituro-create-webhook.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },

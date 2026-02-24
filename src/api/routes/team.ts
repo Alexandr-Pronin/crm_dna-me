@@ -18,6 +18,7 @@ import {
   type TeamMemberStatsResponse
 } from '../schemas/team.js';
 import { db } from '../../db/index.js';
+import { recordSystemActivity } from '../../services/activityService.js';
 import { ValidationError, NotFoundError, ConflictError } from '../../errors/index.js';
 import type { TeamMember } from '../../types/index.js';
 
@@ -416,6 +417,18 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
       if (!member) {
         throw new Error('Team Member konnte nicht erstellt werden');
       }
+
+      await recordSystemActivity({
+        event_type: 'team_member_created',
+        event_category: 'system',
+        source: 'system',
+        metadata: {
+          label: 'Neues Teammitglied hinzugefügt',
+          team_member_id: member.id,
+          team_member_email: member.email,
+          team_member_name: member.name ?? undefined,
+        },
+      });
       
       request.log.info({
         teamMemberId: member.id,

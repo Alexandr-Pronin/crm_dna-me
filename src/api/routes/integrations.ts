@@ -16,7 +16,9 @@ import { config } from '../../config/index.js';
 import {
   loadIntegrationSettingsCache,
   getMocoConfigForApi,
-  setMocoConfig
+  setMocoConfig,
+  getCituroTemplate,
+  setCituroTemplate
 } from '../../config/integrationSettings.js';
 import { invalidateMocoService } from '../../integrations/moco.js';
 import type { SyncJob, Lead, Deal } from '../../types/index.js';
@@ -301,6 +303,27 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
       subdomain: config.cituro.subdomain
     };
   });
+
+  // ===========================================================================
+  // GET /integrations/cituro/template - E-Mail-Vorlage (HTML) für Termin-Einladungen
+  // ===========================================================================
+  fastify.get('/integrations/cituro/template', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    const html = await getCituroTemplate();
+    return reply.send({ email_template_html: html });
+  });
+
+  // ===========================================================================
+  // PUT /integrations/cituro/template - Vorlage speichern
+  // ===========================================================================
+  fastify.put<{ Body: { email_template_html?: string } }>(
+    '/integrations/cituro/template',
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
+      const html = typeof request.body?.email_template_html === 'string' ? request.body.email_template_html : '';
+      await setCituroTemplate(html);
+      return reply.send({ success: true, email_template_html: html });
+    }
+  );
 
   // ===========================================================================
   // GET /integrations/status - Get status of all integrations

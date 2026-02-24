@@ -501,15 +501,15 @@ export class LeadService {
   // Get Recent Events (all leads, for dashboard activity feed)
   // ===========================================================================
 
-  async getRecentEvents(options?: { limit?: number; offset?: number }): Promise<{ data: Array<MarketingEvent & { lead: Pick<Lead, 'id' | 'email' | 'first_name' | 'last_name'> }>; total: number }> {
+  async getRecentEvents(options?: { limit?: number; offset?: number }): Promise<{ data: Array<MarketingEvent & { lead: Pick<Lead, 'id' | 'email' | 'first_name' | 'last_name'> | null }>; total: number }> {
     const limit = Math.min(options?.limit ?? 50, 100);
     const offset = options?.offset ?? 0;
 
     const [rows, countResult] = await Promise.all([
-      db.query<MarketingEvent & { lead_email: string; lead_first_name: string | null; lead_last_name: string | null }>(
+      db.query<MarketingEvent & { lead_email: string | null; lead_first_name: string | null; lead_last_name: string | null }>(
         `SELECT e.*, l.email AS lead_email, l.first_name AS lead_first_name, l.last_name AS lead_last_name
          FROM events e
-         JOIN leads l ON e.lead_id = l.id
+         LEFT JOIN leads l ON e.lead_id = l.id
          ORDER BY e.occurred_at DESC
          LIMIT $1 OFFSET $2`,
         [limit, offset]
@@ -519,14 +519,17 @@ export class LeadService {
 
     const data = rows.map((row) => {
       const { lead_email, lead_first_name, lead_last_name, ...event } = row;
+      const lead = event.lead_id
+        ? {
+            id: event.lead_id,
+            email: lead_email ?? '',
+            first_name: lead_first_name ?? undefined,
+            last_name: lead_last_name ?? undefined,
+          }
+        : null;
       return {
         ...event,
-        lead: {
-          id: event.lead_id!,
-          email: lead_email,
-          first_name: lead_first_name ?? undefined,
-          last_name: lead_last_name ?? undefined,
-        },
+        lead,
       };
     });
 

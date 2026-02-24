@@ -43,7 +43,7 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useDataProvider, useNotify } from 'react-admin';
-import { httpClient, API_URL } from '../../providers/dataProvider';
+import { httpClient, API_URL, getCituroTemplate } from '../../providers/dataProvider';
 
 // DNA ME Farbpalette
 const DNA_COLORS = {
@@ -246,6 +246,29 @@ const StageTriggersModal = ({
     loadSequences();
   }, [open, dataProvider]);
 
+  // Cituro-Vorlage laden und in send_cituro_booking.email_html vorausfüllen, wenn leer
+  useEffect(() => {
+    if (!open || !selectedActions.send_cituro_booking) return;
+    const current = actionFields.send_cituro_booking?.email_html ?? '';
+    if (current.trim() !== '') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getCituroTemplate();
+        const html = res?.email_template_html?.trim() ?? '';
+        if (!cancelled && html) {
+          setActionFields(prev => ({
+            ...prev,
+            send_cituro_booking: { ...(prev.send_cituro_booking || {}), email_html: html },
+          }));
+        }
+      } catch (e) {
+        console.warn('Cituro-Vorlage konnte nicht geladen werden:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, selectedActions.send_cituro_booking]);
+
   // Gruppiere Aktionen nach Kategorie
   const availableActions = useMemo(() => {
     return TRIGGER_ACTIONS.map(action => {
@@ -347,9 +370,17 @@ const StageTriggersModal = ({
   };
 
   const NOTIFICATION_TEMPLATE_KEY = 'notification_email_template';
+  const NOTIFICATION_TEMPLATES_KEY = 'notification_email_templates';
+  const DEAL_STAGE_EVENT = 'deal_stage_change';
 
   const loadNotificationSettings = () => {
     try {
+      const templatesRaw = localStorage.getItem(NOTIFICATION_TEMPLATES_KEY);
+      if (templatesRaw) {
+        const templates = JSON.parse(templatesRaw);
+        const stageTemplate = templates[DEAL_STAGE_EVENT];
+        if (stageTemplate && stageTemplate.to) return stageTemplate;
+      }
       const stored = localStorage.getItem(NOTIFICATION_TEMPLATE_KEY);
       return stored ? JSON.parse(stored) : {};
     } catch {

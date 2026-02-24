@@ -17,7 +17,11 @@ import {
   type ConversationWithDetails,
 } from '../../services/conversationService.js';
 import { getMessageService, type CreateMessageInput } from '../../services/messageService.js';
-import { ValidationError } from '../../errors/index.js';
+import { getCituroService } from '../../integrations/cituro.js';
+import { getCituroTemplate } from '../../config/integrationSettings.js';
+import { getEmailService } from '../../services/emailService.js';
+import { CITURO_INVITE_HTML_DEFAULT } from '../../templates/cituroInviteEmail.js';
+import { ValidationError, NotFoundError } from '../../errors/index.js';
 
 // =============================================================================
 // Zod Schemas
@@ -545,6 +549,79 @@ export async function conversationsRoutes(fastify: FastifyInstance): Promise<voi
       );
       request.log.info({ conversationId: paramResult.data.id }, 'Conversation archived');
       return { success: true, message: 'Conversation archived' };
+    }
+  );
+
+  // ===========================================================================
+  // POST /api/v1/conversations/:id/send-cituro-invite – Termin-Einladung an Lead senden
+  // ===========================================================================
+  fastify.post<{ Params: IdParams }>(
+    '/conversations/:id/send-cituro-invite',
+    {
+      preHandler: [authenticateOrApiKey, checkConversationAccess],
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', format: 'uuid' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              booking_link: { type: 'string' },
+              email_sent: { type: 'boolean' },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramResult = conversationIdParamSchema.safeParse(request.params);
+      if (!paramResult.success) {
+        throw new ValidationError('Invalid conversation ID', { validationErrors: paramResult.error.errors });
+      }
+      const conversation = await conversationService.getConversationById(paramResult.data.id);
+      if (!conversation.lead_id) {
+        throw new ValidationError('Conversation has no lead; Cituro invite requires a lead.');
+      }
+      const lead = await db.queryOne<{ email: string; first_name?: string; last_name?: string }>(
+        'SELECT email, first_name, last_name FROM leads WHERE id = $1',
+        [conversation.lead_id]
+      );
+      if (!lead) {
+        throw new NotFoundError('Lead', conversation.lead_id);
+      }
+      const cituroService = getCituroService();
+      if (!cituroService.isConfigured()) {
+        throw new ValidationError('Cituro is not configured.');
+      }
+      const bookingLink = await cituroService.generateBookingLink({
+        lead_email: lead.email,
+        lead_name: [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim() || undefined,
+        meeting_type: 'consultation',
+        duration_minutes: 30,
+      });
+      let emailHtml = (await getCituroTemplate()).trim();
+      if (!emailHtml) {
+        emailHtml = CITURO_INVITE_HTML_DEFAULT;
+      }
+      emailHtml = emailHtml
+        .replace(/\{BOOKING_LINK\}/g, bookingLink.url)
+        .replace(/\{booking_link\}/g, bookingLink.url)
+        .replace(/https:\/\/app\.cituro\.com\/booking\/[a-zA-Z0-9-]+/g, bookingLink.url);
+      const emailService = getEmailService();
+      const emailResult = await emailService.sendEmail({
+        to: lead.email,
+        subject: 'Terminvereinbarung - DNA ME',
+        html: emailHtml,
+      });
+      return reply.send({
+        success: emailResult.success && !!bookingLink.url,
+        booking_link: bookingLink.url,
+        email_sent: emailResult.success,
+      });
     }
   );
 

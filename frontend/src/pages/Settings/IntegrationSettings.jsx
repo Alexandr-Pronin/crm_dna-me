@@ -19,6 +19,10 @@ import {
   Skeleton,
   Paper,
   TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   CheckCircle as ConnectedIcon,
@@ -29,8 +33,18 @@ import {
   CloudSync as SyncIcon,
   Link as LinkIcon,
   Settings as SettingsIcon,
+  Email as EmailIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
-import { getIntegrationsStatus, getMocoStatus, getCituroStatus, getMocoConfig, saveMocoConfig } from '../../providers/dataProvider';
+import {
+  getIntegrationsStatus,
+  getMocoStatus,
+  getCituroStatus,
+  getMocoConfig,
+  saveMocoConfig,
+  getCituroTemplate,
+  saveCituroTemplate,
+} from '../../providers/dataProvider';
 
 // Status color mapping
 const getStatusColor = (status) => {
@@ -86,6 +100,11 @@ const IntegrationSettings = () => {
   const [mocoForm, setMocoForm] = useState({ api_key: '', subdomain: '' });
   const [savingMoco, setSavingMoco] = useState(false);
   const [mocoSaveError, setMocoSaveError] = useState(null);
+  const [cituroTemplateOpen, setCituroTemplateOpen] = useState(false);
+  const [cituroTemplateHtml, setCituroTemplateHtml] = useState('');
+  const [cituroTemplateLoading, setCituroTemplateLoading] = useState(false);
+  const [cituroTemplateSaving, setCituroTemplateSaving] = useState(false);
+  const [cituroTemplateError, setCituroTemplateError] = useState(null);
 
   // Webhook URL for event ingestion (same origin in production; no :3000)
   const webhookUrl = `${window.location.origin}/api/v1/events/ingest`;
@@ -198,6 +217,37 @@ const IntegrationSettings = () => {
     } finally {
       setSavingMoco(false);
     }
+  };
+
+  const openCituroTemplateDialog = async () => {
+    setCituroTemplateOpen(true);
+    setCituroTemplateError(null);
+    setCituroTemplateLoading(true);
+    try {
+      const res = await getCituroTemplate();
+      setCituroTemplateHtml(res?.email_template_html ?? '');
+    } catch (err) {
+      setCituroTemplateError(err?.message || 'Vorlage konnte nicht geladen werden.');
+    } finally {
+      setCituroTemplateLoading(false);
+    }
+  };
+
+  const saveCituroTemplateHandler = async () => {
+    setCituroTemplateSaving(true);
+    setCituroTemplateError(null);
+    try {
+      await saveCituroTemplate(cituroTemplateHtml);
+      setCituroTemplateOpen(false);
+    } catch (err) {
+      setCituroTemplateError(err?.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setCituroTemplateSaving(false);
+    }
+  };
+
+  const clearCituroTemplateHandler = () => {
+    setCituroTemplateHtml('');
   };
 
   // Initial fetch + Moco config
@@ -635,18 +685,86 @@ const IntegrationSettings = () => {
               <Divider sx={{ my: 2 }} />
 
               {/* Actions */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <Button
                   variant="outlined"
                   size="small"
                   startIcon={testingConnection ? <CircularProgress size={16} /> : <SyncIcon />}
                   onClick={testCituroConnection}
                   disabled={testingConnection || !cituroStatus.configured}
-                  fullWidth
                 >
                   {testingConnection ? 'Teste...' : 'Verbindung testen'}
                 </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EmailIcon />}
+                  onClick={openCituroTemplateDialog}
+                >
+                  E-Mail-Vorlage
+                </Button>
               </Box>
+
+              {/* Cituro E-Mail-Vorlage Dialog */}
+              <Dialog
+                open={cituroTemplateOpen}
+                onClose={() => !cituroTemplateSaving && setCituroTemplateOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{ sx: { minHeight: '70vh' } }}
+              >
+                <DialogTitle>Cituro E-Mail-Vorlage (HTML)</DialogTitle>
+                <DialogContent>
+                  {cituroTemplateLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                        HTML für Termin-Einladungen. Platzhalter: {'{BOOKING_LINK}'} oder {'{booking_link}'} wird durch den Buchungslink ersetzt.
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={14}
+                        maxRows={24}
+                        value={cituroTemplateHtml}
+                        onChange={(e) => setCituroTemplateHtml(e.target.value)}
+                        placeholder="<!DOCTYPE html>..."
+                        sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                        slotProps={{ input: { sx: { fontFamily: 'monospace' } } }}
+                      />
+                      {cituroTemplateError && (
+                        <Alert severity="error" sx={{ mt: 1 }} onClose={() => setCituroTemplateError(null)}>
+                          {cituroTemplateError}
+                        </Alert>
+                      )}
+                    </>
+                  )}
+                </DialogContent>
+                <DialogActions>
+                  <Button
+                    onClick={clearCituroTemplateHandler}
+                    disabled={cituroTemplateLoading || cituroTemplateSaving}
+                    startIcon={<ClearIcon />}
+                  >
+                    Leeren
+                  </Button>
+                  <Box sx={{ flex: 1 }} />
+                  <Button onClick={() => setCituroTemplateOpen(false)} disabled={cituroTemplateSaving}>
+                    Abbrechen
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={saveCituroTemplateHandler}
+                    disabled={cituroTemplateSaving || cituroTemplateLoading}
+                    startIcon={cituroTemplateSaving ? <CircularProgress size={16} /> : null}
+                  >
+                    {cituroTemplateSaving ? 'Speichern...' : 'Speichern'}
+                  </Button>
+                </DialogActions>
+              </Dialog>
 
               {/* Info Note */}
               <Paper 
@@ -657,7 +775,7 @@ const IntegrationSettings = () => {
                   <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
                   <Typography variant="caption" color="text.secondary">
                     API Key und Subdomain werden via Environment Variables konfiguriert (.env Datei).
-                    Änderungen erfordern einen Server-Neustart.
+                    E-Mail-Vorlage wird in der Datenbank gespeichert und in Pipeline-Trigger sowie Chat „Termin einladen“ verwendet.
                   </Typography>
                 </Box>
               </Paper>

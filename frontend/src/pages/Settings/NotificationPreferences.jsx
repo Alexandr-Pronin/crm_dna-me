@@ -1,8 +1,9 @@
 /**
  * Notification Preferences Component
- * Manages notification settings with LocalStorage persistence
+ * Manages notification settings with LocalStorage persistence.
+ * E-Mail-Vorlagen pro Event-Typ: Deal-Stage, Neuer Lead, wöchentliche Pipeline-Übersicht.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -14,6 +15,11 @@ import {
   Alert,
   Grid,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -22,63 +28,79 @@ import {
   Whatshot as HotLeadIcon,
   Assessment as ReportIcon,
 } from '@mui/icons-material';
+import {
+  EVENT_TYPE_IDS,
+  EVENT_TYPE_LABELS,
+  DEFAULT_SUBJECTS,
+  DEFAULT_HTML,
+} from './notificationEmailTemplates';
 
 const STORAGE_KEY = 'notification_preferences';
 const TEMPLATE_KEY = 'notification_email_template';
+const TEMPLATES_STORAGE_KEY = 'notification_email_templates';
 
-const DEFAULT_TEMPLATE = `
-<div style="font-family: Inter, Arial, sans-serif; background:#f6f7fb; padding:24px; color:#111827;">
-  <div style="max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <div style="width:10px; height:10px; border-radius:999px; background:#10b981;"></div>
-      <div style="font-size:14px; color:#6b7280;">Deal Notification</div>
-    </div>
-    <h2 style="margin:0 0 12px; font-size:20px;">🔥 {{deal.name}}</h2>
-    <div style="display:grid; gap:8px; font-size:14px;">
-      <div><strong>Kunde:</strong> {{company.name}}</div>
-      <div><strong>Kontakt:</strong> {{lead.name}} {{lead.email}}</div>
-      <div><strong>Betrag:</strong> {{deal.value}} {{deal.currency}}</div>
-      <div><strong>Datum:</strong> {{deal.date}}</div>
-      <div><strong>Pipeline:</strong> {{pipeline.name}} / {{stage.name}}</div>
-    </div>
-    <a href="{{deal.link}}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:16px;padding:10px 14px;border-radius:8px;background:#4A90A4;color:#ffffff;text-decoration:none;">Deal öffnen</a>
-    <div style="margin-top:8px; font-size:12px; color:#6b7280;">
-      {{deal.link}}
-    </div>
-    <hr style="border:none;border-top:1px solid #e5e7eb; margin:20px 0;" />
-    <div style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; font-size:13px; color:#374151;">
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Kunden insgesamt</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.customers}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Leads insgesamt</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.leads}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Deals insgesamt</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.deals}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Umsatz (Won)</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.revenue_won}} {{deal.currency}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Umsatz (Total)</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.revenue_total}} {{deal.currency}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Deals (Open/Won/Lost)</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.open_deals}} / {{stats.won_deals}} / {{stats.lost_deals}}</div>
-      </div>
-      <div style="padding:12px; background:#f9fafb; border-radius:8px;">
-        <div style="font-size:12px; color:#6b7280;">Ø Deal Value</div>
-        <div style="font-size:16px; font-weight:600;">{{stats.avg_deal}} {{deal.currency}}</div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
+const VARIABLES_BY_EVENT = {
+  [EVENT_TYPE_IDS.DEAL_STAGE_CHANGE]:
+    '{{deal.name}}, {{deal.value}}, {{deal.currency}}, {{deal.date}}, {{deal.link}}, {{lead.name}}, {{lead.email}}, {{company.name}}, {{stage.name}}, {{pipeline.name}}, {{stats.*}}',
+  [EVENT_TYPE_IDS.NEW_LEAD]:
+    '{{lead.name}}, {{lead.email}}, {{deal.date}}, {{deal.link}}, {{company.name}}',
+  [EVENT_TYPE_IDS.WEEKLY_REPORT]:
+    '{{deal.date}}, {{stats.revenue_won}}, {{stats.won_deals}}, {{stats.open_deals}}, {{stats.lost_deals}}, {{stats.leads}}, {{stats.customers}}, {{stats.avg_deal}}',
+};
+
+function getDefaultTemplates() {
+  return {
+    [EVENT_TYPE_IDS.DEAL_STAGE_CHANGE]: {
+      to: '',
+      subject: DEFAULT_SUBJECTS[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE],
+      html: DEFAULT_HTML[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE],
+    },
+    [EVENT_TYPE_IDS.NEW_LEAD]: {
+      to: '',
+      subject: DEFAULT_SUBJECTS[EVENT_TYPE_IDS.NEW_LEAD],
+      html: DEFAULT_HTML[EVENT_TYPE_IDS.NEW_LEAD],
+    },
+    [EVENT_TYPE_IDS.WEEKLY_REPORT]: {
+      to: '',
+      subject: DEFAULT_SUBJECTS[EVENT_TYPE_IDS.WEEKLY_REPORT],
+      html: DEFAULT_HTML[EVENT_TYPE_IDS.WEEKLY_REPORT],
+    },
+  };
+}
+
+function loadTemplatesFromStorage() {
+  try {
+    const stored = localStorage.getItem(TEMPLATES_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const defaults = getDefaultTemplates();
+      return {
+        [EVENT_TYPE_IDS.DEAL_STAGE_CHANGE]: { ...defaults[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE], ...parsed[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE] },
+        [EVENT_TYPE_IDS.NEW_LEAD]: { ...defaults[EVENT_TYPE_IDS.NEW_LEAD], ...parsed[EVENT_TYPE_IDS.NEW_LEAD] },
+        [EVENT_TYPE_IDS.WEEKLY_REPORT]: { ...defaults[EVENT_TYPE_IDS.WEEKLY_REPORT], ...parsed[EVENT_TYPE_IDS.WEEKLY_REPORT] },
+      };
+    }
+    // Migration: alte einzelne Vorlage → deal_stage_change
+    const legacy = localStorage.getItem(TEMPLATE_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      const defaults = getDefaultTemplates();
+      const migrated = {
+        ...defaults,
+        [EVENT_TYPE_IDS.DEAL_STAGE_CHANGE]: {
+          to: parsed.to ?? '',
+          subject: parsed.subject ?? defaults[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE].subject,
+          html: parsed.html ?? defaults[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE].html,
+        },
+      };
+      localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+  } catch (e) {
+    console.error('Error loading notification templates:', e);
+  }
+  return getDefaultTemplates();
+}
 
 const NotificationPreferences = () => {
   const [notifications, setNotifications] = useState({
@@ -88,20 +110,26 @@ const NotificationPreferences = () => {
     weeklyReport: true,
   });
   const [lastSaved, setLastSaved] = useState(null);
-  const [emailTemplate, setEmailTemplate] = useState({
-    to: '',
-    subject: '🔥 New Deal: {{deal.name}} ({{deal.value}} {{deal.currency}})',
-    html: DEFAULT_TEMPLATE,
-  });
+  const [selectedEventType, setSelectedEventType] = useState(EVENT_TYPE_IDS.DEAL_STAGE_CHANGE);
+  const [templatesByEvent, setTemplatesByEvent] = useState(getDefaultTemplates);
 
-  // Load preferences from localStorage on mount
+  const eventTypes = useMemo(() => [
+    { id: EVENT_TYPE_IDS.DEAL_STAGE_CHANGE, label: EVENT_TYPE_LABELS[EVENT_TYPE_IDS.DEAL_STAGE_CHANGE] },
+    { id: EVENT_TYPE_IDS.NEW_LEAD, label: EVENT_TYPE_LABELS[EVENT_TYPE_IDS.NEW_LEAD] },
+    { id: EVENT_TYPE_IDS.WEEKLY_REPORT, label: EVENT_TYPE_LABELS[EVENT_TYPE_IDS.WEEKLY_REPORT] },
+  ], []);
+
+  const currentTemplate = templatesByEvent[selectedEventType] || {
+    to: '',
+    subject: DEFAULT_SUBJECTS[selectedEventType] || '',
+    html: DEFAULT_HTML[selectedEventType] || '',
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        setNotifications(parsed);
-        console.log('Loaded notification preferences from localStorage:', parsed);
+        setNotifications(JSON.parse(saved));
       } catch (error) {
         console.error('Error loading notification preferences:', error);
       }
@@ -109,36 +137,47 @@ const NotificationPreferences = () => {
   }, []);
 
   useEffect(() => {
-    const savedTemplate = localStorage.getItem(TEMPLATE_KEY);
-    if (savedTemplate) {
-      try {
-        const parsed = JSON.parse(savedTemplate);
-        setEmailTemplate(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('Error loading notification template:', error);
-      }
-    } else {
-      localStorage.setItem(TEMPLATE_KEY, JSON.stringify(emailTemplate));
-    }
+    setTemplatesByEvent(loadTemplatesFromStorage());
   }, []);
 
-  // Save preference changes to localStorage
   const handleToggle = (key) => (event) => {
     const newValue = event.target.checked;
-    const newNotifications = { ...notifications, [key]: newValue };
-    
-    setNotifications(newNotifications);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotifications));
+    const next = { ...notifications, [key]: newValue };
+    setNotifications(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setLastSaved(new Date());
-    
-    console.log(`Updated ${key} to ${newValue}`);
   };
 
-  const handleTemplateChange = (field) => (event) => {
-    const next = { ...emailTemplate, [field]: event.target.value };
-    setEmailTemplate(next);
-    localStorage.setItem(TEMPLATE_KEY, JSON.stringify(next));
+  const persistTemplates = (next) => {
+    setTemplatesByEvent(next);
+    localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(next));
     setLastSaved(new Date());
+  };
+
+  const handleTemplateFieldChange = (field) => (event) => {
+    const value = event.target.value;
+    const next = {
+      ...templatesByEvent,
+      [selectedEventType]: { ...currentTemplate, [field]: value },
+    };
+    persistTemplates(next);
+  };
+
+  const handleEventTypeChange = (event) => {
+    setSelectedEventType(event.target.value);
+  };
+
+  const handleResetTemplateToDefault = () => {
+    const defaultForEvent = {
+      to: currentTemplate.to,
+      subject: DEFAULT_SUBJECTS[selectedEventType],
+      html: DEFAULT_HTML[selectedEventType],
+    };
+    const next = {
+      ...templatesByEvent,
+      [selectedEventType]: defaultForEvent,
+    };
+    persistTemplates(next);
   };
 
   return (
@@ -146,35 +185,25 @@ const NotificationPreferences = () => {
       <Grid item xs={12} md={8} lg={6}>
         <Card>
           <CardContent>
-            {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <NotificationsIcon color="primary" />
               <Typography variant="h6">Notification Preferences</Typography>
             </Box>
 
-            {/* Info Alert */}
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Diese Einstellungen werden lokal in Ihrem Browser gespeichert und gelten nur für dieses Gerät.
               </Typography>
             </Alert>
 
-            {/* General Notifications */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
                 Allgemeine Benachrichtigungen
               </Typography>
-              
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box>
                   <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.email}
-                        onChange={handleToggle('email')}
-                        color="primary"
-                      />
-                    }
+                    control={<Switch checked={notifications.email} onChange={handleToggle('email')} color="primary" />}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <EmailIcon fontSize="small" />
@@ -186,16 +215,9 @@ const NotificationPreferences = () => {
                     Erhalten Sie wichtige Updates per E-Mail
                   </Typography>
                 </Box>
-
                 <Box>
                   <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.push}
-                        onChange={handleToggle('push')}
-                        color="primary"
-                      />
-                    }
+                    control={<Switch checked={notifications.push} onChange={handleToggle('push')} color="primary" />}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <PushIcon fontSize="small" />
@@ -212,60 +234,73 @@ const NotificationPreferences = () => {
 
             <Divider sx={{ my: 3 }} />
 
-            {/* Email Notification Template */}
+            {/* E-Mail-Vorlagen pro Event */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
-                Deal Notification E-Mail
+                E-Mail-Vorlagen pro Event
+              </Typography>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="notification-event-label">Event-Typ</InputLabel>
+                <Select
+                  labelId="notification-event-label"
+                  id="notification-event-select"
+                  value={selectedEventType}
+                  label="Event-Typ"
+                  onChange={handleEventTypeChange}
+                >
+                  {eventTypes.map(({ id, label }) => (
+                    <MenuItem key={id} value={id}>{label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                {selectedEventType === EVENT_TYPE_IDS.DEAL_STAGE_CHANGE && 'Wird bei Pipeline-Automation „Benachrichtigung“ ausgelöst, wenn ein Deal in diese Stage wechselt.'}
+                {selectedEventType === EVENT_TYPE_IDS.NEW_LEAD && 'Wird bei neuem Lead ausgelöst (Import, unbekannte Absender, Cituro-Webhook).'}
+                {selectedEventType === EVENT_TYPE_IDS.WEEKLY_REPORT && 'Wird für die wöchentliche Pipeline-Übersicht verwendet.'}
               </Typography>
               <TextField
                 label="Empfänger (To)"
-                value={emailTemplate.to}
-                onChange={handleTemplateChange('to')}
+                value={currentTemplate.to}
+                onChange={handleTemplateFieldChange('to')}
                 fullWidth
                 placeholder="fadmin@dna-me.net"
                 sx={{ mb: 2 }}
               />
               <TextField
                 label="Betreff"
-                value={emailTemplate.subject}
-                onChange={handleTemplateChange('subject')}
+                value={currentTemplate.subject}
+                onChange={handleTemplateFieldChange('subject')}
                 fullWidth
                 sx={{ mb: 2 }}
               />
               <TextField
                 label="Template (Text/HTML)"
-                value={emailTemplate.html}
-                onChange={handleTemplateChange('html')}
+                value={currentTemplate.html}
+                onChange={handleTemplateFieldChange('html')}
                 fullWidth
                 multiline
-                rows={8}
+                rows={10}
               />
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button size="small" variant="outlined" onClick={handleResetTemplateToDefault}>
+                  Vorlage auf Standard zurücksetzen
+                </Button>
+              </Box>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Verfügbare Variablen: {"{{deal.name}}"}, {"{{deal.value}}"}, {"{{deal.currency}}"}, {"{{deal.date}}"},
-                {"{{deal.link}}"}, {"{{lead.name}}"}, {"{{lead.email}}"}, {"{{company.name}}"}, {"{{stage.name}}"}, {"{{pipeline.name}}"},
-                {"{{stats.customers}}"}, {"{{stats.leads}}"}, {"{{stats.deals}}"}, {"{{stats.revenue_won}}"}, {"{{stats.revenue_total}}"},
-                {"{{stats.open_deals}}"}, {"{{stats.won_deals}}"}, {"{{stats.lost_deals}}"}, {"{{stats.avg_deal}}"}
+                Verfügbare Variablen: {VARIABLES_BY_EVENT[selectedEventType]}
               </Typography>
             </Box>
 
             <Divider sx={{ my: 3 }} />
 
-            {/* Lead & Sales Notifications */}
             <Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
                 Lead & Sales Benachrichtigungen
               </Typography>
-              
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box>
                   <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.hotLeads}
-                        onChange={handleToggle('hotLeads')}
-                        color="primary"
-                      />
-                    }
+                    control={<Switch checked={notifications.hotLeads} onChange={handleToggle('hotLeads')} color="primary" />}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <HotLeadIcon fontSize="small" sx={{ color: 'error.main' }} />
@@ -277,16 +312,9 @@ const NotificationPreferences = () => {
                     Sofortige Benachrichtigung bei Leads mit Score ≥ 80
                   </Typography>
                 </Box>
-
                 <Box>
                   <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifications.weeklyReport}
-                        onChange={handleToggle('weeklyReport')}
-                        color="primary"
-                      />
-                    }
+                    control={<Switch checked={notifications.weeklyReport} onChange={handleToggle('weeklyReport')} color="primary" />}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <ReportIcon fontSize="small" />
@@ -301,7 +329,6 @@ const NotificationPreferences = () => {
               </Box>
             </Box>
 
-            {/* Last Saved Indicator */}
             {lastSaved && (
               <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
                 <Typography variant="caption" color="success.main">
@@ -312,7 +339,6 @@ const NotificationPreferences = () => {
           </CardContent>
         </Card>
 
-        {/* Current Settings Summary */}
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
@@ -321,27 +347,19 @@ const NotificationPreferences = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">Email Notifications:</Typography>
-                <Typography variant="body2" fontWeight={500}>
-                  {notifications.email ? '✅ Aktiviert' : '❌ Deaktiviert'}
-                </Typography>
+                <Typography variant="body2" fontWeight={500}>{notifications.email ? '✅ Aktiviert' : '❌ Deaktiviert'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">Push Notifications:</Typography>
-                <Typography variant="body2" fontWeight={500}>
-                  {notifications.push ? '✅ Aktiviert' : '❌ Deaktiviert'}
-                </Typography>
+                <Typography variant="body2" fontWeight={500}>{notifications.push ? '✅ Aktiviert' : '❌ Deaktiviert'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">Hot Lead Alerts:</Typography>
-                <Typography variant="body2" fontWeight={500}>
-                  {notifications.hotLeads ? '✅ Aktiviert' : '❌ Deaktiviert'}
-                </Typography>
+                <Typography variant="body2" fontWeight={500}>{notifications.hotLeads ? '✅ Aktiviert' : '❌ Deaktiviert'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">Weekly Report:</Typography>
-                <Typography variant="body2" fontWeight={500}>
-                  {notifications.weeklyReport ? '✅ Aktiviert' : '❌ Deaktiviert'}
-                </Typography>
+                <Typography variant="body2" fontWeight={500}>{notifications.weeklyReport ? '✅ Aktiviert' : '❌ Deaktiviert'}</Typography>
               </Box>
             </Box>
           </CardContent>
@@ -352,3 +370,4 @@ const NotificationPreferences = () => {
 };
 
 export default NotificationPreferences;
+export { loadTemplatesFromStorage, TEMPLATES_STORAGE_KEY, EVENT_TYPE_IDS };
