@@ -47,17 +47,31 @@ export function createEventWorker(
             const { getMessageService } = await import('../services/messageService.js');
             const convService = getConversationService();
             const messageService = getMessageService();
-            const systemUser = await db.queryOne<{ id: string }>(
-              'SELECT id FROM team_members WHERE is_active = TRUE ORDER BY created_at ASC LIMIT 1'
-            );
-            if (systemUser?.id) {
+            // Prefer the user who triggered the import so they can see it
+            // (access control: non-admins only see conversations they created)
+            const requestedById = metadata.requested_by_id as string | null | undefined;
+            let createdById: string | null = null;
+            if (requestedById) {
+              const requester = await db.queryOne<{ id: string }>(
+                'SELECT id FROM team_members WHERE id = $1 AND is_active = TRUE',
+                [requestedById]
+              );
+              createdById = requester?.id ?? null;
+            }
+            if (!createdById) {
+              const systemUser = await db.queryOne<{ id: string }>(
+                'SELECT id FROM team_members WHERE is_active = TRUE ORDER BY created_at ASC LIMIT 1'
+              );
+              createdById = systemUser?.id ?? null;
+            }
+            if (createdById) {
               const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
               const companyName = (metadata.company_name as string) || undefined;
               const subject = leadName || companyName || lead.email || 'Import';
               const conversation = await convService.findOrCreateConversation(
                 lead.id,
                 null,
-                systemUser.id,
+                createdById,
                 subject,
                 false,
                 { imported: true }

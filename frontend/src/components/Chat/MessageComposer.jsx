@@ -192,7 +192,7 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
           variant="outlined"
           sx={{
             minWidth: 120,
-            height: 36,
+            height: 42,
             '& .MuiSelect-select': { display: 'flex', alignItems: 'center', gap: 0.5, py: 0.5 },
           }}
         >
@@ -218,7 +218,7 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
             onChange={(e) => setSubject(e.target.value)}
             disabled={sending || disabled}
             sx={{ flex: 1 }}
-            slotProps={{ input: { sx: { height: 36 } } }}
+            slotProps={{ input: { sx: { height: 42 } } }}
           />
         )}
       </Box>
@@ -245,7 +245,8 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
           <TextField
             fullWidth
             multiline
-            maxRows={6}
+            minRows={3}
+            maxRows={8}
             size="small"
             className="chat-composer-input"
             placeholder={
@@ -262,6 +263,7 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
             disabled={sending || disabled}
             slotProps={{
               input: {
+                sx: { minHeight: 72 },
                 endAdornment: (
                   <InputAdornment position="end">
                     <Tooltip title="Anhang">

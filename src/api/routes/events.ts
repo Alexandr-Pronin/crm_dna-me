@@ -360,6 +360,8 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
             batch_total: bulkData.leads.length,
             skip_duplicates: bulkData.skip_duplicates,
             api_key_source: request.apiKeySource,
+            // Pass the importing user's ID so the worker can set created_by_id correctly
+            requested_by_id: (request as { user?: { id?: string } }).user?.id ?? null,
             ...(lead.message && lead.message.trim() ? { initial_message: lead.message.trim() } : {}),
           },
           occurred_at: queuedAt

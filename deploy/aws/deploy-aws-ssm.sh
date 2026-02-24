@@ -53,11 +53,19 @@ ssm_run() {
       return 0
     elif [[ "$status" == "Failed" ]] || [[ "$status" == "Cancelled" ]]; then
       echo "  ERROR: Command failed. Status: $status"
+      echo "  Stdout:"
       aws ssm get-command-invocation \
         --command-id "$cmd_id" \
         --instance-id "$instance_id" \
         --region "$REGION" \
-        --query "[StandardOutputContent,StandardErrorContent]" \
+        --query "StandardOutputContent" \
+        --output text 2>/dev/null | sed 's/^/    /'
+      echo "  Stderr:"
+      aws ssm get-command-invocation \
+        --command-id "$cmd_id" \
+        --instance-id "$instance_id" \
+        --region "$REGION" \
+        --query "StandardErrorContent" \
         --output text 2>/dev/null | sed 's/^/    /'
       return 1
     fi
@@ -141,10 +149,10 @@ tar -czf release.tar.gz \
   package-lock.json \
   migrate-config.json
 
-# Create .env files
-echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" > /tmp/.env.db
-grep -v "^DATABASE_URL=" deploy/aws/.env.aws > /tmp/.env.app
-echo "DATABASE_URL=$DATABASE_URL" >> /tmp/.env.app
+# Create .env files (use local dir to avoid MSYS path conversion on Windows/Git Bash)
+echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" > .tmp-env.db
+grep -v "^DATABASE_URL=" deploy/aws/.env.aws > .tmp-env.app
+echo "DATABASE_URL=$DATABASE_URL" >> .tmp-env.app
 
 # ---------------------------------------------------------------------------
 # Upload to S3
@@ -152,8 +160,8 @@ echo "DATABASE_URL=$DATABASE_URL" >> /tmp/.env.app
 echo "=== Step 4: Uploading to S3 ==="
 DEPLOY_KEY="${DEPLOY_PREFIX}/$(date +%Y%m%d-%H%M%S)"
 aws s3 cp release.tar.gz "s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/release.tar.gz" --region "$REGION"
-aws s3 cp /tmp/.env.db "s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/.env.db" --region "$REGION"
-aws s3 cp /tmp/.env.app "s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/.env.app" --region "$REGION"
+MSYS_NO_PATHCONV=1 aws s3 cp .tmp-env.db "s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/.env.db" --region "$REGION"
+MSYS_NO_PATHCONV=1 aws s3 cp .tmp-env.app "s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/.env.app" --region "$REGION"
 echo "  Uploaded to s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/"
 
 # ---------------------------------------------------------------------------
@@ -191,31 +199,36 @@ sleep "$POSTGRES_WAIT"
 # Deploy to App instance
 # ---------------------------------------------------------------------------
 echo "=== Step 6: Deploying to App instance ==="
-APP_SCRIPT=$(cat << REMOTE_APP
+APP_SCRIPT=$(cat << 'REMOTE_APP'
 set -e
 cd /opt/dna-crm
-aws s3 cp s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/release.tar.gz /tmp/release.tar.gz --region ${REGION}
-aws s3 cp s3://${DEPLOY_BUCKET}/${DEPLOY_KEY}/.env.app /opt/dna-crm/.env.aws --region ${REGION}
+aws s3 cp s3://DEPLOY_BUCKET_PLACEHOLDER/DEPLOY_KEY_PLACEHOLDER/release.tar.gz /tmp/release.tar.gz --region REGION_PLACEHOLDER
+aws s3 cp s3://DEPLOY_BUCKET_PLACEHOLDER/DEPLOY_KEY_PLACEHOLDER/.env.app /opt/dna-crm/.env.aws --region REGION_PLACEHOLDER
 tar -xzf /tmp/release.tar.gz -C .
 rm /tmp/release.tar.gz
 chown -R ec2-user:ec2-user /opt/dna-crm
-DOMAIN=\$(grep '^DOMAIN_NAME=' .env.aws 2>/dev/null | cut -d= -f2)
-DOMAIN=\${DOMAIN:-crm.dna-me.net}
-sed "s/DOMAIN_NAME/\$DOMAIN/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
-sudo -u ec2-user bash -c 'cd /opt/dna-crm && npm ci && export \$(grep -v ^# .env.aws 2>/dev/null | xargs) && npm run migrate:up'
+DOMAIN=$(grep '^DOMAIN_NAME=' .env.aws 2>/dev/null | cut -d= -f2- | tr -d '\r')
+DOMAIN=${DOMAIN:-crm.dna-me.net}
+sed "s/DOMAIN_NAME/$DOMAIN/g" deploy/aws/nginx-aws.conf.template > deploy/aws/nginx-aws.conf
+# Migrate: load .env.aws line-by-line (safe for values with spaces), then npm run migrate:up
+sudo -u ec2-user bash -c 'cd /opt/dna-crm && npm ci && ( set -a; while IFS= read -r l; do [[ "$l" =~ ^# || -z "${l// }" || ! "$l" =~ = ]] && continue; export "$l"; done < .env.aws; set +a; npm run migrate:up )'
 sudo -u ec2-user docker-compose -f deploy/aws/docker-compose.aws.yml --env-file .env.aws up -d --build
 (crontab -l 2>/dev/null | grep -v backup.sh; true) | crontab - 2>/dev/null || true
 sleep 15
-curl -sf http://localhost/health && echo " OK" || echo " WARNING: Health check failed"
+curl -sf http://localhost/health && echo " OK" || (echo " WARNING: Health check failed"; docker logs dna_api 2>&1 | tail -30)
 REMOTE_APP
 )
+# Inject bucket/key/region into script (avoid expansion in heredoc)
+APP_SCRIPT="${APP_SCRIPT//DEPLOY_BUCKET_PLACEHOLDER/$DEPLOY_BUCKET}"
+APP_SCRIPT="${APP_SCRIPT//DEPLOY_KEY_PLACEHOLDER/$DEPLOY_KEY}"
+APP_SCRIPT="${APP_SCRIPT//REGION_PLACEHOLDER/$REGION}"
 
 ssm_run "$APP_INSTANCE" "$APP_SCRIPT" 300 || exit 1
 
 # ---------------------------------------------------------------------------
 # Cleanup
 # ---------------------------------------------------------------------------
-rm -f release.tar.gz /tmp/.env.db /tmp/.env.app
+rm -f release.tar.gz .tmp-env.db .tmp-env.app
 
 echo ""
 echo "Deploy complete!"

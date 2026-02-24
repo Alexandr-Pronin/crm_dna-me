@@ -152,7 +152,7 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
     'Konversation';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       {/* Header */}
       <div className="chat-header">
         <IconButton size="small" onClick={onBack}>
@@ -194,7 +194,7 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
         )}
       </div>
 
-      {/* Messages */}
+      {/* Messages – scrollable area */}
       <MessageList
         messages={allMessages}
         conversation={conversation}
@@ -205,12 +205,14 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
       {/* Typing indicator */}
       <TypingIndicator typingUsers={filteredTyping} />
 
-      {/* Composer */}
-      <MessageComposer
+      {/* Composer – fixed at bottom */}
+      <Box sx={{ flexShrink: 0 }}>
+        <MessageComposer
         conversationId={conversationId}
         onSend={handleSend}
         disabled={conversation?.status !== 'active'}
-      />
+        />
+      </Box>
     </Box>
   );
 }
