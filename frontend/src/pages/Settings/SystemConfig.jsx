@@ -397,16 +397,16 @@ const SystemConfig = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <ClearDbIcon color="error" />
-                <Typography variant="h6">Очистка баз данных</Typography>
+                <Typography variant="h6">Datenbankbereinigung</Typography>
               </Box>
               {!isAdmin && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  Доступно только для пользователей с ролью Administrator.
+                  Nur für Benutzer mit der Rolle Administrator verfügbar.
                 </Alert>
               )}
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Выберите, какие данные удалить. Схема связей и каскадное удаление показаны в диалоге.
-                Не затрагиваются: команда, пайплайны, правила скоринга, настройки интеграций.
+                Wählen Sie, welche Daten gelöscht werden sollen. Beziehungschema und kaskadiertes Löschen werden im Dialog angezeigt.
+                Nicht betroffen: Team, Pipelines, Scoring-Regeln, Integrationseinstellungen.
               </Typography>
               <Button
                 variant="outlined"
@@ -415,7 +415,7 @@ const SystemConfig = () => {
                 disabled={!isAdmin}
                 onClick={() => { setClearDialogOpen(true); loadClearDbSchema(); }}
               >
-                Выбрать и очистить базы данных
+                Datenbanken auswählen und bereinigen
               </Button>
             </CardContent>
           </Card>
@@ -470,11 +470,11 @@ const SystemConfig = () => {
       </Grid>
 
       <Dialog open={clearDialogOpen} onClose={() => !clearLoading && setClearDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Очистка баз данных: выбор и каскад</DialogTitle>
+        <DialogTitle>Datenbankbereinigung: Auswahl und Kaskade</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Выберите группы таблиц для очистки. Стрелка A → B означает: у таблицы B есть внешний ключ на A;
-            при очистке A каскадно удаляются все такие B (и далее по цепочке). Нормализация сохраняется.
+            Wählen Sie die Tabellengruppen zur Bereinigung. Der Pfeil A → B bedeutet: Tabelle B hat einen Fremdschlüssel auf A;
+            beim Bereinigen von A werden alle solche B (und weiter in der Kette) kaskadiert gelöscht. Die Normalisierung bleibt erhalten.
           </DialogContentText>
 
           {schemaLoading && (
@@ -485,7 +485,7 @@ const SystemConfig = () => {
 
           {clearDbSchema && !schemaLoading && (
             <>
-              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Схема связей (внешние ключи)</Typography>
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Beziehungschema (Fremdschlüssel)</Typography>
               <Paper variant="outlined" sx={{ p: 1.5, mb: 2, maxHeight: 220, overflow: 'auto', bgcolor: 'background.default' }}>
                 <Box component="ul" sx={{ m: 0, pl: 2.5, listStyle: 'none' }}>
                   {clearDbSchema.edges.map((e, i) => (
@@ -498,7 +498,7 @@ const SystemConfig = () => {
                 </Box>
               </Paper>
 
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Что очистить</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Was bereinigen</Typography>
               <Autocomplete
                 multiple
                 options={clearDbSchema.groups}
@@ -506,7 +506,7 @@ const SystemConfig = () => {
                 isOptionEqualToValue={(a, b) => a.id === b.id}
                 value={selectedGroups}
                 onChange={(_, newVal) => setSelectedClearGroupIds(newVal.map((g) => g.id))}
-                renderInput={(params) => <TextField {...params} size="small" placeholder="Выберите группы таблиц" />}
+                renderInput={(params) => <TextField {...params} size="small" placeholder="Tabellengruppen auswählen" />}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
                     <Box>
@@ -520,7 +520,7 @@ const SystemConfig = () => {
 
               {selectedGroups.length > 0 && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>При очистке выбранного каскадно удалятся также:</Typography>
+                  <Typography variant="subtitle2" gutterBottom>Beim Bereinigen der Auswahl werden kaskadiert ebenfalls gelöscht:</Typography>
                   <Typography variant="body2" component="span">
                     {cascadeSummary.map((c) => c.label).join(', ')}
                   </Typography>
@@ -531,15 +531,15 @@ const SystemConfig = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => !clearLoading && setClearDialogOpen(false)} disabled={clearLoading}>
-            Отмена
+            Abbrechen
           </Button>
           {selectedGroups.length > 0 && (
             <Button color="error" variant="outlined" onClick={() => handleClearDatabases(false)} disabled={clearLoading}>
-              {clearLoading ? 'Очистка…' : 'Очистить выбранное'}
+              {clearLoading ? 'Bereinigung…' : 'Ausgewähltes bereinigen'}
             </Button>
           )}
           <Button color="error" variant="contained" onClick={() => handleClearDatabases(true)} disabled={clearLoading}>
-            {clearLoading ? 'Очистка…' : 'Очистить всё'}
+            {clearLoading ? 'Bereinigung…' : 'Alles bereinigen'}
           </Button>
         </DialogActions>
       </Dialog>

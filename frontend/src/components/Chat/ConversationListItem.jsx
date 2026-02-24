@@ -2,9 +2,10 @@
  * ConversationListItem
  *
  * Single row inside the conversation sidebar list.
- * Shows avatar, name, last message preview, time, and unread badge.
+ * Shows avatar, name, last message preview, time, unread badge, and actions menu.
  */
-import { Box, Typography, Badge, Avatar, Chip } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Badge, Avatar, Chip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import {
   Email as EmailIcon,
   LinkedIn as LinkedInIcon,
@@ -12,6 +13,12 @@ import {
   Task as TaskIcon,
   Warning as LeadInitiatedIcon,
   Input as ImportedIcon,
+  MoreVert as MoreVertIcon,
+  DeleteForever as DeleteIcon,
+  Archive as ArchiveIcon,
+  Person as PersonIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -46,7 +53,17 @@ function initials(name) {
     .join('');
 }
 
-function ConversationListItem({ conversation, onClick, isActive }) {
+function ConversationListItem({
+  conversation,
+  onClick,
+  isActive,
+  onDeleteChat,
+  onArchiveChat,
+  onAssignChat,
+  onVisibilityChange,
+  currentUserId,
+}) {
+  const [menuAnchor, setMenuAnchor] = useState(null);
   const {
     subject,
     lead_name,
@@ -60,6 +77,9 @@ function ConversationListItem({ conversation, onClick, isActive }) {
     created_by_name,
     initiated_by_lead,
     imported_at,
+    assigned_to_id,
+    assigned_to_name,
+    assigned_to_avatar,
   } = conversation;
 
   const displayName = subject || deal_name || lead_name || 'Konversation';
@@ -141,7 +161,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
           </Box>
         ) : (
           <Avatar
-            src={created_by_avatar}
+            src={created_by_avatar || '/avatars/unknown.png'}
             sx={{
               width: 40,
               height: 40,
@@ -169,10 +189,102 @@ function ConversationListItem({ conversation, onClick, isActive }) {
           >
             {displayName}
           </Typography>
-          <Typography variant="caption" color="text.disabled" sx={{ ml: 1, flexShrink: 0 }}>
-            {relativeTime(last_message_at)}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            <Typography variant="caption" color="text.disabled" sx={{ ml: 1 }}>
+              {relativeTime(last_message_at)}
+            </Typography>
+            {(onDeleteChat || onArchiveChat || onAssignChat) && (
+              <>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuAnchor(e.currentTarget);
+                  }}
+                  sx={{ p: 0.25, ml: 0.25 }}
+                  aria-label="Chat-Aktionen"
+                >
+                  <MoreVertIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+                <Menu
+                  anchorEl={menuAnchor}
+                  open={Boolean(menuAnchor)}
+                  onClose={() => setMenuAnchor(null)}
+                  onClick={(e) => e.stopPropagation()}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                >
+                  {onDeleteChat && (
+                    <MenuItem
+                      onClick={() => {
+                        onDeleteChat(conversation);
+                        setMenuAnchor(null);
+                      }}
+                      sx={{ color: 'error.main' }}
+                    >
+                      <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+                      <ListItemText>Chat vollständig löschen</ListItemText>
+                    </MenuItem>
+                  )}
+                  {onArchiveChat && (
+                    <MenuItem
+                      onClick={() => {
+                        onArchiveChat(conversation);
+                        setMenuAnchor(null);
+                      }}
+                    >
+                      <ListItemIcon><ArchiveIcon fontSize="small" /></ListItemIcon>
+                      <ListItemText>Archivieren</ListItemText>
+                    </MenuItem>
+                  )}
+                  {onAssignChat && (
+                    <MenuItem
+                      onClick={() => {
+                        onAssignChat(conversation);
+                        setMenuAnchor(null);
+                      }}
+                    >
+                      <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
+                      <ListItemText>Zuweisen an …</ListItemText>
+                    </MenuItem>
+                  )}
+                  {onVisibilityChange && (() => {
+                    // Currently private (assigned to someone) → offer "Für alle sichtbar"
+                    // Currently public (unassigned) → offer "Nur für mich"
+                    const isPrivate = Boolean(assigned_to_id);
+                    return (
+                      <MenuItem
+                        onClick={() => {
+                          onVisibilityChange(conversation, isPrivate ? null : (currentUserId ?? null));
+                          setMenuAnchor(null);
+                        }}
+                      >
+                        <ListItemIcon>
+                          {isPrivate
+                            ? <VisibilityIcon fontSize="small" />
+                            : <VisibilityOffIcon fontSize="small" />}
+                        </ListItemIcon>
+                        <ListItemText>
+                          {isPrivate ? 'Für alle sichtbar' : 'Nur für mich'}
+                        </ListItemText>
+                      </MenuItem>
+                    );
+                  })()}
+                </Menu>
+              </>
+            )}
+          </Box>
         </Box>
+        {assigned_to_id && (assigned_to_name || assigned_to_avatar) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+            <Avatar src={assigned_to_avatar || '/avatars/unknown.png'} sx={{ width: 16, height: 16, fontSize: 10 }}>
+              {!assigned_to_avatar && initials(assigned_to_name || '?')}
+            </Avatar>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {assigned_to_name}
+            </Typography>
+          </Box>
+        )}
 
         <Typography
           variant="caption"

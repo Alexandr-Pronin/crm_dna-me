@@ -106,6 +106,25 @@ export class MessageService {
       throw new NotFoundError('Conversation', conversationId);
     }
 
+    // Auto-assign conversation to the first CRM user who sends a real (non-imported) message
+    // into an unassigned conversation – so they can find it again via their "own" filter.
+    const isImportedMessage = (data.metadata as Record<string, unknown> | undefined)?.imported === true;
+    if (
+      userId &&
+      !isImportedMessage &&
+      !conversation.assigned_to_id
+    ) {
+      try {
+        await db.execute(
+          'UPDATE conversations SET assigned_to_id = $1, updated_at = NOW() WHERE id = $2 AND assigned_to_id IS NULL',
+          [userId, conversationId]
+        );
+        (conversation as Conversation).assigned_to_id = userId;
+      } catch {
+        // Non-critical: ignore if column doesn't exist yet
+      }
+    }
+
     // Determine direction
     const direction: MessageDirection =
       data.direction ?? (data.message_type === 'internal_note' || data.message_type === 'task'

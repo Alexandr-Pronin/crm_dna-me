@@ -37,6 +37,7 @@ export interface UpdateConversationInput {
   status?: ConversationStatus;
   participant_emails?: string[];
   type?: ConversationType;
+  assigned_to_id?: string | null;
 }
 
 export interface ConversationFilters {
@@ -60,6 +61,8 @@ export interface ConversationWithDetails extends Conversation {
   created_by_email?: string;
   created_by_avatar?: string | null;
   initiated_by_lead?: boolean;
+  assigned_to_name?: string | null;
+  assigned_to_avatar?: string | null;
   unread_count?: number;
   message_count?: number;
   last_message_preview?: string;
@@ -145,11 +148,18 @@ export class ConversationService {
     const params: unknown[] = [];
     let paramIdx = 1;
 
-    // Access control (non-admins see only their conversations)
+    // Access control: admins see all; non-admins see:
+    //  - own conversations (created_by_id = me)
+    //  - conversations where I'm a participant
+    //  - conversations assigned to me
+    //  - imported conversations that are not assigned to anyone (visible to whole team)
+    //  - conversations whose deal/lead is assigned to me
     if (userRole !== 'admin') {
       conditions.push(`(
         c.created_by_id = $${paramIdx}
         OR c.participant_emails @> $${paramIdx + 1}::jsonb
+        OR c.assigned_to_id = $${paramIdx}
+        OR (c.imported_at IS NOT NULL AND c.assigned_to_id IS NULL)
         OR d.assigned_to = $${paramIdx + 2}
         OR dl.assigned_to = $${paramIdx + 2}
       )`);
@@ -208,9 +218,49 @@ export class ConversationService {
     const total = parseInt(countResult?.count ?? '0', 10);
     const totalPages = Math.ceil(total / limit);
 
-    // Data query with details
-    const conversations = await db.query<ConversationWithDetails>(
-      `SELECT DISTINCT ON (c.id)
+    // Data query with details (optional assigned_to_id/ta for DBs that have the migration)
+    const queryWithAssign = `SELECT DISTINCT ON (c.id)
+        c.*,
+        l.email AS lead_email,
+        COALESCE(l.first_name || ' ' || l.last_name, l.email) AS lead_name,
+        d_main.name AS deal_name,
+        d_main.status AS deal_status,
+        tm.name AS created_by_name,
+        tm.email AS created_by_email,
+        tm.avatar AS created_by_avatar,
+        ta.name AS assigned_to_name,
+        ta.avatar AS assigned_to_avatar,
+        (
+          SELECT COUNT(*)::int FROM messages m
+          WHERE m.conversation_id = c.id
+            AND m.read_at IS NULL
+            AND m.direction = 'inbound'
+        ) AS unread_count,
+        (
+          SELECT COUNT(*)::int FROM messages m
+          WHERE m.conversation_id = c.id
+        ) AS message_count,
+        (
+          SELECT COALESCE(
+            SUBSTRING(m2.body_text FROM 1 FOR 100),
+            SUBSTRING(m2.body_html FROM 1 FOR 100)
+          )
+          FROM messages m2
+          WHERE m2.conversation_id = c.id
+          ORDER BY COALESCE(m2.sent_at, m2.created_at) DESC
+          LIMIT 1
+        ) AS last_message_preview
+       FROM conversations c
+       LEFT JOIN deals d ON d.id = c.deal_id
+       LEFT JOIN deals d_main ON d_main.id = c.deal_id
+       LEFT JOIN leads l ON l.id = c.lead_id
+       LEFT JOIN deals dl ON dl.lead_id = l.id AND dl.id != COALESCE(c.deal_id, '00000000-0000-0000-0000-000000000000')
+       LEFT JOIN team_members tm ON tm.id = c.created_by_id
+       LEFT JOIN team_members ta ON ta.id = c.assigned_to_id
+       ${whereClause}
+       ORDER BY c.id, ${sortColumn} ${sortOrder} NULLS LAST
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+    const queryWithoutAssign = `SELECT DISTINCT ON (c.id)
         c.*,
         l.email AS lead_email,
         COALESCE(l.first_name || ' ' || l.last_name, l.email) AS lead_name,
@@ -247,9 +297,19 @@ export class ConversationService {
        LEFT JOIN team_members tm ON tm.id = c.created_by_id
        ${whereClause}
        ORDER BY c.id, ${sortColumn} ${sortOrder} NULLS LAST
-       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-      [...params, limit, offset]
-    );
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+    const queryParams = [...params, limit, offset];
+    let conversations: ConversationWithDetails[];
+    try {
+      conversations = await db.query<ConversationWithDetails>(queryWithAssign, queryParams);
+    } catch (err) {
+      const msg = (err as Error)?.message ?? '';
+      if (msg.includes('assigned_to_id') && msg.includes('does not exist')) {
+        conversations = await db.query<ConversationWithDetails>(queryWithoutAssign, queryParams);
+      } else {
+        throw err;
+      }
+    }
 
     // Re-sort because DISTINCT ON forces a specific first ORDER BY column
     const sortedConversations = this.sortResults(conversations, sortBy, filters.sort_order ?? 'desc');
@@ -310,8 +370,34 @@ export class ConversationService {
   // ===========================================================================
 
   async getConversationById(conversationId: string): Promise<ConversationWithDetails> {
-    const conversation = await db.queryOne<ConversationWithDetails>(
-      `SELECT
+    const queryWithAssign = `SELECT
+        c.*,
+        l.email AS lead_email,
+        COALESCE(l.first_name || ' ' || l.last_name, l.email) AS lead_name,
+        d.name AS deal_name,
+        d.status AS deal_status,
+        tm.name AS created_by_name,
+        tm.email AS created_by_email,
+        tm.avatar AS created_by_avatar,
+        ta.name AS assigned_to_name,
+        ta.avatar AS assigned_to_avatar,
+        (
+          SELECT COUNT(*)::int FROM messages m
+          WHERE m.conversation_id = c.id
+            AND m.read_at IS NULL
+            AND m.direction = 'inbound'
+        ) AS unread_count,
+        (
+          SELECT COUNT(*)::int FROM messages m
+          WHERE m.conversation_id = c.id
+        ) AS message_count
+       FROM conversations c
+       LEFT JOIN deals d ON d.id = c.deal_id
+       LEFT JOIN leads l ON l.id = c.lead_id
+       LEFT JOIN team_members tm ON tm.id = c.created_by_id
+       LEFT JOIN team_members ta ON ta.id = c.assigned_to_id
+       WHERE c.id = $1`;
+    const queryWithoutAssign = `SELECT
         c.*,
         l.email AS lead_email,
         COALESCE(l.first_name || ' ' || l.last_name, l.email) AS lead_name,
@@ -334,9 +420,18 @@ export class ConversationService {
        LEFT JOIN deals d ON d.id = c.deal_id
        LEFT JOIN leads l ON l.id = c.lead_id
        LEFT JOIN team_members tm ON tm.id = c.created_by_id
-       WHERE c.id = $1`,
-      [conversationId]
-    );
+       WHERE c.id = $1`;
+    let conversation: ConversationWithDetails | null;
+    try {
+      conversation = await db.queryOne<ConversationWithDetails>(queryWithAssign, [conversationId]);
+    } catch (err) {
+      const msg = (err as Error)?.message ?? '';
+      if (msg.includes('assigned_to_id') && msg.includes('does not exist')) {
+        conversation = await db.queryOne<ConversationWithDetails>(queryWithoutAssign, [conversationId]);
+      } else {
+        throw err;
+      }
+    }
 
     if (!conversation) {
       throw new NotFoundError('Conversation', conversationId);
@@ -486,15 +581,40 @@ export class ConversationService {
       paramIdx++;
     }
 
+    if (data.assigned_to_id !== undefined) {
+      setClauses.push(`assigned_to_id = $${paramIdx}`);
+      params.push(data.assigned_to_id);
+      paramIdx++;
+    }
+
     if (setClauses.length === 1) {
       // Only updated_at – nothing to change
       return this.getConversationById(conversationId);
     }
 
-    await db.execute(
-      `UPDATE conversations SET ${setClauses.join(', ')} WHERE id = $1`,
-      params
-    );
+    try {
+      await db.execute(
+        `UPDATE conversations SET ${setClauses.join(', ')} WHERE id = $1`,
+        params
+      );
+    } catch (err) {
+      const msg = (err as Error)?.message ?? '';
+      if (msg.includes('assigned_to_id') && msg.includes('does not exist') && data.assigned_to_id !== undefined) {
+        const idx = setClauses.findIndex((c) => c.startsWith('assigned_to_id'));
+        if (idx !== -1) {
+          setClauses.splice(idx, 1);
+          params.pop();
+          if (setClauses.length > 1) {
+            await db.execute(
+              `UPDATE conversations SET ${setClauses.join(', ')} WHERE id = $1`,
+              params
+            );
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
 
     return this.getConversationById(conversationId);
   }

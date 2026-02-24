@@ -330,6 +330,7 @@ export interface Conversation {
   created_by_id?: string;
   initiated_by_lead?: boolean;
   imported_at?: Date;
+  assigned_to_id?: string;
   created_at: Date;
   updated_at: Date;
 }

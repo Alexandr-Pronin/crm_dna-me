@@ -28,6 +28,7 @@ import {
   DialogActions,
   Select,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import ConversationListItem from './ConversationListItem';
 import ChatWindow from './ChatWindow';
-import { API_URL, httpClient } from '../../providers/dataProvider';
+import { API_URL, httpClient, getTeamMembers } from '../../providers/dataProvider';
 import './ChatPanel.css';
 
 const TABS = [
@@ -46,6 +47,7 @@ const TABS = [
   { label: 'Direkt', filter: { type: 'direct' } },
   { label: 'Intern', filter: { type: 'internal' } },
   { label: 'Gruppe', filter: { type: 'group' } },
+  { label: 'Archiv', filter: { status: 'archived' } },
 ];
 
 function ChatPanel({ leadId, dealId, onClose }) {
@@ -58,13 +60,19 @@ function ChatPanel({ leadId, dealId, onClose }) {
   const [newSubject, setNewSubject] = useState('');
   const [newType, setNewType] = useState('direct');
   const [creating, setCreating] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignConversation, setAssignConversation] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [assigning, setAssigning] = useState(false);
 
-  // Get current user email for message ownership
+  // Get current user info for message ownership and visibility
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('auth_user'));
       setCurrentUserEmail(user?.email || null);
+      setCurrentUserId(user?.id || null);
     } catch { /* ignore */ }
   }, []);
 
@@ -82,6 +90,8 @@ function ChatPanel({ leadId, dealId, onClose }) {
       // Tab filter
       const tabFilter = TABS[tabIndex]?.filter || {};
       if (tabFilter.type) params.set('type', tabFilter.type);
+      if (tabFilter.status) params.set('status', tabFilter.status);
+      else params.set('status', 'active'); // без Архив — только активные чаты
 
       // Search
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
@@ -127,6 +137,67 @@ function ChatPanel({ leadId, dealId, onClose }) {
       console.error('Create conversation failed:', err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteChat = async (conv) => {
+    if (!conv?.id) return;
+    if (!window.confirm('Chat wirklich unwiderruflich löschen? Alle Nachrichten gehen verloren.')) return;
+    try {
+      await httpClient(`${API_URL}/conversations/${conv.id}?hard=true`, { method: 'DELETE' });
+      if (activeConversationId === conv.id) setActiveConversationId(null);
+      loadConversations();
+    } catch (err) {
+      console.error('Delete conversation failed:', err);
+    }
+  };
+
+  const handleArchiveChat = async (conv) => {
+    if (!conv?.id) return;
+    try {
+      await httpClient(`${API_URL}/conversations/${conv.id}`, { method: 'DELETE' });
+      if (activeConversationId === conv.id) setActiveConversationId(null);
+      loadConversations();
+    } catch (err) {
+      console.error('Archive conversation failed:', err);
+    }
+  };
+
+  const handleAssignChat = (conv) => {
+    setAssignConversation(conv);
+    setAssignOpen(true);
+    getTeamMembers({ limit: 100 }).then((res) => {
+      setTeamMembers(res.data ?? res ?? []);
+    }).catch(() => setTeamMembers([]));
+  };
+
+  const handleVisibilityChange = async (conv, newAssignedToId) => {
+    try {
+      await httpClient(`${API_URL}/conversations/${conv.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assigned_to_id: newAssignedToId }),
+      });
+      loadConversations();
+    } catch (err) {
+      console.error('Visibility change failed:', err);
+    }
+  };
+
+  const handleAssignSelect = async (memberId) => {
+    if (!assignConversation?.id || !memberId) return;
+    setAssigning(true);
+    try {
+      await httpClient(`${API_URL}/conversations/${assignConversation.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assigned_to_id: memberId }),
+      });
+      setAssignOpen(false);
+      setAssignConversation(null);
+      loadConversations();
+    } catch (err) {
+      console.error('Assign conversation failed:', err);
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -247,8 +318,13 @@ function ChatPanel({ leadId, dealId, onClose }) {
                 <ConversationListItem
                   key={conv.id}
                   conversation={conv}
-                  isActive={false}
+                  isActive={activeConversationId === conv.id}
                   onClick={() => setActiveConversationId(conv.id)}
+                  onDeleteChat={handleDeleteChat}
+                  onArchiveChat={handleArchiveChat}
+                  onAssignChat={handleAssignChat}
+                  onVisibilityChange={handleVisibilityChange}
+                  currentUserId={currentUserId}
                 />
               ))
             )}
@@ -267,6 +343,49 @@ function ChatPanel({ leadId, dealId, onClose }) {
           }}
         />
       )}
+
+      {/* ================================================================
+       * ASSIGN CONVERSATION DIALOG
+       * ================================================================ */}
+      <Dialog
+        open={assignOpen}
+        onClose={() => { setAssignOpen(false); setAssignConversation(null); }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Chat zuweisen</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Wählen Sie ein Teammitglied – der Lead wird dieser Person zugeordnet (Icon in der Chat-Liste).
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleAssignSelect(null)}
+              disabled={assigning}
+              sx={{ justifyContent: 'flex-start' }}
+            >
+              Zuweisung aufheben
+            </Button>
+            {teamMembers.map((member) => (
+              <Button
+                key={member.id}
+                size="small"
+                variant="outlined"
+                onClick={() => handleAssignSelect(member.id)}
+                disabled={assigning}
+                sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+              >
+                <Avatar src={member.avatar} sx={{ width: 24, height: 24, mr: 1.5, fontSize: 12 }}>
+                  {(member.name || member.email || '?').slice(0, 2).toUpperCase()}
+                </Avatar>
+                {member.name || member.email}
+              </Button>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
 
       {/* ================================================================
        * CREATE CONVERSATION DIALOG

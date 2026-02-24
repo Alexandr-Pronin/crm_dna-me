@@ -43,6 +43,7 @@ const updateConversationSchema = z.object({
   status: z.enum(['active', 'archived', 'closed']).optional(),
   participant_emails: z.array(z.string().email()).optional(),
   type: z.enum(['direct', 'group', 'internal']).optional(),
+  assigned_to_id: z.string().uuid().nullable().optional(),
 });
 
 const conversationFiltersSchema = z.object({
@@ -150,6 +151,9 @@ function transformConversationResponse(conversation: ConversationWithDetails) {
           ? conversation.imported_at
           : (conversation.imported_at as Date).toISOString?.() ?? conversation.imported_at)
       : null,
+    assigned_to_id: conversation.assigned_to_id ?? null,
+    assigned_to_name: conversation.assigned_to_name ?? null,
+    assigned_to_avatar: conversation.assigned_to_avatar ?? null,
     // Counts
     unread_count: conversation.unread_count ?? 0,
     message_count: conversation.message_count ?? 0,
@@ -412,6 +416,7 @@ export async function conversationsRoutes(fastify: FastifyInstance): Promise<voi
             status: { type: 'string', enum: ['active', 'archived', 'closed'] },
             participant_emails: { type: 'array', items: { type: 'string', format: 'email' } },
             type: { type: 'string', enum: ['direct', 'group', 'internal'] },
+            assigned_to_id: { type: ['string', 'null'], format: 'uuid' },
           },
         },
         response: {
