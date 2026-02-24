@@ -35,6 +35,7 @@ import { linkedinRoutes } from './api/routes/linkedin.js';
 import { emailAccountsRoutes } from './api/routes/emailAccounts.js';
 import { emailImportRoutes } from './api/routes/emailImport.js';
 import { webhooksRoutes } from './api/routes/webhooks.js';
+import { adminRoutes } from './api/routes/admin.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -180,6 +181,7 @@ await fastify.register(conversationsRoutes, { prefix: '/api/v1' });
 await fastify.register(linkedinRoutes, { prefix: '/api/v1' });
 await fastify.register(emailAccountsRoutes, { prefix: '/api/v1' });
 await fastify.register(emailImportRoutes, { prefix: '/api/v1' });
+await fastify.register(adminRoutes, { prefix: '/api/v1' });
 await fastify.register(webhooksRoutes, { prefix: '/api' });
 
 // =============================================================================

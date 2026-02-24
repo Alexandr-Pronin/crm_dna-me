@@ -287,6 +287,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
                   company_size: { type: 'string' },
                   country: { type: 'string' },
                   linkedin_url: { type: 'string', format: 'uri' },
+                  message: { type: 'string' },
                   source: { type: 'string' },
                   campaign_id: { type: 'string' },
                   metadata: { type: 'object', additionalProperties: true }
@@ -358,7 +359,8 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
             batch_index: index,
             batch_total: bulkData.leads.length,
             skip_duplicates: bulkData.skip_duplicates,
-            api_key_source: request.apiKeySource
+            api_key_source: request.apiKeySource,
+            ...(lead.message && lead.message.trim() ? { initial_message: lead.message.trim() } : {}),
           },
           occurred_at: queuedAt
         };
