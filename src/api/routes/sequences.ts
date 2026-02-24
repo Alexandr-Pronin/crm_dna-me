@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { authenticateOrApiKey } from '../middleware/auth.js';
 import { db } from '../../db/index.js';
 import { getEmailService } from '../../services/emailService.js';
+import { wrapEmailMarketingBody } from '../../templates/emailMarketingLayout.js';
 import { enrollLeadInSequence, pauseEnrollment, resumeEnrollment, triggerImmediateSend } from '../../workers/emailSequenceWorker.js';
 import { ValidationError, NotFoundError } from '../../errors/index.js';
 import type { EmailSequence, EmailSequenceStep, EmailSequenceEnrollment } from '../../types/index.js';
@@ -1025,10 +1026,11 @@ export async function sequencesRoutes(fastify: FastifyInstance): Promise<void> {
         return result;
       };
 
+      const htmlRaw = replaceVariables(step.body_html);
       const result = await emailService.sendEmail({
         to: email,
         subject: `[TEST] ${replaceVariables(step.subject)}`,
-        html: replaceVariables(step.body_html),
+        html: wrapEmailMarketingBody(htmlRaw),
         text: step.body_text ? replaceVariables(step.body_text) : undefined
       });
 

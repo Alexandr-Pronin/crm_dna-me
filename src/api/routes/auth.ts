@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { authService } from '../../services/authService.js';
+import { recordSystemActivity } from '../../services/activityService.js';
 import {
   loginSchema,
   registerSchema,
@@ -39,6 +40,18 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
       if (!user) {
         throw new Error('Failed to create user');
       }
+
+      await recordSystemActivity({
+        event_type: 'team_member_registered',
+        event_category: 'system',
+        source: 'system',
+        metadata: {
+          label: 'Neuer Benutzer registriert',
+          team_member_id: user.id,
+          team_member_email: user.email,
+          team_member_name: user.name ?? undefined,
+        },
+      });
 
       const userPayload = { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar ?? undefined };
 

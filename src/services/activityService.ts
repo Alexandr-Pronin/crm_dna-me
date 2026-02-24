@@ -18,7 +18,9 @@ export type ActivitySource =
   | 'manual'
   | 'api'
   | 'import'
-  | 'imap';
+  | 'imap'
+  | 'trigger'
+  | 'system';
 
 export interface RecordActivityInput {
   lead_id: string;
@@ -62,4 +64,33 @@ export async function recordActivity(input: RecordActivityInput): Promise<void> 
       [occurredAt, input.lead_id],
     );
   }
+}
+
+export interface RecordSystemActivityInput {
+  event_type: string;
+  event_category?: string;
+  source?: ActivitySource;
+  metadata?: Record<string, unknown>;
+  occurred_at?: Date;
+}
+
+/**
+ * Inserts a system event (no lead_id) for "Letzte Aktivitäten", e.g. new team member registered.
+ */
+export async function recordSystemActivity(input: RecordSystemActivityInput): Promise<void> {
+  const occurredAt = input.occurred_at ?? new Date();
+  await db.execute(
+    `INSERT INTO events (
+      id, lead_id, event_type, event_category, source,
+      metadata, occurred_at
+    ) VALUES ($1, NULL, $2, $3, $4, $5::jsonb, $6)`,
+    [
+      uuidv4(),
+      input.event_type,
+      input.event_category ?? 'system',
+      input.source ?? 'system',
+      JSON.stringify(input.metadata ?? {}),
+      occurredAt,
+    ],
+  );
 }

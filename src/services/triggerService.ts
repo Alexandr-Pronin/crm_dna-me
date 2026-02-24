@@ -9,6 +9,9 @@ import { getMocoService } from '../integrations/moco.js';
 import { getSlackService } from '../integrations/slack.js';
 import { getCituroService } from '../integrations/cituro.js';
 import { enrollLeadInSequence, triggerImmediateSend } from '../workers/emailSequenceWorker.js';
+import { getConversationService } from './conversationService.js';
+import { getMessageService } from './messageService.js';
+import { recordActivity } from './activityService.js';
 import { NotFoundError, ValidationError } from '../errors/index.js';
 import type { Lead, Deal } from '../types/index.js';
 
@@ -55,6 +58,66 @@ export class TriggerService {
   private mocoService = getMocoService();
   private slackService = getSlackService();
   private cituroService = getCituroService();
+
+  /**
+   * Ermittelt eine System-User-ID für Automatisierungs-Aktionen (z. B. Konversation anlegen).
+   * Bevorzugt ersten Admin, sonst ersten aktiven Team-Member.
+   */
+  private async getSystemUserId(): Promise<string | null> {
+    const admin = await db.queryOne<{ id: string }>(
+      `SELECT id FROM team_members WHERE is_active = true AND role = 'admin' LIMIT 1`
+    );
+    if (admin?.id) return admin.id;
+    const anyUser = await db.queryOne<{ id: string }>(
+      `SELECT id FROM team_members WHERE is_active = true LIMIT 1`
+    );
+    return anyUser?.id ?? null;
+  }
+
+  /**
+   * Schreibt eine Automatisierungs-Nachricht in die Lead-Konversation und zeichnet Activity auf.
+   */
+  private async addAutomationToLeadConversation(
+    leadId: string,
+    eventType: string,
+    eventLabel: string,
+    messageBody: string,
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await recordActivity({
+        lead_id: leadId,
+        event_type: eventType,
+        event_category: 'marketing',
+        source: 'trigger',
+        metadata: { ...metadata, label: eventLabel },
+      });
+      const systemUserId = await this.getSystemUserId();
+      if (!systemUserId) return;
+      const conversationService = getConversationService();
+      const conversation = await conversationService.findOrCreateConversation(
+        leadId,
+        null,
+        systemUserId,
+        undefined,
+        false
+      );
+      const messageService = getMessageService();
+      await messageService.createMessage(
+        conversation.id,
+        {
+          message_type: 'internal_note',
+          direction: 'internal',
+          body_text: messageBody,
+          body_html: `<p>${messageBody.replace(/</g, '&lt;')}</p>`,
+          metadata: { automation: true, ...metadata },
+        },
+        systemUserId
+      );
+    } catch (err) {
+      console.warn('[TriggerService] addAutomationToLeadConversation failed:', err);
+    }
+  }
 
   // ===========================================================================
   // Execute Trigger Action
@@ -165,6 +228,17 @@ export class TriggerService {
 
     const result = await this.emailService.sendTemplatedEmail(emailOptions, variables);
 
+    if (result.success && context.lead_id) {
+      const subject = String(config.subject ?? '').trim() || '(ohne Betreff)';
+      await this.addAutomationToLeadConversation(
+        context.lead_id,
+        'email_sent',
+        'E-Mail (Automatisierung)',
+        `Automatisierung: E-Mail gesendet. Betreff: ${subject}`,
+        { trigger_action: 'send_email', subject }
+      );
+    }
+
     return {
       success: result.success,
       action: 'send_email',
@@ -199,8 +273,8 @@ export class TriggerService {
       throw new ValidationError('sequence_id benötigt für enroll_email_sequence');
     }
 
-    const sequence = await db.queryOne<{ id: string; is_active: boolean }>(
-      'SELECT id, is_active FROM email_sequences WHERE id = $1',
+    const sequence = await db.queryOne<{ id: string; name: string; is_active: boolean }>(
+      'SELECT id, name, is_active FROM email_sequences WHERE id = $1',
       [sequenceId]
     );
 
@@ -227,6 +301,15 @@ export class TriggerService {
     if (!enrollmentId) {
       throw new ValidationError('Lead konnte nicht eingeschrieben werden');
     }
+
+    // In "Letzte Aktivitäten" anzeigen
+    await this.addAutomationToLeadConversation(
+      leadId,
+      'enrolled_in_sequence',
+      'In E-Mail-Sequenz eingeschrieben',
+      `Automatisierung: Lead in E-Mail-Sequenz „${sequence.name}“ eingeschrieben.`,
+      { sequence_id: sequenceId, sequence_name: sequence.name, deal_id: context.deal_id }
+    );
 
     // Trigger immediate send so the first email goes out right away
     try {
@@ -425,6 +508,17 @@ export class TriggerService {
       subject,
       html
     });
+
+    // In "Letzte Aktivitäten" anzeigen (Lead aus Deal)
+    if (result.success && deal.lead_id) {
+      await this.addAutomationToLeadConversation(
+        deal.lead_id,
+        'deal_notification_sent',
+        'Deal-Benachrichtigung gesendet',
+        `Automatisierung: Deal-Benachrichtigung per E-Mail gesendet (Deal: ${dealName}).`,
+        { deal_id: context.deal_id, stage_id: context.stage_id }
+      );
+    }
 
     return {
       success: result.success,
@@ -832,14 +926,22 @@ export class TriggerService {
       message
     });
 
-    // Sende E-Mail mit Booking-Link
+    // Sende E-Mail mit Booking-Link (Vorlage aus Einstellungen, Trigger-Konfiguration oder Fallback)
     const emailSubject = (config.email_subject as string) || 'Terminvereinbarung - DNA ME';
-    const emailHtml = (config.email_html as string) || 
-      `<p>Hallo ${lead.first_name || 'Liebe/r Interessent/in'},</p>
-       <p>Vielen Dank für Ihr Interesse. Bitte wählen Sie einen passenden Termin:</p>
-       <p><a href="${bookingLink.url}" style="background-color: #6C5CE7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Termin buchen</a></p>
-       <p>Oder kopieren Sie diesen Link: ${bookingLink.url}</p>
-       <p>Mit freundlichen Grüßen<br>Ihr DNA ME Team</p>`;
+    let emailHtml = (config.email_html as string)?.trim();
+    if (!emailHtml) {
+      const { getCituroTemplate } = await import('../config/integrationSettings.js');
+      emailHtml = (await getCituroTemplate()).trim();
+    }
+    if (!emailHtml) {
+      const { CITURO_INVITE_HTML_DEFAULT } = await import('../templates/cituroInviteEmail.js');
+      emailHtml = CITURO_INVITE_HTML_DEFAULT;
+    }
+    // Platzhalter bzw. statische Cituro-URL in der Vorlage durch dynamischen Buchungslink ersetzen
+    emailHtml = emailHtml
+      .replace(/\{BOOKING_LINK\}/g, bookingLink.url)
+      .replace(/\{booking_link\}/g, bookingLink.url)
+      .replace(/https:\/\/app\.cituro\.com\/booking\/[a-zA-Z0-9-]+/g, bookingLink.url);
 
     const emailResult = await this.emailService.sendEmail({
       to: lead.email,
@@ -847,8 +949,19 @@ export class TriggerService {
       html: emailHtml
     });
 
+    const success = emailResult.success && !!bookingLink.url;
+    if (success) {
+      await this.addAutomationToLeadConversation(
+        context.lead_id!,
+        'cituro_invite_sent',
+        'Termin-Einladung gesendet',
+        'Termin-Einladung (Buchungslink) per E-Mail gesendet.',
+        { trigger_action: 'send_cituro_booking', cituro_invite: true }
+      );
+    }
+
     return {
-      success: emailResult.success && !!bookingLink.url,
+      success,
       action: 'send_cituro_booking',
       result: {
         booking_link: bookingLink.url,

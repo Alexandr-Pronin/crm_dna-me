@@ -122,6 +122,12 @@ const SOURCE_CONFIG = {
     bgColor: '#8E44AD20',
     icon: ImportIcon,
   },
+  trigger: {
+    label: 'Automatisierung',
+    color: '#8B5CF6',
+    bgColor: '#8B5CF620',
+    icon: SendIcon,
+  },
 };
 
 // Event type to icon mapping
@@ -168,6 +174,8 @@ const getEventIcon = (eventType) => {
     webinar_attended: ConferenceIcon,
     conference_visited: ConferenceIcon,
     trade_show_scanned: ConferenceIcon,
+    // Automation (Pipeline/Trigger)
+    cituro_invite_sent: MeetingIcon,
   };
   return iconMap[eventType] || SourceIcon;
 };
@@ -216,6 +224,8 @@ const getEventLabel = (eventType) => {
     webinar_attended: 'Webinar Attended',
     conference_visited: 'Conference Visited',
     trade_show_scanned: 'Trade Show Scanned',
+    // Automation
+    cituro_invite_sent: 'Termin-Einladung gesendet',
   };
   // Format unknown event types: replace underscores and capitalize
   return labels[eventType] || eventType.split('_').map(w => 
@@ -372,7 +382,7 @@ const TimelineEntry = ({ event, isLast }) => {
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
             <Box sx={{ flex: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-                {getEventLabel(event.event_type)}
+                {event.metadata?.label || getEventLabel(event.event_type)}
               </Typography>
               {event.event_category && (
                 <Typography variant="caption" color="text.secondary">

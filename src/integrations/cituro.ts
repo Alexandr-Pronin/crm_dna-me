@@ -1,14 +1,52 @@
 // =============================================================================
 // src/integrations/cituro.ts
 // Cituro Integration - Meeting Booking & Scheduling
+// API: https://app.cituro.com/api | Auth: X-API-KEY
 // =============================================================================
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config/index.js';
 
 // =============================================================================
-// Types
+// Types – CRM Lead mapping & Cituro API
 // =============================================================================
+
+/** CRM lead shape for sync: maps first_name, last_name, email, phone → Cituro customer */
+export interface CituroCrmLead {
+  first_name?: string;
+  last_name?: string;
+  email: string;
+  phone?: string;
+}
+
+/** Cituro customer (from GET /customers or POST /customers) */
+export interface CituroCustomer {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  mobilePhone?: string;
+  [key: string]: unknown;
+}
+
+/** List response for GET /customers?filter[email]=... */
+export interface CituroCustomersResponse {
+  data?: CituroCustomer[];
+  [key: string]: unknown;
+}
+
+/** Single customer response (POST /customers) */
+export interface CituroCustomerResponse {
+  data?: CituroCustomer;
+  id?: string;
+  [key: string]: unknown;
+}
+
+/** Options for createMeetingWithLead (optional employee/resource, duration) */
+export interface CreateMeetingWithLeadOptions {
+  durationMinutes?: number;
+  employeeId?: string;
+}
 
 export interface CituroBookingLinkData {
   lead_email: string;
@@ -90,33 +128,44 @@ export class CituroService {
   private client: AxiosInstance;
   private apiKey: string;
   private subdomain: string;
+  /** Base URL for app.cituro.com API (default https://app.cituro.com/api) */
+  private baseUrl: string;
+  /** Service ID for "Meeting with Lead" – from CITURO_SERVICE_ID */
+  private serviceId: string;
 
   constructor(apiKey?: string, subdomain?: string) {
-    this.apiKey = apiKey || config.cituro?.apiKey || '';
-    this.subdomain = subdomain || config.cituro?.subdomain || '';
+    this.apiKey = apiKey ?? config.cituro?.apiKey ?? '';
+    this.subdomain = subdomain ?? config.cituro?.subdomain ?? '';
+    this.baseUrl = config.cituro?.baseUrl ?? 'https://app.cituro.com/api';
+    this.serviceId = config.cituro?.serviceId ?? '';
 
-    if (!this.apiKey || !this.subdomain) {
-      console.warn('⚠️ CituroService: API key or subdomain not configured');
+    if (!this.apiKey) {
+      console.warn('⚠️ CituroService: CITURO_API_KEY not configured');
     }
 
-    // Cituro API base URL - adjust based on actual API documentation
+    // Cituro API: Base URL https://app.cituro.com/api, auth via X-API-KEY (not Bearer)
     this.client = axios.create({
-      baseURL: `https://${this.subdomain}.cituro.com/api/v1`,
+      baseURL: this.baseUrl,
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        'X-API-KEY': this.apiKey,
         'Content-Type': 'application/json'
       },
-      timeout: 30000 // 30 seconds
+      timeout: 30000
     });
 
-    // Add response interceptor for error handling
+    // Response interceptor: handle 401 (auth) and 429 (rate limit) explicitly
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
-        const statusCode = error.response?.status || 500;
-        const cituroMessage = (error.response?.data as { message?: string; error?: string })?.message 
-          || (error.response?.data as { message?: string; error?: string })?.error;
-        
+        const statusCode = error.response?.status ?? 500;
+        const data = error.response?.data as { message?: string; error?: string } | undefined;
+        const cituroMessage = data?.message ?? data?.error;
+        if (statusCode === 401) {
+          throw new CituroError('Cituro API authentication failed (invalid or missing X-API-KEY)', 401, cituroMessage);
+        }
+        if (statusCode === 429) {
+          throw new CituroError('Cituro API rate limit exceeded', 429, cituroMessage);
+        }
         throw new CituroError(
           `Cituro API error: ${error.message}`,
           statusCode,
@@ -131,7 +180,12 @@ export class CituroService {
   // ===========================================================================
 
   isConfigured(): boolean {
-    return !!(this.apiKey && this.subdomain);
+    return !!this.apiKey;
+  }
+
+  /** Whether "Meeting with Lead" service ID is set (required for createMeetingWithLead) */
+  isMeetingServiceConfigured(): boolean {
+    return !!this.serviceId;
   }
 
   // ===========================================================================
@@ -140,20 +194,109 @@ export class CituroService {
 
   async testConnection(): Promise<{ connected: boolean; error?: string }> {
     if (!this.isConfigured()) {
-      return { connected: false, error: 'Cituro API key or subdomain not configured' };
+      return { connected: false, error: 'Cituro API key not configured' };
     }
-
     try {
-      // Try to get account info or availability to test connection
-      // Adjust endpoint based on actual Cituro API
-      await this.client.get('/account');
+      // Lightweight check: list customers with limit 1
+      await this.client.get('/customers', { params: { 'page[limit]': 1 } });
       return { connected: true };
     } catch (error) {
-      const message = error instanceof CituroError 
-        ? error.cituroMessage || error.message 
+      const message = error instanceof CituroError
+        ? (error.cituroMessage ?? error.message)
         : (error as Error).message;
       return { connected: false, error: message };
     }
+  }
+
+  // ===========================================================================
+  // Task 1: Sync Client (Get or Create) – ensures a client exists in Cituro
+  // ===========================================================================
+
+  /**
+   * Ensures a client exists in Cituro for the given CRM lead.
+   * 1. Checks existence via GET /customers?filter[email]=<email>
+   * 2. If not found, creates/updates via POST /customers?key=email (Cituro docs:
+   *    key=email makes the API search by email and update if found, else create)
+   * Returns the Cituro customerId (UUID).
+   */
+  async syncCituroClient(crmLead: CituroCrmLead): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new CituroError('Cituro not configured', 500);
+    }
+    const email = crmLead.email?.trim();
+    if (!email) {
+      throw new CituroError('CRM lead email is required for sync', 400);
+    }
+
+    // Step 1: Check existence – GET /customers?filter[email]=<email>
+    const listRes = await this.client.get<CituroCustomersResponse>('/customers', {
+      params: { 'filter[email]': email }
+    });
+    const list: CituroCustomer[] = (listRes.data?.data ?? (Array.isArray(listRes.data) ? listRes.data : [])) as CituroCustomer[];
+    const existing = list[0];
+    if (existing?.id) {
+      return existing.id;
+    }
+
+    // Step 2: Create or update in one call – POST /customers?key=email
+    // key=email: API looks up by email and updates if found, otherwise creates (efficient single-step upsert)
+    const payload = {
+      firstName: crmLead.first_name ?? '',
+      lastName: crmLead.last_name ?? '',
+      email,
+      mobilePhone: crmLead.phone ?? undefined
+    };
+    const createRes = await this.client.post<CituroCustomerResponse>('/customers', payload, {
+      params: { key: 'email' }
+    });
+    const resData = createRes.data as CituroCustomerResponse & { id?: string };
+    const created = resData?.data ?? (resData && 'id' in resData ? (resData as CituroCustomer) : undefined);
+    const id = created?.id ?? resData?.id;
+    if (!id) {
+      throw new CituroError('Cituro did not return a customer ID', 502);
+    }
+    return id;
+  }
+
+  // ===========================================================================
+  // Task 2: Create "Meeting with Lead" Appointment
+  // ===========================================================================
+
+  /**
+   * Creates a "Meeting with Lead" appointment in Cituro for the given customer and start time.
+   * POST /appointments with startDate (ISO 8601), booking.customerId, items[].serviceId/duration/resources.
+   */
+  async createMeetingWithLead(
+    cituroCustomerId: string,
+    startTime: Date | string,
+    options: CreateMeetingWithLeadOptions = {}
+  ): Promise<{ appointmentId: string; [key: string]: unknown }> {
+    if (!this.isConfigured()) {
+      throw new CituroError('Cituro not configured', 500);
+    }
+    if (!this.serviceId) {
+      throw new CituroError('CITURO_SERVICE_ID not configured (required for Meeting with Lead)', 500);
+    }
+    const startDate = typeof startTime === 'string' ? startTime : startTime.toISOString().replace(/\.\d{3}Z$/, '');
+    const duration = options.durationMinutes ?? 30;
+    const item: { serviceId: string; duration: number; resources?: Array<{ id: string }> } = {
+      serviceId: this.serviceId,
+      duration
+    };
+    if (options.employeeId) {
+      item.resources = [{ id: options.employeeId }];
+    }
+    const payload = {
+      startDate,
+      booking: { customerId: cituroCustomerId },
+      items: [item]
+    };
+    const res = await this.client.post<{ data?: { id?: string }; id?: string }>('/appointments', payload);
+    const appointmentId = res.data?.data?.id ?? (res.data as { id?: string })?.id;
+    if (!appointmentId) {
+      throw new CituroError('Cituro did not return an appointment ID', 502);
+    }
+    return { appointmentId, ...(res.data as object) };
   }
 
   // ===========================================================================
@@ -161,14 +304,16 @@ export class CituroService {
   // ===========================================================================
 
   /**
-   * Generate a booking link for a lead
-   * Creates a personalized booking link that can be sent to the lead
+   * Generate a booking link for a lead.
+   * Tries POST /booking-links; if the Cituro API returns 404 (endpoint not available),
+   * returns the configured CITURO_BOOKING_URL so the invite email can still be sent.
    */
   async generateBookingLink(data: CituroBookingLinkData): Promise<CituroBookingLink> {
     if (!this.isConfigured()) {
       throw new CituroError('Cituro not configured', 500);
     }
 
+    const fallbackUrl = config.cituro?.bookingUrl;
     const payload = {
       email: data.lead_email,
       name: data.lead_name,
@@ -178,23 +323,44 @@ export class CituroService {
       message: data.message
     };
 
-    // Remove undefined values
     const cleanPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, v]) => v !== undefined)
     );
 
-    console.log(`[Cituro] Generating booking link for: ${data.lead_email}`);
-    
     try {
-      // Adjust endpoint and payload structure based on actual Cituro API
       const response = await this.client.post<CituroBookingLink>('/booking-links', cleanPayload);
-      console.log(`[Cituro] Booking link created: ${response.data.url}`);
-      
-      return response.data;
+      if (response.data?.url) {
+        return response.data;
+      }
     } catch (error) {
+      const status = (error as CituroError).statusCode ?? (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404 && fallbackUrl) {
+        return {
+          id: 'default',
+          url: fallbackUrl,
+          created_at: new Date().toISOString()
+        };
+      }
+      if (fallbackUrl) {
+        console.warn(`[Cituro] Booking-links API failed (${status}), using CITURO_BOOKING_URL`);
+        return {
+          id: 'default',
+          url: fallbackUrl,
+          created_at: new Date().toISOString()
+        };
+      }
       console.error(`[Cituro] Failed to generate booking link:`, error);
       throw error;
     }
+
+    if (fallbackUrl) {
+      return {
+        id: 'default',
+        url: fallbackUrl,
+        created_at: new Date().toISOString()
+      };
+    }
+    throw new CituroError('Cituro returned no booking URL and CITURO_BOOKING_URL is not set', 502);
   }
 
   /**

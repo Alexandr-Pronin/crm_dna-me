@@ -34,6 +34,7 @@ import { conversationsRoutes } from './api/routes/conversations.js';
 import { linkedinRoutes } from './api/routes/linkedin.js';
 import { emailAccountsRoutes } from './api/routes/emailAccounts.js';
 import { emailImportRoutes } from './api/routes/emailImport.js';
+import { webhooksRoutes } from './api/routes/webhooks.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -63,7 +64,7 @@ const fastify = Fastify({
 await fastify.register(cors, {
   origin: isDev ? true : (config.corsOrigin ? config.corsOrigin.split(',').map((o) => o.trim()) : ['https://crm.dna-me.com']),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID', 'X-Correlation-ID'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-CITURO-SIGNATURE', 'X-Request-ID', 'X-Correlation-ID'],
   credentials: true
 });
 
@@ -179,6 +180,7 @@ await fastify.register(conversationsRoutes, { prefix: '/api/v1' });
 await fastify.register(linkedinRoutes, { prefix: '/api/v1' });
 await fastify.register(emailAccountsRoutes, { prefix: '/api/v1' });
 await fastify.register(emailImportRoutes, { prefix: '/api/v1' });
+await fastify.register(webhooksRoutes, { prefix: '/api' });
 
 // =============================================================================
 // Graceful Shutdown

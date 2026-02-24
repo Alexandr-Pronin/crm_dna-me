@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
+  Typography,
   TextField,
   IconButton,
   Tooltip,
@@ -18,14 +19,17 @@ import {
   InputAdornment,
   Alert,
   Collapse,
+  Button,
 } from '@mui/material';
 import {
   Send as SendIcon,
   Email as EmailIcon,
   StickyNote2 as NoteIcon,
   AttachFile as AttachIcon,
+  CalendarMonth as CalendarIcon,
 } from '@mui/icons-material';
-import { API_URL, httpClient } from '../../providers/dataProvider';
+import { API_URL, httpClient, sendCituroInvite } from '../../providers/dataProvider';
+import { useNotify } from 'react-admin';
 
 const DRAFT_PREFIX = 'chat_draft_';
 const AUTO_SAVE_INTERVAL = 5000; // 5 s
@@ -37,8 +41,10 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
   const [messageType, setMessageType] = useState('email');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
+  const [cituroSending, setCituroSending] = useState(false);
   const typingTimerRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
+  const notify = useNotify();
 
   // --- Draft auto-restore ------------------------------------------------
   useEffect(() => {
@@ -131,6 +137,42 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
     }
   };
 
+  const handleSendCituroInvite = async () => {
+    if (!conversationId || cituroSending || disabled) return;
+    setCituroSending(true);
+    setSendError(null);
+    try {
+      const res = await sendCituroInvite(conversationId);
+      if (res?.success) {
+        notify(res?.email_sent ? 'Einladung per E-Mail gesendet.' : 'Buchungslink erstellt.', { type: 'success' });
+        // Nachricht im Chat anzeigen: "Termin-Einladung gesendet"
+        const inviteMessagePayload = {
+          message_type: 'internal_note',
+          direction: 'internal',
+          body_text: 'Termin-Einladung gesendet.',
+          body_html: '<p>Termin-Einladung gesendet.</p>',
+          metadata: { cituro_invite: true },
+        };
+        if (onSend) {
+          await onSend(inviteMessagePayload);
+        } else {
+          await httpClient(`${API_URL}/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(inviteMessagePayload),
+          });
+        }
+      } else {
+        setSendError(res?.message || 'Einladung konnte nicht gesendet werden.');
+      }
+    } catch (err) {
+      setSendError(err?.message || 'Einladung konnte nicht gesendet werden.');
+    } finally {
+      setCituroSending(false);
+    }
+  };
+
+  const isCituroInvite = messageType === 'cituro_invite';
+
   return (
     <Box
       className="chat-composer"
@@ -162,6 +204,10 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
             <EmailIcon sx={{ fontSize: 16, mr: 0.5, color: '#4A90A4' }} />
             E-Mail
           </MenuItem>
+          <MenuItem value="cituro_invite">
+            <CalendarIcon sx={{ fontSize: 16, mr: 0.5, color: '#8B5CF6' }} />
+            Termin einladen
+          </MenuItem>
         </Select>
 
         {messageType === 'email' && (
@@ -177,67 +223,85 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
         )}
       </Box>
 
-      {/* Input + send row */}
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-        <TextField
-          fullWidth
-          multiline
-          maxRows={6}
-          size="small"
-          className="chat-composer-input"
-          placeholder={
-            messageType === 'internal_note'
-              ? 'Interne Notiz schreiben...'
-              : 'Nachricht schreiben...'
-          }
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            emitTyping();
-          }}
-          onKeyDown={handleKeyDown}
-          disabled={sending || disabled}
-          slotProps={{
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Tooltip title="Anhang">
-                    <IconButton size="small" disabled>
-                      <AttachIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </Tooltip>
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
+      {/* Input + send row (or Cituro invite button) */}
+      {isCituroInvite ? (
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+            E-Mail mit Terminbuchungslink (Cituro) an den Lead senden.
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={cituroSending ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <CalendarIcon />}
+            onClick={handleSendCituroInvite}
+            disabled={cituroSending || disabled}
+            sx={{ bgcolor: '#8B5CF6', '&:hover': { bgcolor: '#7C3AED' } }}
+          >
+            {cituroSending ? 'Wird gesendet...' : 'Einladung senden'}
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+          <TextField
+            fullWidth
+            multiline
+            maxRows={6}
+            size="small"
+            className="chat-composer-input"
+            placeholder={
+              messageType === 'internal_note'
+                ? 'Interne Notiz schreiben...'
+                : 'Nachricht schreiben...'
+            }
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              emitTyping();
+            }}
+            onKeyDown={handleKeyDown}
+            disabled={sending || disabled}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Tooltip title="Anhang">
+                      <IconButton size="small" disabled>
+                        <AttachIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
 
-        {/* Send button */}
-        <Tooltip title="Senden (Enter)">
-          <span>
-            <IconButton
-              color="primary"
-              onClick={handleSend}
-              disabled={!text.trim() || sending || disabled}
-              className="chat-send-button"
-              sx={{
-                bgcolor: 'primary.main',
-                color: '#fff',
-                width: 40,
-                height: 40,
-                '&:hover': { bgcolor: 'primary.dark' },
-                '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' },
-              }}
-            >
-              {sending ? (
-                <CircularProgress size={18} sx={{ color: '#fff' }} />
-              ) : (
-                <SendIcon sx={{ fontSize: 18 }} />
-              )}
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
+          {/* Send button */}
+          <Tooltip title="Senden (Enter)">
+            <span>
+              <IconButton
+                color="primary"
+                onClick={handleSend}
+                disabled={!text.trim() || sending || disabled}
+                className="chat-send-button"
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: '#fff',
+                  width: 40,
+                  height: 40,
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' },
+                }}
+              >
+                {sending ? (
+                  <CircularProgress size={18} sx={{ color: '#fff' }} />
+                ) : (
+                  <SendIcon sx={{ fontSize: 18 }} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      )}
       <Collapse in={!!sendError}>
         <Alert
           severity="error"

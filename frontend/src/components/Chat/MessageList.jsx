@@ -12,6 +12,8 @@ import {
   LinkedIn as LinkedInIcon,
   StickyNote2 as NoteIcon,
   Task as TaskIcon,
+  CalendarMonth as CalendarIcon,
+  Send as SendIcon,
   CallReceived as InboundIcon,
   CallMade as OutboundIcon,
 } from '@mui/icons-material';
@@ -102,7 +104,13 @@ function stripHtml(html) {
 }
 
 function MessageBubble({ msg, isOwn, conversation, currentUserEmail, onRetry }) {
-  const config = TYPE_CONFIG[msg.message_type] || TYPE_CONFIG.email;
+  const isCituroInvite = msg.message_type === 'internal_note' && msg.metadata?.cituro_invite;
+  const isAutomationEmail = msg.message_type === 'internal_note' && msg.metadata?.automation && msg.metadata?.trigger_action === 'send_email';
+  const config = isCituroInvite
+    ? { icon: CalendarIcon, color: '#8B5CF6', label: 'Einladung gesendet' }
+    : isAutomationEmail
+      ? { icon: SendIcon, color: '#8B5CF6', label: 'E-Mail (Automatisierung)' }
+      : (TYPE_CONFIG[msg.message_type] || TYPE_CONFIG.email);
   const TypeIcon = config.icon;
   const isInternal = msg.direction === 'internal';
 
@@ -168,6 +176,12 @@ function MessageBubble({ msg, isOwn, conversation, currentUserEmail, onRetry }) 
           </span>
           {msg.metadata?.imported && (
             <Chip label="Importiert" size="small" sx={{ height: 18, fontSize: '0.7rem' }} color="default" variant="outlined" />
+          )}
+          {msg.metadata?.cituro_invite && (
+            <Chip label="Termin-Einladung" size="small" sx={{ height: 18, fontSize: '0.7rem', bgcolor: '#8B5CF6', color: '#fff' }} />
+          )}
+          {msg.metadata?.automation && !msg.metadata?.cituro_invite && (
+            <Chip label="Automatisierung" size="small" sx={{ height: 18, fontSize: '0.7rem', bgcolor: '#8B5CF6', color: '#fff' }} />
           )}
           {msg.direction === 'inbound' && (
             <InboundIcon sx={{ fontSize: 12, color: '#4A90A4' }} />

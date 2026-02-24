@@ -7,6 +7,7 @@ import { Worker, Queue, Job } from 'bullmq';
 import { redisOptions } from '../config/redis.js';
 import { db } from '../db/index.js';
 import { getEmailService } from '../services/emailService.js';
+import { wrapEmailMarketingBody } from '../templates/emailMarketingLayout.js';
 import type { Lead, EmailSequence, EmailSequenceStep, EmailSequenceEnrollment } from '../types/index.js';
 
 // =============================================================================
@@ -273,7 +274,8 @@ async function sendSequenceEmail(
   };
 
   const subject = replaceVariables(dueEmail.step_subject);
-  const bodyHtml = replaceVariables(dueEmail.step_body_html);
+  const bodyHtmlRaw = replaceVariables(dueEmail.step_body_html);
+  const bodyHtml = wrapEmailMarketingBody(bodyHtmlRaw);
   const bodyText = dueEmail.step_body_text ? replaceVariables(dueEmail.step_body_text) : undefined;
 
   // Send the email with tracking

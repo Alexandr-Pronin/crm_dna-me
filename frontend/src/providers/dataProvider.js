@@ -763,6 +763,39 @@ export const getCituroStatus = async () => {
 };
 
 /**
+ * Get Cituro E-Mail-Vorlage (HTML) für Termin-Einladungen
+ */
+export const getCituroTemplate = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/template`);
+  return json;
+};
+
+/**
+ * Save Cituro E-Mail-Vorlage (HTML)
+ * @param {string} emailTemplateHtml - HTML string
+ */
+export const saveCituroTemplate = async (emailTemplateHtml) => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/template`, {
+    method: 'PUT',
+    body: JSON.stringify({ email_template_html: emailTemplateHtml }),
+  });
+  return json;
+};
+
+/**
+ * Send Cituro meeting invitation for a conversation (lead gets booking link email)
+ * @param {string} conversationId - Conversation UUID (must have lead_id)
+ * @returns {Promise<{ success: boolean, booking_link: string, email_sent: boolean }>}
+ */
+export const sendCituroInvite = async (conversationId) => {
+  const { json } = await httpClient(`${API_URL}/conversations/${conversationId}/send-cituro-invite`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  return json;
+};
+
+/**
  * Trigger manual Moco sync for a lead
  * @param {string} leadId - Lead UUID
  * @param {Object} options - Sync options

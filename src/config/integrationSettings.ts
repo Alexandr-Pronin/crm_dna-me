@@ -99,3 +99,37 @@ export async function setMocoConfig(updates: { api_key?: string; subdomain?: str
   mocoCache = null;
   await loadIntegrationSettingsCache();
 }
+
+// =============================================================================
+// Cituro E-Mail-Vorlage (HTML) – für Termin-Einladungen
+// =============================================================================
+
+const CITURO_TEMPLATE_KEY = 'cituro_template';
+
+type CituroTemplatePayload = {
+  email_template_html?: string;
+};
+
+/** Get saved Cituro HTML email template (for booking invitations). */
+export async function getCituroTemplate(): Promise<string> {
+  try {
+    const row = await db.queryOne<{ payload: CituroTemplatePayload }>(
+      `SELECT payload FROM integration_settings WHERE name = $1`,
+      [CITURO_TEMPLATE_KEY]
+    );
+    const p = row?.payload as CituroTemplatePayload | undefined;
+    return p?.email_template_html ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Save Cituro HTML email template. */
+export async function setCituroTemplate(emailTemplateHtml: string): Promise<void> {
+  await db.query(
+    `INSERT INTO integration_settings (name, payload, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (name) DO UPDATE SET payload = $2, updated_at = NOW()`,
+    [CITURO_TEMPLATE_KEY, JSON.stringify({ email_template_html: emailTemplateHtml })]
+  );
+}

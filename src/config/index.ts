@@ -54,10 +54,15 @@ const configSchema = z.object({
     enabled: z.boolean().default(false)
   }),
 
-  // Cituro Integration
+  // Cituro Integration (app.cituro.com API: X-API-KEY, base URL https://app.cituro.com/api)
   cituro: z.object({
     apiKey: z.string().nullish(),
     subdomain: z.string().nullish(),
+    baseUrl: z.string().url().optional(),
+    /** Fallback-URL für Terminbuchung, wenn die API keinen /booking-links Endpoint hat */
+    bookingUrl: z.string().url().optional(),
+    webhookSecret: z.string().nullish(),
+    serviceId: z.string().nullish(), // "Meeting with Lead" service ID for appointments
     enabled: z.boolean().default(false)
   }),
 
@@ -154,6 +159,10 @@ function loadConfig(): Config {
     cituro: {
       apiKey: process.env.CITURO_API_KEY || undefined,
       subdomain: process.env.CITURO_SUBDOMAIN || undefined,
+      baseUrl: process.env.CITURO_BASE_URL || undefined,
+      bookingUrl: process.env.CITURO_BOOKING_URL || undefined,
+      webhookSecret: process.env.CITURO_WEBHOOK_SECRET || undefined,
+      serviceId: process.env.CITURO_SERVICE_ID || undefined,
       enabled: parseBoolean(process.env.ENABLE_CITURO, false)
     },
     linkedin: {

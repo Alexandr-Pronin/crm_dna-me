@@ -37,6 +37,9 @@ const SOURCE_LABELS = {
   manual: 'Manual',
   api: 'API',
   import: 'Import',
+  imap: 'E-Mail',
+  trigger: 'Automatisierung',
+  system: 'System',
 };
 
 const formatRelativeTime = (value) => {
@@ -53,10 +56,15 @@ const EVENT_TYPE_LABELS = {
   email_received: 'E-Mail erhalten',
   lead_created: 'Lead erstellt',
   deal_created: 'Deal erstellt',
+  deal_notification_sent: 'Deal-Benachrichtigung gesendet',
+  enrolled_in_sequence: 'In E-Mail-Sequenz eingeschrieben',
+  team_member_registered: 'Neuer Benutzer registriert',
+  team_member_created: 'Neues Teammitglied hinzugefügt',
 };
 
-const humanizeEventType = (eventType) => {
+const humanizeEventType = (eventType, metadata) => {
   if (!eventType) return 'Aktivität aktualisiert';
+  if (metadata?.label) return metadata.label;
   if (EVENT_TYPE_LABELS[eventType]) return EVENT_TYPE_LABELS[eventType];
   return eventType
     .split('_')
@@ -64,12 +72,19 @@ const humanizeEventType = (eventType) => {
     .join(' ');
 };
 
-const buildLeadLabel = (lead) => {
-  if (!lead) return 'Unbekannter Lead';
-  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
-  if (fullName && lead.email) return `${fullName} (${lead.email})`;
-  if (fullName) return fullName;
-  return lead.email || lead.id || 'Unbekannter Lead';
+const buildLeadLabel = (lead, metadata) => {
+  if (lead) {
+    const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
+    if (fullName && lead.email) return `${fullName} (${lead.email})`;
+    if (fullName) return fullName;
+    return lead.email || lead.id || 'Unbekannter Lead';
+  }
+  if (metadata?.team_member_name || metadata?.team_member_email) {
+    const name = metadata.team_member_name || '';
+    const email = metadata.team_member_email || '';
+    return name && email ? `${name} (${email})` : name || email || 'System';
+  }
+  return 'System';
 };
 
 const ACTIVITIES_PER_PAGE = 10;
@@ -128,8 +143,8 @@ const RecentActivitiesCard = () => {
             )}
 
             {recentActivities.map((entry, index) => {
-              const eventLabel = humanizeEventType(entry.event_type);
-              const leadLabel = buildLeadLabel(entry.lead);
+              const eventLabel = humanizeEventType(entry.event_type, entry.metadata);
+              const leadLabel = buildLeadLabel(entry.lead, entry.metadata);
               const sourceLabel = entry.source
                 ? SOURCE_LABELS[entry.source] || entry.source
                 : null;
@@ -172,7 +187,7 @@ const RecentActivitiesCard = () => {
                       }
                       secondary={secondaryText}
                     />
-                    {leadUrl && (
+                    {leadUrl ? (
                       <Link
                         href={leadUrl}
                         underline="hover"
@@ -180,7 +195,7 @@ const RecentActivitiesCard = () => {
                       >
                         Lead öffnen
                       </Link>
-                    )}
+                    ) : null}
                   </ListItem>
                   {index < recentActivities.length - 1 && <Divider component="li" />}
                 </Box>
