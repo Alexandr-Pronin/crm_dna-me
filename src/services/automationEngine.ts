@@ -788,12 +788,11 @@ export class AutomationEngine {
   ): Promise<void> {
     try {
       await db.execute(`
-        INSERT INTO automation_logs (rule_id, lead_id, event_id, trigger_data, action_result)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO automation_logs (rule_id, lead_id, trigger_data, action_result)
+        VALUES ($1, $2, $3, $4)
       `, [
         rule.id,
         lead.id,
-        event?.id || null,
         JSON.stringify(rule.trigger_config),
         JSON.stringify(result || {})
       ]);

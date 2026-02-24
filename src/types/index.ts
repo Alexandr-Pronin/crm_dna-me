@@ -329,6 +329,7 @@ export interface Conversation {
   last_message_at?: Date;
   created_by_id?: string;
   initiated_by_lead?: boolean;
+  imported_at?: Date;
   created_at: Date;
   updated_at: Date;
 }

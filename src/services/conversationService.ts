@@ -621,13 +621,15 @@ export class ConversationService {
    * Finds an active conversation for a lead/deal pair, or creates a new one.
    * Used by EmailSyncService when matching incoming emails.
    * @param initiatedByLead - true when the conversation was started by the lead (e.g. first message was inbound)
+   * @param options.imported - if true, sets imported_at = NOW() (for CSV/lead-import chats)
    */
   async findOrCreateConversation(
     leadId: string | null,
     dealId: string | null,
     createdById: string,
     subject?: string,
-    initiatedByLead: boolean = false
+    initiatedByLead: boolean = false,
+    options?: { imported?: boolean }
   ): Promise<Conversation> {
     if (!leadId && !dealId) {
       throw new ValidationError('Either lead_id or deal_id must be provided');
@@ -661,7 +663,7 @@ export class ConversationService {
 
     if (existing) return existing;
 
-    // Create new conversation
+    // Always use INSERT without imported_at so it works even if migration not run yet
     const conversation = await db.queryOne<Conversation>(
       `INSERT INTO conversations (
         lead_id, deal_id, type, status, subject,
@@ -678,6 +680,18 @@ export class ConversationService {
 
     if (!conversation) {
       throw new BusinessLogicError('Failed to create conversation');
+    }
+
+    if (options?.imported === true) {
+      try {
+        await db.execute(
+          'UPDATE conversations SET imported_at = NOW() WHERE id = $1',
+          [conversation.id]
+        );
+        (conversation as Conversation).imported_at = new Date();
+      } catch {
+        // Column imported_at may not exist yet (migration not run); ignore
+      }
     }
 
     return conversation;

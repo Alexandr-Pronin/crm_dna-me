@@ -1,0 +1,669 @@
+email,first_name,last_name,phone,job_title,linkedin_url,message,company_name,company_domain,industry,company_size,country
+import+1@placeholder.local,Joseph,Petrosino,,Director of Technology Transfer,https://www.linkedin.com/in/placeholder,"TEDDY Phage Research – Advanced Sequencing Partnership Opportunity
+
+Dr. Petrosino,
+ 
+I'm reaching out from DNA ME, where we're developing advanced DNA sequencing platforms optimized for microbiome characterization and clinical diagnostics.
+ 
+Your pioneering work through the CMMR—particularly the recent TEDDY phage-bacteria dynamics study and tumor microbiome research—aligns closely with our technology's capabilities. We believe DNA ME's platform could significantly enhance the throughput, accuracy, and cost-efficiency of the large-scale metagenomic projects you're leading.
+ 
+Given your experience commercializing microbiome technologies (Diversigen) and current role directing BCM's technology transfer, I'd value the opportunity to discuss:
+ 
+- How DNA ME's sequencing platform could support your 2025-2026 research priorities (phage characterization, clinical diagnostics, large cohort studies)
+- Potential collaboration on clinical validation studies across your disease focus areas (T1D, oncology, GI disorders)
+- Strategic partnership opportunities leveraging BCM's extensive sample biobanks and our sequencing technology
+ 
+Would you be open to a brief exploratory call in the coming weeks? I'm happy to work around your schedule.
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Baylor College of Medicine (BCM),,,,
+import+2@placeholder.local,Ruben,Vazquez-Uribe,,Head of Fermentations,https://www.linkedin.com/in/placeholder,"Accelerating AMT strain validation cycles in Leuven
+ 
+Hi Ruben,
+ 
+I came across your recent Nature Microbiology paper on gut bacteria-derived polypeptides and your pioneering work on advanced microbiome therapeutics—truly impressive translational impact from engineered probiotics.
+ 
+As Head of Fermentations at VIB-KU Leuven, you're likely familiar with the validation bottleneck when scaling engineered strains: genetic heterogeneity during fermentation, CRISPR editing confirmation, and strain tracking across development cycles.
+ 
+I'm reaching out from DNA ME (Hamburg-based, patent-pending sequencing technology). We've developed a digital panel-based approach that might complement your high-throughput AMT workflows:
+ 
+**What might be relevant for your lab:**
+- 48-72h targeted sequencing (vs weeks with traditional services) for CRISPR editing validation and strain QC
+- Digital panels = no minimum order quantities, easy to modify as your AMT constructs evolve
+- Up to 48 samples/run matching your AutoMap throughput
+- GPU-free bioinformatics = lower costs, faster turnaround
+ 
+Given your extensive patent portfolio in engineered therapeutic bacteria and your entrepreneurial mindset around technology commercialization, I thought this might spark your interest—either for VIB projects or potentially for startups emerging from your AMT innovations.
+ 
+**Would you be open to a 20-minute call** to explore whether custom digital panels could accelerate your validation cycles? We're also exploring partnerships with the Belgian microbiome community ahead of your February symposium.
+ 
+Best from Hamburg,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",VIB-KU Leuven,,,,
+import+3@placeholder.local,Fred,Amaya,,Founder,https://www.linkedin.com/in/placeholder,"Pharmacomicrobiomics: Bridging your PGX expertise with microbiome science
+
+Hi Fred,
+ 
+Your journey from leading Advanced Biotech Rx's pharmacogenomics platform to founding Biome Health caught my attention—particularly your recent newsletter emphasizing evidence-based probiotics over marketing hype. That scientific rigor aligns perfectly with DNA-ME's mission.
+ 
+Quick context on us: We're a Hamburg-based sequencing company offering end-to-end DNA sequencing services (sample prep →bioinformatics) with 48-hour turnaround. Our platform specializes in panel-based sequencing for research applications, including human genetics and metagenomics.
+ 
+Why this matters for Biome Health + your physician network:
+ 
+Personalized probiotic selection: DNA-ME's Oxford Nanopore sequencing offers strain-level microbiome resolution—essential for identifying which patients are ""permissive"" vs. ""resistant"" to specific probiotic strains (key research from PLOS Biology, 2019)
+ 
+Integrated diagnostics: Combine your pharmacogenomic testing experience with microbiome profiling → single report predicting drug responses AND personalized probiotic recommendations
+ 
+Clinical validation: Your established physician/pharmacy relationships (from Advanced Biotech Rx) provide the perfect infrastructure for pilot studies
+ 
+Potential collaboration starting points:
+ 
+Pilot study: 50-100 patients receiving PGX + microbiome testing → assess correlation between microbiome composition and drug adherence/efficacy
+ 
+Probiotic R&D: Sequence baseline microbiomes →administer Biome Health formulations →track colonization dynamics and clinical outcomes
+ 
+B2B wellness services: Package genomic screening + personalized probiotics for corporate health programs or healthcare systems
+ 
+Would you be open to a 20-minute call next week to discuss? 
+ 
+Sincerely
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Biome Health,,,,
+import+4@placeholder.local,Osnat,Limanovich-Tirosh,,,https://www.linkedin.com/in/placeholder,"Bridging Microbiome Intelligence with Precision Genomics
+ 
+Hi Osnat,
+ 
+Your work validating BMC333's mechanism through Biomica's PRISM platform—integrating taxonomic and functional microbiome profiling—represents exactly the systems-level thinking transforming precision medicine. Your trajectory from characterizing the human skin virome at Weizmann to leading microbiome therapeutics innovation demonstrates a unique ability to bridge computational discovery with clinical translation.
+ 
+DNA ME (www.dna-me.net) is developing a digital genomic panel analysis platform enabling precision diagnostics through targeted sequencing panels for pharmacogenomics, disease risk, and trait analysis, combined with bioinformatics infrastructure that transforms raw data into actionable insights.
+ 
+Three synergies I see:
+ 
+Microbiome-Host Genomics Integration: As you correlate microbial profiles with host phenotypes, our targeted human genomic panels (immune SNPs, drug metabolism genes) could create comprehensive microbiome-pharmaco-genomic profiles for IBD patient stratification.
+ 
+Bioinformatics Pipeline Development: Your expertise building strain-level metagenomic analysis pipelines parallels our variant calling and clinical interpretation challenges—potential for methodological collaboration.
+ 
+Clinical Translation: Both organizations navigate research-to-diagnostic pathways. Your experience advancing BMC333 through pre-clinical validation and partnering with Sheba offers valuable perspectives as we scale DNA-ME's diagnostic panels.
+ 
+Would you be open to a 20-minute conversation exploring potential synergies? I'm particularly interested in your perspective on integrating multi-omics data (microbiome + host genetics) and how AI-powered platforms like PRISM handle complex datasets.
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Biomica,,,,
+import+5@placeholder.local,Mohamed Hussein,Arbab,,Professor,https://www.linkedin.com/in/placeholder,"Targeted sequencing panels for pharmacogenomics
+ 
+Dear Prof. Arbab,
+ 
+Your pioneering work developing the NMK medium for rapid TB detection, alongside your comprehensive research on antimicrobial resistance in Sudan's healthcare system, demonstrates exactly the kind of translational genomics thinking we're building around at DNA-ME.
+ 
+DNA ME (www.dna-me.net) is developing a digital genomic panel analysis platform that empowers researchers and clinicians with targeted, high-resolution genetic insights through:
+ 
+✓ Targeted sequencing panels for pharmacogenomics, infectious disease, and trait analysis
+✓ Digital bioinformatics infrastructure transforming raw sequencing data into actionable insights
+✓ Flexible panel design supporting custom gene sets for specialized applications
+ 
+Three synergies I see:
+ 
+AMR Genomic Surveillance: Your research identifying MDR Pseudomonas, Klebsiella, and Staphylococcus as critical threats aligns with our capacity for resistance gene detection panels and strain tracking—enabling evidence-based antimicrobial stewardship you highlighted as critically needed.
+ 
+Host-Microbiome Integration: As you explore gut-brain axis mechanisms, our platform could provide targeted human genomic panels (immune genes, drug metabolism, neuroactive pathways) to create comprehensive host-microbiome interaction profiles for precision medicine applications.
+ 
+Capacity Building in Africa: Your commitment to affordable diagnostics for resource-limited settings (demonstrated by NMK medium) resonates with our vision to democratize genomic analysis through accessible digital platforms—addressing the African genomic data characterization gaps H3ABioNet has identified.
+ 
+Would you be open to a 20-minute conversation exploring how DNA-ME's targeted genomic panels work?
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",H3ABioNet,,,,
+import+6@placeholder.local,Jamie,Mentzer,,Founder,https://www.linkedin.com/in/placeholder,"Bridging Genomics + Microbiomics: FlowFuel Meets DNA-ME
+ 
+Hi Jamie,
+ 
+Your journey from ""30% battery"" to building FlowFuel's DNA + RNA/DNA microbiome testing platform demonstrates exactly the integrated omics thinking we're advancing at DNA-ME—and your Techstars Mentor of the Year recognition confirms you understand what the wellness market actually needs.
+ 
+DNA ME (www.dna-me.net) develops digital genomic panel analysis for precision diagnostics: targeted sequencing panels (pharmacogenomics, disease risk, traits) with bioinformatics infrastructure transforming raw data into actionable insights.
+ 
+Three synergies:
+ 
+Host-Microbiome Integration: FlowFuel analyzes gut RNA/DNA; our targeted human panels (immune SNPs, drug metabolism, neurotransmitter pathways) could create comprehensive host-microbiome profiles your clients need for true precision—gut bugs + host genetics = complete picture.
+ 
+Pharmacogenomic Supplementation: You're already customizing supplements to genetics. Our CYP450, NAT2, methylation panels could enhance FlowFuel's precision by predicting individual responses to specific compounds before purchase.
+ 
+Biohacker Market Expertise: Your 31K+ LinkedIn following and Biohacker Summit speaking position you uniquely to shape which genomic panels resonate with performance optimization audiences—valuable input as we expand consumer-facing offerings.
+ 
+Would you be open to a 20-minute call exploring potential integration? Particularly interested in your perspective on which genetic markers would add most value to FlowFuel's current DNA/microbiome/metabolome stack.
+ 
+Best,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",FlowFuel,,,,
+import+7@placeholder.local,Frank,Sellam,,,https://www.linkedin.com/in/placeholder,"Skin Microbiome Meets Host Genomics: Completing the Personalization Picture
+
+Hi Frank,
+ 
+Your leadership distributing JooMo (the only clinically proven biodiversity-enhancing product) and educating on the 99.9% unique nature of skin microbiomes positions you at exactly the intersection where DNA-ME's genomic technology creates value—completing personalization by adding the host genetics layer.
+ 
+DNA ME (www.dna-me.net) develops targeted genomic panel analysis for precision diagnostics: pharmacogenomics, skin health genetics, and trait analysis with bioinformatics infrastructure transforming data into actionable insights for professionals.
+ 
+Three synergies for Vital Plus clients:
+ 
+Microbiome-Host Integration: While JooMo optimizes microbial biodiversity, our panels reveal host genetic factors affecting microbiome composition—immune response genes (IL-1, IL-6), barrier function genes (filaggrin, ceramides), inflammation pathways. Complete picture = microbes + host genetics.
+ 
+Sensitive Skin Genomics: You serve the 70%+ with sensitive skin; our panels identify genetic predispositions (inflammatory cytokines, neurosensory genes, barrier dysfunction) explaining why certain clients react—enabling truly personalized protocols your salons can offer as premium consultation.
+ 
+Professional Market Education: Your ABIC leadership and ability to translate complex science (evidenced by your microbiome education) positions you uniquely to help introduce genomics concepts to Australian beauty industry—potentially collaborative educational content?
+ 
+Would you be open to a 20-minute call exploring how DNA-ME's genomic panels could complement Vital Plus's microbiome-centric approach? Particularly interested in your perspective on which genetic markers would resonate with your salon network.
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Vital Plus / JooMo,,,,
+import+8@placeholder.local,Michael,Crosby,,Commander / Chair of Patient Advocacy Board,https://www.linkedin.com/in/placeholder,"Precision Diagnostics for Prostate Cancer: Genomics Meets AI-MRI & Nuclear Medicine
+ 
+Hello Respected Commander Crosby,
+ 
+Your leadership commercializing Bot Image's AI-MRI while chairing SNMMI's Patient Advocacy Board—and your explicit advocacy for ""microbiome and genomic staging tools""—positions you at exactly the intersection where DNA-ME creates value: providing the genomic layer that completes precision prostate cancer diagnostics.
+ 
+DNA ME (www.dna-me.net) develops targeted genomic digital panel analysis for precision medicine: pharmacogenomics, inherited cancer risk, and treatment response prediction with bioinformatics infrastructure transforming data into actionable clinical insights.
+ 
+Three synergies I see:
+ 
+ProstatID + Genomics Integration: Bot Image's AI-MRI detects/diagnoses cancer; our panels guide treatment selection—BRCA1/2 for PARP inhibitors, CYP genes for ADT/chemo metabolism, DNA repair pathways predicting radiation response. Bundled precision oncology offering for urology practices/imaging centers.
+ 
+VPCa Veteran Genomics Initiative: 500,000+ veterans with prostate cancer represent ideal population for pharmacogenomic optimization (beyond oncology—pain meds, psych meds, CV drugs). Your established trust + our panels = pilot program serving high-risk veteran community.
+ 
+SNMMI Radioligand Therapy Genomics: Emerging application—genetic variants affecting Lu-177 PSMA tolerance/efficacy, radiation sensitivity genes, PSMA expression modulators. Potential SNMMI Patient Education Day collaboration introducing genomics to nuclear medicine community?
+ 
+Would you be open to a 20-minute call exploring how DNA-ME's genomic panels could complement Bot Image's AI diagnostics and advance your multi-omics vision for precision prostate cancer care?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Bot Image / SNMMI,,,,
+import+9@placeholder.local,Anand,Sethuraman,,Dr.,https://www.linkedin.com/in/placeholder,"Species-Level Microbiome Resolution for KP Research Bank's 400K Participants
+ 
+Dear Dr. Sethuraman,
+ 
+Your Research Bank team is pioneering gut microbiome profiling using FIT samples—an elegant reuse of existing screening infrastructure. Having developed PacBio's full-length 16S pipeline yourself, you know the species-resolution gap: Illumina V3-V4 delivers 55% species-level assignment, while full-length approaches achieve 74%+. That's the difference between identifying Streptococcus genus and distinguishing pathogenic S. pyogenes from commensal S. salivarius.
+ 
+DNA ME's Oxford Nanopore platform delivers three advantages for Kaiser's precision medicine scale-up: (1) Species-resolution metagenomics via adaptive sampling—critical when 5% of your 400K cohort carries actionable genetic variants; (2) 3–5x cost reduction through multiplexed targeted enrichment, eliminating send-out testing overhead; (3) CLIA-ready cloud integration with your HIPAC infrastructure, enabling real-time genomic oncology committee review instead of the 2-week delays driving 52% of NSCLC patients to start treatment before NGS results arrive.
+ 
+We're proposing a 500-sample pilot over 3–4 months, processing your FIT-derived samples in parallel with current workflows. This directly tests whether Nanopore long-reads improve microbiome-disease associations in your longitudinal EHR dataset while demonstrating turnaround time reduction for clinical genomics.
+ 
+Would you be open to an exploratory call next week to discuss technical specifications and Kaiser's genomics roadmap for 2026–2028?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",KP Research Bank,,,,
+import+10@placeholder.local,Rob,Knight,,Dr.,https://www.linkedin.com/in/placeholder,"Species-Level Microbiome Resolution for Your Pediatric CF & Lupus Studies at Rady Children's
+ 
+Dr. Knight,
+ 
+Your February 2025 Cell paper on ISS microbiome dynamics brilliantly demonstrated how spatial resolution transforms our understanding of built environment microbiology—but the 72.6% human-associated bacteria you identified underscore a persistent challenge: genus-level 16S V4 sequencing can't distinguish commensal Staphylococcus epidermidis from pathogenic S. aureus colonizing spacecraft surfaces or CF airways. When you wrote in 2014 that maintaining pediatric CF microbiome diversity might slow Pseudomonas dominance, the field lacked species-resolution tools for real-time clinical monitoring.
+ 
+DNA ME's Oxford Nanopore platform addresses three bottlenecks for your Rady Children's diagnostic priorities: (1) Full-length 16S adaptive sampling delivering 74%+ species-level assignment versus 55% for Illumina V4—critical when early P. aeruginosa detection determines CF intervention timing; (2) 3–5x cost reduction through multiplexed targeted enrichment, enabling the dense longitudinal sampling your IBD maturity studies require; (3) Same-day turnaround for lupus flare biomarkers, transforming microbiome monitoring from retrospective research to actionable companion diagnostics.
+ 
+We're proposing a 500-sample pilot across 50 Rady Children's CF patients over 3–4 months, processing sputum samples in parallel with your current Illumina workflow. This directly tests whether Nanopore long-reads improve early pathogen detection accuracy while demonstrating clinical-grade turnaround times for pediatric applications.
+ 
+Would you be open to an exploratory call to discuss integration with your QIIME 2 infrastructure and potential co-development of metatranscriptomics protocols?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Rady Children's,,,,
+import+11@placeholder.local,Rajesh,Pal,,Dr.,https://www.linkedin.com/in/placeholder,"Species-Resolution Microbiome Profiling for Your HiMedia Probiotic & Climate-Smart Agriculture Projects
+
+Dear Dr. Pal,
+Your Dec 2024 Journal of Agriculture and Food Research paper highlights a key limitation: genus-level 16S can’t reliably separate plant growth–promoting Bacillus subtilis from closely related, neutral taxa in black soil. The same resolution gap impacts HiMedia’s probiotic strain validation—regulators increasingly expect species-level confirmation, while Illumina V3–V4 often stalls at genus level, pushing teams toward costly whole-genome sequencing for definitive calls.
+ 
+DNA ME’s Oxford Nanopore workflow addresses three bottlenecks across human, livestock, and soil microbiome programs:
+ 
+Full-length 16S with adaptive sampling for higher species-level assignment, supporting probiotic QC (CDSCO-facing documentation) and clearer discrimination of commensal vs pathogenic E. coli in dairy gut studies
+ 
+3–5x lower per-sample cost via multiplexed targeted enrichment, enabling weekly longitudinal sampling (instead of monthly snapshots that miss early dysbiosis)
+ 
+Portable MinION deployment for on-site soil surveys, reducing cold-chain logistics and enabling same-day results for field decisions
+ 
+We propose a 500-sample, 3–4 month pilot run in parallel with your current Illumina workflow to generate head-to-head data on resolution, cost, and turnaround time: 200 probiotic QC samples (human gut isolates), 150 dairy cattle rumen samples, and 150 black-soil field-site samples.
+ 
+Would you be open to a brief exploratory call to discuss fit with HiMedia’s bioinformatics stack and potential co-development of CLIA-ready workflows?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",HiMedia,,,,
+import+12@placeholder.local,Daniela,Bezdan,,GeneLab Microbiome AWG Chair,https://www.linkedin.com/in/placeholder,"Real-Time ISS Microbiome Monitoring for Your NASA GeneLab & Commercial Spaceflight Standards
+
+Dear Dr. Bezdan,  
+ 
+Your June 2024 Nature paper on the Inspiration4 SOMA atlas set a benchmark for astronaut biospecimen collection, but analysis still lags operational needs because samples require return-to-Earth processing. Likewise, NASA’s March 2024 GEARS ISS effort targeting antibiotic-resistant Enterococcus is constrained by culture-based workflows that consume crew time and perishable supplies. As GeneLab Microbiome AWG Chair, you’ve emphasized moving ISS monitoring from cultivation to culture-independent detection within one hour.  
+ 
+DNA ME’s Oxford Nanopore workflow targets three ISS-relevant bottlenecks:  
+1) Species-level microbiome profiling via full-length 16S adaptive sampling (74%+ assignment) to distinguish close taxa (e.g., Staphylococcus epidermidis vs S. aureus) in environmental swabs and astronaut microbiomes 
+2) Portable MinION sequencing for same-day, on-orbit results, cutting turnaround from weeks to hours and reducing crew time to <30 minutes versus culture workflows  
+3) Targeted AMR gene enrichment with 3–5x lower cost than shotgun metagenomics, enabling higher-frequency longitudinal AMR tracking and scaling surveillance programs 
+ 
+We propose a 500-sample pilot: 200 archived ISS surface swabs for ground validation versus cultivation, followed by a 300-sample MinION flight demo (weekly environmental sampling across ISS modules for 4 months) with automated analysis and near real-time reporting to GeneLab AWG and crew medical. This would directly test ISSOP-aligned standardization for broader commercial spaceflight use.  
+ 
+Would you be open to a brief exploratory call to discuss integration with dxOmics and potential GeneLab AWG endorsement pathways? 
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",NASA GeneLab / dxOmics,,,,
+import+13@placeholder.local,Kevin KF,Ng,,Dr.,https://www.linkedin.com/in/placeholder,"Species-Resolution Microbiome Profiling for Your Food as Medicine & Exercise Intervention Research
+ 
+Dear Dr. Ng,
+ 
+Your work translating Sir John Vane’s cardiovascular pharmacology into plant-based anti-inflammatory and lifestyle therapeutics reflects precision medicine’s shift from single targets to gut microbiome modulation via fermented foods and exercise. Yet many highly cited diet- and exercise-microbiome studies used Illumina V3–V4, which often resolves only to genus—limiting clinical confidence when practitioners need species-level evidence (e.g., distinguishing Lactobacillus plantarum from less effective close relatives) to support “food as medicine” recommendations.
+ 
+DNA ME’s Oxford Nanopore workflow addresses three bottlenecks relevant to your consultations and talks:
+ 
+Full-length 16S with species-level profiling (74%+ assignment) for tracking food-derived strains and validating fermented food probiotic claims
+ 
+3–5x lower cost enabling weekly sampling in interventions (instead of monthly snapshots that miss early shifts in lactic acid bacteria and SCFA-associated taxa)
+ 
+Same-day turnaround for MD Natural Care patients, allowing timely adjustment of fermented food and exercise prescriptions rather than 2–4 week retrospective feedback
+ 
+We propose a 3–4 month, 500-sample “Food as Medicine” pilot run in parallel with Illumina: 200 samples from fermented food interventions (cheese, kimchi, kefir) and 300 from moderate-intensity exercise cohorts. Outputs include species-level calls, correlations with inflammatory markers TNF−α and LBP, cost-per-sample, and clinical decision-support turnaround time.
+ 
+Would you be open to a brief exploratory call to discuss fit with your MD Natural Care workflow and a potential co-authored validation paper?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",MD Natural Care,,,,
+import+14@placeholder.local,Elan,Halpern,,,https://www.linkedin.com/in/placeholder,"Species-Level Strain Validation for Sourmilk's L. Reuteri—The First Greek Yogurt of Its Kind
+ 
+Hello Elan,
+ 
+Your Sept 2024 Dairy Reporter feature positioned Sourmilk as a “probiotic supplement in food form,” delivering clinically studied CFU where many Greek yogurts fall short (post-fermentation pasteurization, limited starter species, or low counts). As the first L. reuteri Greek yogurt, your 36-hour “low and slow” fermentation is a real differentiator—but as you expand to retail, culture-based CFU tests typically confirm counts, not definitive species identity. That makes it hard to prove L. reuteri presence versus close Lactobacillus or to substantiate “nothing like us on the shelf” claims.
+ 
+DNA ME’s Oxford Nanopore workflow supports scale-up QC and defensible labeling:
+ 
+Species-level verification via full-length 16S (74%+ assignment) to document live L. reuteri in every batch (stronger than genus-only readouts)
+ 
+3–5x lower testing cost versus approaches that escalate to whole-genome sequencing, enabling routine batch-release QC at retail volumes
+ 
+Same-day screening to flag contamination risks faster than 5–7 day culture methods, important for a never-pasteurized product with tighter shelf-life constraints
+ 
+We propose a 3–4 month, 500-sample pilot: 200 Sourmilk batches (species-level QC alongside your current tests), 100 competitor yogurts (10 brands × 10 batches; blinded benchmarking), and an optional 200-person consumer study (baseline plus weeks 2/4/8/12) to measure L. reuteri engraftment and correlate with outcomes—generating publishable data and investor-ready evidence.
+ 
+Open to a brief call on fitting this into your QC workflow and potential Stanford-alumni research collaboration?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Sourmilk,,,,
+import+15@placeholder.local,Ana,Nunes,,,https://www.linkedin.com/in/placeholder,"Species-Resolution Validation for Fertibiome's 120-Couple Clinical Trial—Proving PS11610 Colonization
+ 
+Dear Ana,
+ 
+Your June 2025 MicrobiomePost interview emphasized Zinereo’s pharma-grade rigor in fertility probiotics, but your 120-couple Portugal–Spain trial on Ligilactobacillus salivarius PS11610 faces a measurement gap: culture-based and Illumina V3–V4 16S often quantify only “Lactobacillus” at genus level, making it hard to prove PS11610 colonization versus endogenous L. salivarius or shifts in L. crispatus/L. acidophilus. With increasing EFSA/FDA scrutiny of strain-specific claims, species-level documentation is becoming essential.
+ 
+DNA ME’s Oxford Nanopore workflow supports Fertibiome’s positioning and your quality-standards work (IPA):
+ 
+Full-length 16S species-level profiling (74%+ assignment) to distinguish L. salivarius vs L. crispatus dominance and to confirm PS11610 identity in GMP batch-release testing at O Porriño
+ 
+3–5x lower cost to scale routine QC across Fertibiome, Giniwa V, and new product lines as LATAM, MENA, and Philippines distribution expands
+ 
+Same-day species calls for key dysbiosis organisms (e.g., Gardnerella vaginalis, Prevotella bivia, Atopobium vaginae), turning genus-level trends into defensible, species-specific efficacy metrics
+ 
+We propose a 500-sample pilot aligned to your ongoing trial: 240 longitudinal vaginal/seminal samples (40 couples; baseline, 3- and 6-month), 150 batch-release QC samples (Fertibiome/Giniwa V), and 150 competitor benchmarks to support a white paper and regulatory-ready QC package.
+ 
+Open to a brief call to discuss trial integration timing and whether IPA could champion species-resolution QC as a new standard?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Fertibiome / Zinereo,,,,
+import+16@placeholder.local,Hariom,Yadav,,Dr.,https://www.linkedin.com/in/placeholder,"Full-Length 16S + MiaGB Scale: Unlocking Dysbiosis Biomarkers for Your Aging Cohort
+ 
+Dear Dr. Yadav,
+ 
+Your recent publication in Current Obesity Reports on the microbiota–leaky gut–inflammation cascade perfectly captures the central challenge in aging microbiome research: species resolution. Current metagenomics approaches struggle to distinguish between Lachnospiraceae strains and detect low-abundance taxa driving systemic inflammation—yet your PoZibio work and MiaGB consortium demand exactly this resolution.
+ 
+DNA ME addresses three critical gaps in your current workflow:
+ 
+Full-length 16S species profiling via Oxford Nanopore sequencing—no loss of phylogenetic resolution for dysbiosis biomarker discovery in your 500-sample MiaGB cohort
+ 
+Parallel batch processing (300–500 samples per run) at 40–60% cost reduction vs. traditional methods—enabling rapid turnaround for longitudinal tracking in aging populations
+ 
+CLIA-aligned bioinformatic pipeline for clinical microbiome scoring, directly supporting your stated objective to develop ""clinically applicable microbiome scores"" for dementia and metabolic risk
+ 
+Would you be open to an exploratory 30-minute call next week to discuss how this could accelerate your biomarker discovery timeline and reduce per-sample costs for the consortium?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",MiaGB consortium / PoZibio,,,,
+import+17@placeholder.local,Shirley,Satanower,,,https://www.linkedin.com/in/placeholder,"Strain-Level Resolution for Your Microbiome Profiling Work at Merck
+ 
+Dear Shirley,
+ 
+Your Nature Communications paper on Bacteroides thetaiotaomicron phase-variable plasticity (Gal-Mandelbaum et al., May 2025) captures a critical gap in current microbiome workflows: strain-level immune-modulatory functionality is invisible to short-read sequencing. The PVRs, CPS inversions, and SusC/D proteome shifts you characterized required Nanopore long-read mapping to identify in mice—yet scaling this to clinical or product validation cohorts remains resource-intensive.
+ 
+DNA ME addresses three specific challenges for Merck's microbiome product development pipeline:
+ 
+Full-length 16S + PVR-level detection – Oxford Nanopore sequencing enables simultaneous species identification and phase-variable region orientation mapping (compatible with PhaVa analysis), resolving probiotic strains and capturing the functional plasticity your research describes
+ 
+500+ sample throughput in 3–4 months at 40–60% cost reduction – critical for clinical validation studies, dietary intervention trials, and benchmarking your next-gen microbiome assay portfolio against shotgun metagenomics
+ 
+CLIA-aligned bioinformatics pipeline – integrates seamlessly with Merck's diagnostic product certification workflows, enabling co-published validation studies and potential assay kit licensing
+ 
+Would you be open to an exploratory call to discuss how DNA ME could accelerate your strain-resolution pipeline and reduce profiling costs for Merck's microbiome product roadmap?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Merck,,,,
+import+18@placeholder.local,Raish,Oozeer,,,https://www.linkedin.com/in/placeholder,"Full-Length 16S for Probiotic Strain Validation at Scale—PIMENTO & Beyond
+ 
+Dear Raish,
+ 
+Your participation at the PIMENTO Forum 2025 underscores a critical gap in fermented food and probiotic research: strain-level biodiversity remains invisible to standard 16S profiling. While V4-region sequencing identifies Lactobacillus and Bifidobacterium at genus/species level, it cannot distinguish the functional strains that drive health benefits—let alone detect contaminants in commercial probiotic formulations or map strain-specific colonization in your clinical microbiota studies.
+ 
+DNA ME addresses three urgent challenges for Danone's biotics platform:
+ 
+Full-length 16S strain identification via Oxford Nanopore sequencing—enabling precise Lactobacillus and Bifidobacterium strain differentiation (critical for FDA/EFSA probiotic identity verification and Danone's quality control workflows)
+ 
+500+ sample throughput in 3–4 months at 40–60% cost reduction—directly supporting your fermented food biodiversity research and accelerating probiotic formulation validation across your portfolio
+ 
+CLIA-aligned bioinformatics pipeline for diagnostic-grade strain authentication—compatible with Danone's QA standards and enabling co-published validation studies on commercial probiotics
+ 
+Would you be open to an exploratory call to discuss how DNA ME could accelerate strain-level resolution for your biotics research and reduce profiling costs?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Danone,,,,
+import+19@placeholder.local,David,Rose,,,https://www.linkedin.com/in/placeholder,"Soil Microbiota Validation for Regenerative GDCs—Scaling Your Microbiome-to-Nutrition Story
+ 
+Dear David,
+ 
+Your vision that soil microbiota and human gut microbiota are fundamentally the same ecosystem—and that regenerative Gentle Drying Centers can bridge this connection—captures the central opportunity in sustainable food: quantifying the microbiota transfer from soil → produce → finished product. Yet today, JustOne Organics can't offer farmers scientific proof that their regenerative practices actually preserve beneficial soil organisms through your drying process or land in the final crystal product.
+ 
+DNA ME addresses three critical gaps for scaling JustOne Organics' farmer engagement and consumer trust:
+ 
+Full-length 16S strain-level microbiota profiling via Oxford Nanopore sequencing—enabling you to offer farmers soil microbiota ""health scores"" and consumers verified probiotic strain counts in every GDC product (no more generic regenerative claims)
+ 
+500+ sample throughput per facility over 3–4 months at 40–60% cost reduction—supporting your expansion to 10 US sites within 18 months by making routine microbiota profiling economically viable for each location
+ 
+Traceability pipeline (soil →input → dried product) with CLIA-aligned bioinformatics—validating your soil-to-body thesis scientifically while creating a defensible regenerative certification framework
+ 
+Would you be open to an exploratory call to discuss how DNA ME could become the microbiota platform for JustOne Organics' network-wide expansion and help substantiate regenerative agriculture claims with science?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",JustOne Organics,,,,
+import+20@placeholder.local,Indrabahadur,Singh,,Dr.,https://www.linkedin.com/in/placeholder,"Dear Dr. Singh,
+ 
+Your May 2025 PLOS Digital Health review on fairness in AI healthcare highlights how biased data and methods can hard-code inequity into diagnostics. A similar, under-discussed bias appears in microbiome-based precision oncology: Illumina V3–V4 16S often tops out at genus-level calls, which can systematically underperform on diverse, underrepresented gut microbiomes with different species-level compositions—undermining “diverse datasets” and fairness-aware decision tools when clinical endpoints (immunotherapy response, dysbiosis management) depend on accurate species identification.
+ 
+DNA ME’s Oxford Nanopore workflow targets three equity bottlenecks relevant to DKFZ translational studies and PlexoA services:
+ 
+Full-length 16S with higher species-level assignment (74%+ vs ~55% for short-read) to reduce misclassification across populations and separate beneficial taxa (e.g., Faecalibacterium prausnitzii) from close, non-equivalent relatives
+ 
+3–5x lower cost to power diversity-stratified cohorts rather than “token” inclusion that can’t support group-level disparate-impact testing
+ 
+Portable MinION sequencing to enable on-site processing in resource-limited settings, supporting the justice/access principles your review emphasizes
+ 
+We propose a 3–4 month, 500-sample pilot: 125 colorectal cancer immunotherapy patients each from African-ancestry, Asian-ancestry, Hispanic, and European cohorts, run in parallel with Illumina to generate head-to-head data on taxonomic assignment, pathogen detection, and biomarker performance. Deliverables could include a co-authored manuscript plus practical guidance on reducing microbiome diagnostic bias.
+ 
+Would you be open to a brief call to discuss integration with PlexoBio and collaboration on fairness-aware microbiome diagnostic guidelines?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",DKFZ / PlexoBio,,,,
+import+21@placeholder.local,Melissa Paola,Mezzari,,Director of Microbiome Innovation,https://www.linkedin.com/in/placeholder,"Full-length 16S for YON E Health's vaginal microbiome innovation and FemTech diagnostic development
+
+Dear Dr. Mezzari,
+ 
+Your move from Baylor’s Alkek Center for Metagenomics (2018–2022), including work on the 2021 Nature Communications Biology cervical cancer microbiome study linking gut diversity to survival during chemoradiation, to Director of Microbiome Innovation at YON E Health (Feb 2025) puts you in a rare position to translate clinical microbiome insights into scalable FemTech products. With your leadership of Frontiers in Climate’s topic on advances in women’s health, the key challenge is turning species-level vaginal microbiome signals into accessible, cost-effective diagnostics.
+ 
+DNA ME’s full-length 16S nanopore sequencing can support that translation by addressing three bottlenecks: (1) species-level resolution to distinguish beneficial Lactobacillus crispatus from other Lactobacillus and dysbiosis-associated species—often ambiguous with V3–V4 amplicons; (2) an estimated 10–50% lower cost per sample versus traditional workflows, helping meet DTC price expectations (50 – 100 USD per test) while preserving margin; and (3) a path toward CLIA-validated workflows to support a shift from research-grade to clinical-grade offerings (e.g., recurrent BV, preterm birth risk screening, fertility optimization).
+ 
+I’d like to propose a pilot: 500 vaginal swab samples from YON E Health users processed in parallel with standard V3–V4 and DNA ME full-length 16S over 3–4 months. We would compare species-level resolution, diagnostic performance on common indications, cost per sample, and consumer report clarity.
+ 
+Would you be open to a brief exploratory call next week to discuss fit with YON E Health’s roadmap and potential co-development?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",YON E Health,,,,
+import+22@placeholder.local,Ross,Youngs,,Dr.,https://www.linkedin.com/in/placeholder,"Industrial-scale microbiome mining meets species-level genomic resolution
+
+Dear Dr. Youngs,
+ 
+Your recent work on microbiome metabolic fingerprinting and Biosortia's breakthrough in accessing 73,000+ novel small molecules per habitat sample represents exactly the kind of transformative discovery that requires equally transformative characterization technology. As you scale industrial microbiome mining to unlock nature's 3.4-billion-year chemical library, taxonomic resolution becomes the critical bottleneck between molecular discovery and therapeutic development.
+ 
+DNA ME's full-length 16S nanopore sequencing platform delivers three capabilities that directly address Biosortia's workflow: (1) species-level resolution of unculturable microbes—the 99% you're uniquely accessing—without culture bias; (2) 10–100x cost reduction per sample compared to traditional methods, enabling high-throughput profiling of multiple aquatic habitats; and (3) CLIA-validated metagenomic workflows that integrate taxonomic data with your chemical profiling to create comprehensive AI-enhanced datasets for pharmaceutical partners.
+ 
+Given your partnerships with AstraZeneca and focus on polypharmacology-driven drug discovery, we propose a pilot validation study: 500 samples from 3–4 distinct aquatic microbiomes, processed in parallel with your existing chemical characterization pipeline. This would demonstrate how species-level taxonomic data enhances the therapeutic targeting potential of your novel compound libraries.
+ 
+Would you be open to an exploratory call next week to discuss integration possibilities?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Biosortia,,,,
+import+23@placeholder.local,Noreen,Brenner,,,https://www.linkedin.com/in/placeholder,"Centenarian microbiome species resolution for your longevity patent pipeline
+
+Noreen,
+ 
+Your March 2024 post describing AlphaFold as a “revolutionary tool for drug discovery” aligns with DNA ME’s view: computation accelerates discovery, but species-level precision strengthens patent claims. For longevity microbiome work, standard Illumina V3–V4 16S often cannot reliably separate closely related Lactobacillus taxa, yet those differences matter when connecting phenotypes to specific organisms—similar to reports in 2022 npj Biofilms & Microbiomes studies that combined metagenomics with large-scale culturing and isolated thousands of gut strains from centenarian cohorts.
+ 
+At DNA ME, we’ve developed a hybrid Oxford Nanopore workflow combining full-length 16S (V1–V9, ~1,500 bp) with targeted hybridization enrichment to solve three virtual-biotech bottlenecks: (1) species-level resolution for Lactobacillus, Akkermansia, and Bacteroides, enabling claims framed at the organism/strain level rather than “spp.”; (2) cost/throughput for early-stage budgets (96 samples at <75 USD/sample) while keeping taxonomic precision; and (3) optional functional gene enrichment (e.g., tryptophan, folate, SCFA pathways), aligned with emerging gut–brain axis evidence that microbiome extracellular vesicles can traverse intestinal and blood–brain barriers.
+ 
+I’d like to propose a technical pilot: 100 fecal samples (50 centenarians, 50 young controls) delivered in 8 weeks with raw FASTQ, species-resolved abundance tables, functional gene calls, and a patent disclosure-style summary benchmarking against any V3–V4 datasets you’ve analyzed.
+ 
+Would you be open to a technical deep-dive call next week to review our pipeline architecture and reference database curation?
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",,,,,
+import+24@placeholder.local,Bharath,P.,,Dr.,https://www.linkedin.com/in/placeholder,"Queen V microbiome validation + species-level Lactobacillus resolution
+
+Dear Dr. Prithiviraj,
+ 
+Your February post on GMWI2’s AI-powered gut wellness scoring—especially the focus on personalized diet recommendations—stood out. With Reckitt repositioning Queen V as “microbiome-friendly,” validating product claims needs species/strain resolution beyond standard V3–V4 Illumina. As your January 2025 npj Biofilms work highlights, separating L. crispatus from L. iners at strain level is central to understanding CST stability and lactobacilli dispersal across vaginal and adjacent skin sites.
+ 
+At DNA ME, we built a hybrid workflow combining Oxford Nanopore full-length 16S (V1–V9, ~1,500 bp) with hybridization enrichment to address three R&D bottlenecks: (1) species-level resolution for key Lactobacillus CST drivers (97%+ accuracy reported internally, vs ~40–60% typical for V3–V4); (2) clinical-scale throughput (96 samples/run at <75 USD per sample) for longitudinal efficacy studies; and (3) optional AMR surveillance via targeted resistome enrichment alongside species ID, aligning with your One Health work on built-environment probiotics and antimicrobial efficacy.
+ 
+I’d like to propose a validation pilot: 500 paired samples (vaginal swab + groin skin) from a Queen V efficacy cohort, run in parallel with your current V3–V4 workflow over 3–4 months. We would benchmark CST classification concordance, strain-level dispersal tracking, and cost-per-insight relevant to regulatory submissions.
+ 
+Would you be open to a brief exploratory call next week to review Reckitt’s current validation pipeline and timeline?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Reckitt / Queen V,,,,
+import+25@placeholder.local,Mo,Langhi,,,https://www.linkedin.com/in/placeholder,"Full-length 16S integration for Cosmos-Hub's multi-omics platform
+
+Hello Mo,
+ 
+With Cmbio’s November 2024 launch unifying Clinical Microbiomics, CosmosID, MS-Omics, and DNASense into a global multi-omics platform—and Cosmos-Hub’s RITAi accelerating interpretation—the key challenge for pharma studies is maintaining high taxonomic resolution (ideally strain-level, CLIA-ready) without making 500–1,000 sample trials cost-prohibitive.
+ 
+DNA ME’s full-length 16S nanopore sequencing helps on three fronts: (1) species-level resolution that bridges shallow V3–V4 amplicons and costly shotgun metagenomics, delivering strain-informative bacterial calls with an estimated 10–50% lower per-sample cost; (2) straightforward fit with Cosmos-Hub via standardized FASTQ output, enabling use of existing, version-controlled pipelines; and (3) CLIA-validated metagenomic workflows aligned with pharma expectations for ICH-GCP compliant biomarker work across preclinical, clinical, and CMC use cases.
+ 
+We propose a pilot integration: 500 samples from an active Cmbio pharma client processed in parallel with the current Cosmos-Hub shotgun workflow and DNA ME full-length 16S over 3–4 months. We would compare taxonomic resolution, functional annotation agreement, turnaround time, and total cost per sample.
+ 
+Would you be open to a brief exploratory call next week to discuss API-level integration with Cosmos-Hub and potential co-marketing to Cmbio’s pharma client base?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Cmbio / Cosmos-Hub,,,,
+import+26@placeholder.local,Daniel,Laubitz,,Dr.,https://www.linkedin.com/in/placeholder,"Species-level microbiome profiling for pediatric IBD prognostic markers
+
+Dear Dr. Laubitz,
+ 
+Your May 2025 bioRxiv paper showing that in vitro fermentation profiling can distinguish Crohn’s disease dysbiosis is a strong step toward non-invasive diagnostics. As PANDA Core expands clinical microbiome services (NextSeq2000, CAP accreditation), achieving species-level resolution for key taxa—Coprococcus catus, Ruminococcus torques, Faecalibacterium prausnitzii, and pathogenic E. coli—becomes essential for translating prognostic models into routine use.
+ 
+DNA ME’s full-length 16S nanopore sequencing helps address three bottlenecks in pediatric IBD biomarker development: (1) species-level resolution beyond standard V3–V4 approaches, enabling more precise tracking of commensal depletions; (2) an estimated 10–50% cost reduction versus typical Illumina workflows, aligning with PANDA Core’s push to support larger longitudinal cohorts; and (3) CLIA-validated metagenomic workflows that fit established clinical-trial regulatory expectations.
+ 
+We propose a head-to-head pilot: 500 samples (250 newly diagnosed pediatric IBD, 250 age-matched controls) processed in parallel with PANDA Core’s V3–V4 pipeline and DNA ME’s full-length 16S platform over 3–4 months. The goal is to quantify gains in species-level biomarker detection and remission-prediction performance.
+ 
+Would you be open to a brief exploratory call next week to discuss fit with PANDA Core’s clinical workflow?
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",PANDA Core,,,,
+import+27@placeholder.local,Bharat,Ramakrishna,,Dr.,https://www.linkedin.com/in/placeholder,"Species-level microbiome profiling for infection risk prediction in CLL/SID patients
+
+Dr. Ramakrishna,
+ 
+Your December 2024 ASH presentation quantifying infection burden in CLL patients with secondary immunodeficiency (0.79 severe infections per patient-year vs 0.17 in non-SID) provides important real-world evidence supporting immunoglobulin replacement therapy guidance. As CSL Behring expands programs addressing CAR-T and bispecific antibody–induced immunodeficiency, earlier risk stratification beyond IgG alone (e.g., ≤4 g/L) becomes increasingly important for patient selection and trial design.
+ 
+DNA ME’s full-length 16S nanopore sequencing can help address three bottlenecks in infection risk prediction: (1) species-level resolution to detect specific commensal shifts linked to susceptibility (e.g., Faecalibacterium prausnitzii, Akkermansia muciniphila, Bacteroides fragilis) that genus-level profiling can miss; (2) 10–50% lower per-sample cost versus traditional workflows, enabling cohort-scale real-world profiling aligned with epidemiologic study designs; and (3) CLIA-validated metagenomic workflows compatible with CSL Behring’s regulatory needs for biomarker integration.
+ 
+Building on your OpenBiome experience (56,000+ FMT preparations; outcomes from 5,344 recurrent C. difficile patients), we propose a pilot: 500 CLL/SID patients recruited via CSL Behring trial networks, with baseline and 3-month microbiome profiling alongside IgG monitoring and infection surveillance. This would test whether microbiome-based risk scores improve prediction beyond IgG thresholds and help identify additional patients who may benefit from immunoglobulin replacement therapy.
+ 
+Would you be open to a brief exploratory call next week to discuss fit with your CLL/SID infection-burden studies?
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",CSL Behring,,,,
+import+28@placeholder.local,Bethany M.,Henrick,,Dr.,https://www.linkedin.com/in/placeholder,"Species-level Bifidobacterium profiling for DSM-Firmenich synbiotic development
+
+Hi Dr. Henrick,
+ 
+Your January 2026 mSphere paper showing that B. infantis EVC001 supplementation restores beneficial gut bacteria in 2–4 month exclusively breastfed infants (near 2-fold Bifidobacteriaceae increase regardless of dose) builds naturally on your 2021 Cell work on immune imprinting in early life. As DSM-Firmenich’s 2024 partnership with Lallemand advances HMO + probiotic synbiotics documented across 1,600+ infants, species-level Bifidobacterium identification becomes central for separating B. infantis from B. longum, B. breve, and B. bifidum in regulatory filings and efficacy claims.
+ 
+DNA ME’s full-length 16S nanopore sequencing addresses three bottlenecks in infant microbiome product development: (1) species-level resolution beyond V3–V4 profiling, enabling accurate quantification of B. infantis versus related species for GRAS/Novel Foods submissions; (2) an estimated 10–50% lower cost per sample versus traditional workflows, enabling adequately powered trials at similar budgets; and (3) metagenomic capability to support validation of HMO-utilization functions and downstream pathways relevant to Brightseed’s microbiome platform.
+ 
+Given your 2019 Pediatric Research finding that Bifidobacteriaceae abundance >25% correlates with low fecal calprotectin (ρ = -0.72, P < 0.0001), we propose a pilot: 500 formula-fed infants receiving DSM-Firmenich HMO + Lallemand synbiotics, with profiling at 0, 1, 3, and 6 months. This would generate species-level evidence to support regulatory submissions and product claims aimed at narrowing the breastfed–formula gap.
+ 
+Would you be open to a brief call next week to discuss fit with DSM-Firmenich’s synbiotic pipeline and Brightseed-linked microbiome capabilities?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",DSM-Firmenich,,,,
+import+29@placeholder.local,Brian,Meehan,,Dr.,https://www.linkedin.com/in/placeholder,"CLB101 + Full-Length 16S: Advancing Butyrate-Producer ID in Microbiome Therapeutics
+
+Dear Dr. Meehan,
+ 
+Congratulations on ClostraBio's milestone achievement with CLB101™—the first commercially available Anaerostipes caccae strain with GRAS status and your October 2025 clinical study launch. Your work bridging strict anaerobe manufacturing with real-world gut health applications represents exactly the translational hurdle many next-gen probiotics never clear.
+ 
+At DNA-ME, our Oxford Nanopore full-length 16S platform directly addresses three challenges in your pipeline: species-resolution identification of butyrate producers like A. caccae (which standard V3-V4 sequencing misses at 16.75% species ID vs. our 100% with optimized databases), high-throughput microbiome profiling for patient stratification in IBD trials (processing 500+ samples in 3–4 months with CLIA-ready workflows), and cost reduction through integrated metagenomic panels that eliminate multi-platform redundancy.
+ 
+Given ClostraBio's dual focus on live biotherapeutics and metabolite delivery for IBD, we'd value exploring a pilot collaboration: parallel nanopore profiling of your clinical cohorts to correlate baseline Anaerostipes abundance with CLB101 colonization success and butyrate production endpoints. This could strengthen regulatory submissions while validating companion diagnostic potential.
+ 
+Would you be open to an exploratory call in the coming weeks?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",ClostraBio,,,,
+import+30@placeholder.local,Eric,Pinloche,,Dr.,https://www.linkedin.com/in/placeholder,"Species-level microbiome profiling for Phileo's SHIME® platform and B. subtilis 29784 regulatory expansion
+
+Dear Dr. Pinloche,
+ 
+Your November 2024 Microbiology Spectrum paper on Bacillus subtilis DSM 29784 (Bs29784) moved the field from performance observations to mechanism, identifying hypoxanthine, niacin, and pantothenate as bioactive metabolites linked to anti-inflammatory effects, barrier strengthening, and microbiota modulation. With Phileo’s 2024 SHIME® pig gut simulator platform accelerating in vitro screening, and your prior data showing Bs29784 increases Bacillus while reducing Lactobacillaceae and Enterobacteriaceae, strain-level discrimination becomes key for regulatory dossiers demonstrating that Bs29784—not endogenous Bacillus—colonizes and persists.
+ 
+DNA ME’s full-length 16S nanopore sequencing can help Phileo address three bottlenecks: (1) strain-level resolution to distinguish Bs29784 from other B. subtilis strains and endogenous Bacillus species, supporting EFSA-style strain-specific colonization evidence; (2) an estimated 10–50% lower cost per sample, enabling higher-throughput SHIME® runs (hundreds of samples across compartments/timepoints); and (3) metagenomic capability to link the metabolites you identified to species-level responders (e.g., testing whether Oscillospiraceae shifts reflect specific Ruminococcus species).
+ 
+We propose a pilot: 200 SHIME® samples testing 5 Bacillus strains across 4 gut compartments and 10 timepoints over 3–4 months, generating strain-specific colonization and species-level community readouts to prioritize candidates for in vivo trials and support registration.
+ 
+Would you be open to a brief exploratory call next week to discuss fit with the SHIME® workflow and Bs29784 global registration strategy?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Phileo,,,,

@@ -876,6 +876,29 @@ export const getRoutingConfig = async () => {
   return json;
 };
 
+/**
+ * Get clear-databases schema: groups, FK edges, labels. Admin only.
+ * @returns {Promise<{ groups: Array<{ id, tableName, label, description, cascadeTo }>, edges: Array<{ from, to }>, tableLabels: Object }>}
+ */
+export const getClearDatabasesSchema = async () => {
+  const { json } = await httpClient(`${API_URL}/admin/clear-databases/schema`);
+  return json;
+};
+
+/**
+ * Clear selected database groups (or all if groupIds empty/omitted). Admin only.
+ * @param {string[]} [groupIds] - Optional. IDs from schema.groups (e.g. ['leads','deals']). If empty/omitted, clears all.
+ * @returns {Promise<{ success: boolean, cleared_tables: string[] }>}
+ */
+export const clearDatabases = async (groupIds = null) => {
+  const body = groupIds && groupIds.length ? { groupIds } : {};
+  const { json } = await httpClient(`${API_URL}/admin/clear-databases`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return json;
+};
+
 // ==========================================
 // Reports & Analytics API
 // ==========================================

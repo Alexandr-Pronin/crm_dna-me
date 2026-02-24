@@ -53,6 +53,7 @@ const SYSTEM_FIELDS = [
   { key: 'phone', label: 'Telefon', required: false, group: 'lead' },
   { key: 'job_title', label: 'Position', required: false, group: 'lead' },
   { key: 'linkedin_url', label: 'LinkedIn URL', required: false, group: 'lead' },
+  { key: 'message', label: 'Nachricht (→ Notiz im Chat)', required: false, group: 'lead' },
   { key: 'company_name', label: 'Firma (Name)', required: false, group: 'org' },
   { key: 'company_domain', label: 'Firma (Domain)', required: false, group: 'org' },
   { key: 'industry', label: 'Branche', required: false, group: 'org' },
@@ -67,6 +68,7 @@ const HEADER_ALIASES = {
   phone: ['phone', 'telefon', 'telephone', 'tel', 'phone_number', 'phonenumber', 'telefonnummer', 'mobil', 'mobile'],
   job_title: ['job_title', 'jobtitle', 'position', 'title', 'titel', 'rolle', 'role', 'job title', 'berufsbezeichnung'],
   linkedin_url: ['linkedin_url', 'linkedin', 'linkedinurl', 'linkedin url', 'linkedin_profile', 'linkedin-url'],
+  message: ['message', 'nachricht', 'notiz', 'note', 'notes', 'kommentar', 'comment', 'anmerkung', 'message_text', 'messagetext'],
   company_name: ['company_name', 'company', 'firma', 'firmenname', 'organisation', 'organization', 'unternehmen', 'company name'],
   company_domain: ['company_domain', 'domain', 'website', 'firmenwebsite', 'webseite', 'url', 'company domain', 'firmendomain'],
   industry: ['industry', 'branche', 'industrie', 'sector', 'sektor'],
@@ -130,6 +132,32 @@ function mapRowToLead(row, mapping) {
     const fieldDef = SYSTEM_FIELDS.find((f) => f.key === systemField);
     if (fieldDef?.group === 'org') {
       meta[systemField] = value;
+    } else if (systemField === 'linkedin_url') {
+      const trimmed = value.trim();
+      if (/^https?:\/\//i.test(trimmed)) lead[systemField] = trimmed;
+    } else {
+      lead[systemField] = systemField === 'email' ? value.toLowerCase() : value;
+    }
+  }
+  return { ...lead, ...meta };
+}
+
+function buildLeadFromRawRow(rawRow, headers, mapping) {
+  const lead = {};
+  const meta = {};
+  for (const [csvHeader, systemField] of Object.entries(mapping)) {
+    if (!systemField) continue;
+    const idx = headers.indexOf(csvHeader);
+    if (idx === -1) continue;
+    const rawVal = rawRow[idx];
+    const value = rawVal != null && rawVal !== '' ? String(rawVal).trim() : '';
+    if (!value) continue;
+
+    const fieldDef = SYSTEM_FIELDS.find((f) => f.key === systemField);
+    if (fieldDef?.group === 'org') {
+      meta[systemField] = value;
+    } else if (systemField === 'linkedin_url') {
+      if (/^https?:\/\//i.test(value)) lead[systemField] = value;
     } else {
       lead[systemField] = systemField === 'email' ? value.toLowerCase() : value;
     }
@@ -148,6 +176,7 @@ function CsvImportDialog({ open, onClose }) {
   const [file, setFile] = useState(null);
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [csvRows, setCsvRows] = useState([]);
+  const [csvRawRows, setCsvRawRows] = useState([]);
   const [parseError, setParseError] = useState(null);
   const [delimiter, setDelimiter] = useState('auto');
 
@@ -187,7 +216,7 @@ function CsvImportDialog({ open, onClose }) {
       setValidationErrors([]);
 
       const config = {
-        header: true,
+        header: false,
         skipEmptyLines: true,
         encoding: 'UTF-8',
         complete: (results) => {
@@ -199,10 +228,27 @@ function CsvImportDialog({ open, onClose }) {
             }
           }
 
-          const headers = results.meta.fields || [];
-          const rows = results.data.filter((row) =>
-            Object.values(row).some((v) => v && v.trim())
+          const rawRows = results.data || [];
+          if (rawRows.length < 2) {
+            setParseError('Die CSV-Datei enthält keine Daten oder keine Header-Zeile.');
+            return;
+          }
+
+          let headers = (rawRows[0] || []).map((h) =>
+            (typeof h === 'string' ? h.replace(/^\uFEFF/, '').trim() : String(h ?? ''))
           );
+          const numCols = headers.length;
+          const rawDataRows = rawRows.slice(1);
+          const hasContent = (arr) => arr.some((v) => v != null && String(v).trim());
+          const rawFiltered = rawDataRows.filter(hasContent);
+          const rows = rawFiltered.map((arr) => {
+            const obj = {};
+            for (let i = 0; i < numCols; i++) {
+              const val = arr[i];
+              obj[headers[i]] = val != null && val !== '' ? String(val).trim() : '';
+            }
+            return obj;
+          });
 
           if (headers.length === 0 || rows.length === 0) {
             setParseError('Die CSV-Datei enthält keine Daten oder keine Header-Zeile.');
@@ -211,6 +257,7 @@ function CsvImportDialog({ open, onClose }) {
 
           setCsvHeaders(headers);
           setCsvRows(rows);
+          setCsvRawRows(rawFiltered);
           setMapping(autoMapHeaders(headers));
           setActiveStep(1);
         },
@@ -270,12 +317,29 @@ function CsvImportDialog({ open, onClose }) {
     setImportResult(null);
 
     try {
+      // Immer dieselbe Quelle wie die Vorschau (csvRows + mapRowToLead), damit Payload und Anzeige übereinstimmen
       const leads = csvRows
         .map((row) => mapRowToLead(row, mapping))
         .filter((l) => l.email);
 
       if (leads.length === 0) {
         setImportResult({ success: false, message: 'Keine gültigen Leads gefunden.' });
+        setImporting(false);
+        return;
+      }
+
+      // Strip linkedin_url if every lead has the exact same value (placeholder)
+      const linkedinValues = new Set(leads.map((l) => l.linkedin_url).filter(Boolean));
+      if (linkedinValues.size === 1 && leads.length > 1) {
+        leads.forEach((l) => { delete l.linkedin_url; });
+      }
+
+      const uniqueEmails = new Set(leads.map((l) => (l.email || '').toLowerCase()));
+      if (uniqueEmails.size < leads.length) {
+        setImportResult({
+          success: false,
+          message: `Doppelte E-Mails in der CSV: ${leads.length} Zeilen, aber nur ${uniqueEmails.size} eindeutige E-Mail(s). Bitte CSV prüfen oder Datei erneut auswählen.`,
+        });
         setImporting(false);
         return;
       }
@@ -302,7 +366,7 @@ function CsvImportDialog({ open, onClose }) {
         message: `${totalQueued} Leads in ${totalChunks} Batch(es) importiert.`,
         batchIds,
       });
-      notify(`${totalQueued} Leads erfolgreich importiert`, { type: 'success' });
+      notify(`${totalQueued} Leads erfolgreich importiert.`, { type: 'success' });
       refresh();
     } catch (err) {
       setImportResult({
@@ -319,6 +383,7 @@ function CsvImportDialog({ open, onClose }) {
     setFile(null);
     setCsvHeaders([]);
     setCsvRows([]);
+    setCsvRawRows([]);
     setParseError(null);
     setMapping({});
     setValidationErrors([]);
@@ -346,6 +411,28 @@ function CsvImportDialog({ open, onClose }) {
     () => csvRows.length - rowErrors.length,
     [csvRows, rowErrors]
   );
+
+  const rowsWithMessageCount = useMemo(() => {
+    const messageCol = Object.entries(mapping).find(([, v]) => v === 'message')?.[0];
+    if (!messageCol) return 0;
+    return csvRows.filter((row, idx) => {
+      if (rowErrors.some((e) => e.row === idx + 2)) return false;
+      const val = (row[messageCol] || '').trim();
+      return val.length > 0;
+    }).length;
+  }, [csvRows, mapping, rowErrors]);
+
+  const uniqueEmailCountInValidRows = useMemo(() => {
+    const emailCol = Object.entries(mapping).find(([, v]) => v === 'email')?.[0];
+    if (!emailCol) return 0;
+    const seen = new Set();
+    csvRows.forEach((row, idx) => {
+      if (rowErrors.some((e) => e.row === idx + 2)) return;
+      const email = (row[emailCol] || '').trim().toLowerCase();
+      if (email) seen.add(email);
+    });
+    return seen.size;
+  }, [csvRows, mapping, rowErrors]);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -446,8 +533,14 @@ function CsvImportDialog({ open, onClose }) {
             <Alert severity="info" variant="outlined">
               <Typography variant="body2">
                 <strong>Unterstützte Felder:</strong> E-Mail (Pflicht), Vorname, Nachname,
-                Telefon, Position, LinkedIn URL, Firma, Domain, Branche, Firmengröße, Land.
+                Telefon, Position, LinkedIn URL, <strong>Nachricht</strong> (optional → wird als Notiz im Chat importiert),
+                Firma, Domain, Branche, Firmengröße, Land.
                 Pro Zeile wird ein Lead angelegt und optional mit einer Organisation verknüpft.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Hinweis zu Nachrichten:</strong> Damit Texte im Chat vollständig ankommen, muss die CSV-Spalte den
+                kompletten Text enthalten. Manche Programme (z. B. Excel) kürzen lange Zellen beim Export – dann erscheinen
+                im Chat nur Ausschnitte mit „…“. CSV am besten mit einem Editor oder „Speichern als CSV UTF-8“ prüfen.
               </Typography>
             </Alert>
           </Box>
@@ -592,6 +685,11 @@ function CsvImportDialog({ open, onClose }) {
                     color="success"
                     variant="outlined"
                   />
+                  <Chip
+                    label={`${uniqueEmailCountInValidRows} eindeutige E-Mails`}
+                    variant="outlined"
+                    color={uniqueEmailCountInValidRows < validRowCount ? 'warning' : 'default'}
+                  />
                   {rowErrors.length > 0 && (
                     <Chip
                       icon={<WarningIcon />}
@@ -608,6 +706,15 @@ function CsvImportDialog({ open, onClose }) {
                     label={skipDuplicates ? 'Duplikate überspringen' : 'Duplikate erlauben'}
                     variant="outlined"
                   />
+                  {rowsWithMessageCount > 0 && (
+                    <Chip
+                      icon={<CheckCircleIcon />}
+                      label={`${rowsWithMessageCount} mit Notiz im Chat`}
+                      color="info"
+                      variant="outlined"
+                      size="small"
+                    />
+                  )}
                 </Box>
 
                 {rowErrors.length > 0 && (
@@ -681,14 +788,26 @@ function CsvImportDialog({ open, onClose }) {
           )}
 
           {activeStep === 2 && !importResult?.success && fatalErrors.length === 0 && (
-            <Tooltip title={validRowCount === 0 ? 'Keine gültigen Zeilen' : ''}>
+            <Tooltip
+              title={
+                validRowCount === 0
+                  ? 'Keine gültigen Zeilen'
+                  : uniqueEmailCountInValidRows < validRowCount
+                    ? 'Doppelte E-Mails: Jede Zeile braucht eine eindeutige E-Mail. CSV prüfen oder Datei erneut auswählen.'
+                    : ''
+              }
+            >
               <span>
                 <Button
                   variant="contained"
                   color="primary"
                   startIcon={importing ? <CircularProgress size={16} /> : <SendIcon />}
                   onClick={handleImport}
-                  disabled={importing || validRowCount === 0}
+                  disabled={
+                    importing ||
+                    validRowCount === 0 ||
+                    uniqueEmailCountInValidRows < validRowCount
+                  }
                 >
                   {importing ? 'Importiere...' : `${validRowCount} Leads importieren`}
                 </Button>

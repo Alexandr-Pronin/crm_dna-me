@@ -145,6 +145,11 @@ function transformConversationResponse(conversation: ConversationWithDetails) {
     created_by_email: conversation.created_by_email ?? null,
     created_by_avatar: conversation.created_by_avatar ?? null,
     initiated_by_lead: conversation.initiated_by_lead ?? false,
+    imported_at: conversation.imported_at
+      ? (typeof conversation.imported_at === 'string'
+          ? conversation.imported_at
+          : (conversation.imported_at as Date).toISOString?.() ?? conversation.imported_at)
+      : null,
     // Counts
     unread_count: conversation.unread_count ?? 0,
     message_count: conversation.message_count ?? 0,

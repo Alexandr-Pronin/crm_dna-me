@@ -11,6 +11,7 @@ import {
   StickyNote2 as NoteIcon,
   Task as TaskIcon,
   Warning as LeadInitiatedIcon,
+  Input as ImportedIcon,
 } from '@mui/icons-material';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -58,10 +59,12 @@ function ConversationListItem({ conversation, onClick, isActive }) {
     created_by_avatar,
     created_by_name,
     initiated_by_lead,
+    imported_at,
   } = conversation;
 
   const displayName = subject || deal_name || lead_name || 'Konversation';
   const avatarName = created_by_name || displayName;
+  const isImported = Boolean(imported_at);
   const preview = last_message_preview
     ? last_message_preview.replace(/<[^>]*>/g, '').slice(0, 80)
     : 'Keine Nachrichten';
@@ -94,7 +97,7 @@ function ConversationListItem({ conversation, onClick, isActive }) {
         borderColor: isActive ? 'primary.main' : 'transparent',
       }}
     >
-      {/* Avatar: red circle + ! for lead-initiated chats, else creator avatar */}
+      {/* Avatar: import icon for imported chats, red ! for lead-initiated, else creator avatar */}
       <Badge
         badgeContent={unread_count}
         color="primary"
@@ -102,7 +105,24 @@ function ConversationListItem({ conversation, onClick, isActive }) {
         invisible={unread_count === 0}
         sx={{ '& .MuiBadge-badge': { fontSize: 10, minWidth: 18, height: 18 } }}
       >
-        {initiated_by_lead ? (
+        {isImported ? (
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              bgcolor: 'rgba(245, 158, 11, 0.2)',
+              color: 'warning.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            title="Importierter Chat"
+          >
+            <ImportedIcon sx={{ fontSize: 22 }} />
+          </Box>
+        ) : initiated_by_lead ? (
           <Box
             sx={{
               width: 40,
