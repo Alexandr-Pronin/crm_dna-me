@@ -587,7 +587,6 @@ export class TaskService {
     
     return await db.query<Task>(sql, params);
   }
-}
 
   // ===========================================================================
   // Get Tasks for Calendar View (date range)
@@ -672,6 +671,7 @@ export class TaskService {
 
     return grouped;
   }
+}
 
 // =============================================================================
 // Singleton Export
