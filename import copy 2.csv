@@ -1,0 +1,1018 @@
+import+31@placeholder.local,Andrew,Bartko,,Dr.,https://www.linkedin.com/in/placeholder,"CMI's IBD microbiome work + full-length 16S species resolution
+
+Dr. Bartko,
+ 
+I enjoyed your team's recent mSystems paper on diet-microbiome patterns across populations—the culturally-specific bacterial associations align perfectly with precision medicine goals. Your corresponding authorship signals CMI's strategic pivot toward personalized interventions, which is why I'm reaching out.
+ 
+At DNA ME, we've developed a hybrid workflow combining Oxford Nanopore full-length 16S sequencing (V1-V9, ~1,500 bp) with targeted hybridization enrichment. This solves three bottlenecks I've observed in CMI's IBD research pipeline: (1) species-level resolution—moving beyond genus-level taxonomic assignments to differentiate E. coli from Shigella or resolve Bacteroides to species in treatment-response cohorts; (2) clinical throughput—processing 96 samples per run at <$45/sample, making longitudinal monitoring economically viable; (3) CLIA-pathway compatibility—our protocol integrates with FDA LDT frameworks for translational studies.
+ 
+Given CMI's active Crohn's Disease trials (treat-to-target endoscopic remission, maintenance therapy optimization) and your stated goal to ""subtype CD patients beyond anatomical classification"" using microbiomarkers, I propose a pilot validation study: 500 paired samples (stool + mucosal biopsies) from your IBD cohorts, processed in parallel with your current V3-V4 Illumina workflow over 3-4 months. We'd benchmark species-level taxonomic concordance, functional gene recovery, and correlation with endoscopic inflammation scores.
+ 
+Would you be open to an exploratory call next week to discuss CMI's sample availability and timeline?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",CMI,,,,
+import+32@placeholder.local,Kristina,Hess,,Dr.,https://www.linkedin.com/in/placeholder,"Scaling microbiome testing beyond “gut health” into actionable species-level coaching
+
+Dear Dr. Hess,
+ 
+I read your Thrive Results overview on using precision testing (nutrition genomics, organic acids, and microbiome) to build truly individualized protocols—and I appreciate the emphasis on validating progress with objective biomarkers, not guesswork. Your clinical focus on inflammation/metabolic health (and the reality that keto “isn’t the best diet protocol for everyone”) is exactly where microbiome resolution can turn good coaching into measurable outcomes.
+ 
+DNA ME helps clinicians move from broad “dysbiosis” language to specific, reproducible calls by combining Oxford Nanopore full-length 16S with targeted enrichment. Three advantages that map directly to your practice: (1) Species resolution to separate look-alikes that drive different responses (e.g., beneficial vs. opportunistic species within the same genus); (2) Throughput suited to programs and corporate wellness cohorts, enabling consistent pre/post tracking instead of one-off tests; (3) Clinical workflow readiness—standardized sample-to-report pipelines that can support a future CLIA-aligned pathway as you expand lab-driven offerings.
+ 
+Would you consider a pilot: 500 stool samples over 3–4 months, processed in parallel with your current microbiome vendor so we can benchmark species calls, longitudinal stability, and cost reduction for retesting cadence?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Thrive Results,,,,
+import+33@placeholder.local,Janine,Barlow,,Dr.,https://www.linkedin.com/in/placeholder,"Creatine gummy stability + shelf‑life QA: where sequencing can de-risk claims
+
+Dear Dr. Barlow,
+
+I read SIRIO Europe’s “2025 in Trends” piece and your quote on the 1 g creatine gummies—specifically the emphasis on maintaining declared creatine content through shelf life and backing it with comprehensive third‑party stability studies. That “dose-on-label, dose-at-expiry” mindset is exactly how R&D teams earn repeat launches with brand owners.
+ 
+DNA ME can add a microbial quality and claim-substantiation layer that’s hard to get from culture or short amplicons alone:
+ 
+Species/strain confidence using long-read sequencing (e.g., full-length 16S) to verify probiotic inputs and detect low-level contaminants that can undermine stability programs.
+Throughput for development cycles: multiplexed sequencing + automated analysis so you can screen many batches/conditions (pilot lots, scale-up, packaging, challenge studies) without slowing NPD.
+Clinical-workflow readiness: standardized QC metrics, audit-ready outputs, and an approach that can be documented in a CLIA-style validation package for partners who need defensible data trails.
+ 
+Would you be open to a 500-sample pilot over 3–4 months, run in parallel with your current microbiology/analytical workflow, to compare detection yield, turnaround time, and cost per sample?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",SIRIO Europe,,,,
+import+34@placeholder.local,Alicia,Kali,,Dr.,https://www.linkedin.com/in/placeholder,"“Symbio” microbiome claims—species-resolved validation at scale
+
+Dear Dr. Kali,
+ 
+I saw your recent announcements positioning Symbio as regenerative nutrition “answering the microbiome,” alongside your broader Panacea Worldwide platform spanning nutrition, diagnostics, and regenerative biotech. If you’re building category-defining products, the fastest way to de-risk claims is to generate sequencing-grade evidence that holds up in regulatory, partner, and diligence reviews.
+ 
+DNA ME can support that with an Oxford Nanopore workflow combining full-length 16S plus targeted enrichment. Three advantages for regenerative nutrition programs: (1) Species resolution to validate which taxa actually shift (and to avoid genus-level “wins” that don’t translate clinically); (2) Throughput to run large cohorts and timepoints without breaking budget, enabling real-world evidence and iterative formulation; (3) Clinical workflow readiness—standardized sample-to-report pipelines that can be extended toward a CLIA-aligned pathway as diagnostics mature.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months, processed in parallel with your current microbiome testing so we can benchmark species calls, longitudinal stability, and cost reduction for repeat testing across product iterations.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Symbio / Panacea Worldwide,,,,
+import+35@placeholder.local,Manoj,Dadlani,,Dr.,https://www.linkedin.com/in/placeholder,"De-risking microbiome standardization at scale (Nanopore full-length 16S + metagenomics)
+
+Dr. Dadlani,
+
+I’ve been following Cmbio’s positioning around fixing the industry bottlenecks in microbiome work—especially the need to standardize sampling, data generation, and analysis so results are comparable across studies and geographies. I also noted your broader emphasis on translating microbiome programs into trial-grade evidence and ultimately approvals/reimbursement, which puts pressure on reproducibility and auditable pipelines from day one.
+ 
+DNA ME can complement Cmbio’s multi-omics platform with three practical advantages:
+ 
+Higher taxonomic confidence via long-read sequencing, including full-length 16S for cleaner species calls in ambiguous genera and better strain-linked interpretation where needed.
+High-throughput multiplexing with rapid turnaround, enabling large cohort screens or longitudinal programs without ballooning per-sample operational cost (clear cost reduction levers for service delivery).
+Clinical-workflow readiness: standardized QC metrics, versioned reference/analysis, and outputs that can be packaged in a CLIA-style validation dossier for partners who need defensible traceability.
+ 
+Would you consider a 500-sample pilot over 3–4 months, run in parallel with your current workflows, to benchmark species resolution, throughput, and operational cost per sample?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Cmbio,,,,
+import+36@placeholder.local,William,DePaolo,,Dr.,https://www.linkedin.com/in/placeholder,"Turning “Better Microbiome Thinking” into testable, clinical-grade evidence (long-read 16S + metagenomics)
+
+Dear Dr. DePaolo,
+
+Your work on translational microbiome and immunology—and your recent “Better Microbiome Thinking” writing about moving beyond simply generating more microbiome data toward better interpretation—strongly resonates with how we approach sequencing programs. I also revisited your Cell Host & Microbe paper on mucosal microbiome signatures in precancerous polyps and the strain-level characterization of nontoxigenic Bacteroides fragilis linked to inflammatory signaling, where you combined 16S sequencing, culturing, and whole-genome sequencing to connect composition to function.
+ 
+DNA ME can help you (and your clinical/industry partners) scale that kind of causality-first work with three advantages:
+ 
+Higher taxonomic precision using long reads, including full-length 16S, to reduce “genus-only” ambiguity in mucosal and low-biomass contexts.
+High-throughput multiplexing with fast turnaround, enabling longitudinal or interventional studies (e.g., diet/fermented foods, immunology endpoints) without bottlenecking sample flow.
+Clinical-workflow alignment: standardized QC metrics, audit-ready outputs, and packaging suitable for CLIA-style validation expectations when partners want defensible traceability.
+ 
+Could we propose a 500-sample pilot over 3–4 months, run in parallel with your current workflow, to compare species resolution, throughput, and per-sample cost?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",,,,,
+import+37@placeholder.local,Cherrie D.,Sherman,,Ph.D.,https://www.linkedin.com/in/placeholder,"EV therapeutics + microbiome readouts: a scalable long‑read pilot for decision‑grade data
+
+Dear Dr. Sherman,
+
+I saw your background bridging rigorous biomedical R&D (including microbiome in colorectal cancer and cardiovascular cell-free therapeutics) with your current leadership in community health through Home Helpers Home Care of Boca Raton. Your 2021 review on extracellular vesicle (EV) cargo sorting in cardiovascular therapeutic development also stood out—because it frames EV work as a translation problem: reproducible characterization, clear mechanism, and an evidence trail strong enough for partners and regulators.
+ 
+DNA ME can support that translation mindset with three practical advantages:
+ 
+Higher organism identification confidence using long reads, including full-length 16S, for species-level calls in mixed or low-biomass samples (useful for microbiome-linked CRC hypotheses and contamination monitoring).
+High throughput via multiplexed nanopore runs, enabling large screens or longitudinal cohorts without stalling timelines (clear cost reduction per decision point).
+Clinical-workflow readiness: standardized QC metrics, audit-ready outputs, and packaging aligned with CLIA-style validation expectations for partners who need defensible traceability.
+ 
+Would you consider a 500-sample, 3–4 month pilot run in parallel with your current workflow to benchmark species resolution, turnaround time, and per-sample cost?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Home Helpers Home Care,,,,
+import+38@placeholder.local,Enosh,Kazem,,Food Scientist,https://www.linkedin.com/in/placeholder,"Prebiotic personalization → species-resolved readouts at CPG scale
+
+Dear Dr. Kazem,
+ 
+I noticed you’ve moved into a Food Scientist role at PIM Brands and that your through-line remains microbiome-first product development—especially prebiotics, resistant starch, and fiber-driven personalization. Your Purdue dissertation quantified how 35 digested substrates drove donor-specific microbiome shifts over 6/12/24h, while SCFA metabolite responses were more consistent across donors—exactly the kind of nuance most CPG “gut health” programs miss.
+ 
+DNA ME can help you industrialize that science with an Oxford Nanopore workflow combining full-length 16S plus targeted enrichment. Three concrete advantages for fiber/biotic innovation: (1) Species resolution to detect which exact taxa respond (beyond genus-level “Bifido up” claims), including butyrate-producer clusters relevant to metabolic health; (2) Throughput to support rapid iteration across formulations, timepoints, and consumer cohorts without prohibitive sequencing cost; (3) Clinical workflow discipline—standardized sample handling/reporting that can support CLIA-aligned partners if you extend into clinician-facing evidence.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months, run in parallel with your current microbiome vendor/16S workflow (or your in‑house methods) to benchmark species calls, reproducibility, and cost reduction for routine pre/post testing.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",PIM Brands,,,,
+import+39@placeholder.local,George,Bowden,,,https://www.linkedin.com/in/placeholder,"Rebyota site readiness + faster verification for microbiome therapeutics (species-level, audit-ready)
+
+Dear Mr. Bowden,
+
+I noticed you’ve been leading Ferring’s microbiome account work since April 2024, focused on embedding REBYOTA into targeted ID/GI accounts and driving operational readiness (site-of-care setup, administration pathways, logistics) so interest reliably converts to prescribing. Ferring’s continued investment in real-world evidence—e.g., the IDWeek 2025 analyses on REBYOTA effectiveness/safety and patient quality-of-life—also signals how seriously you’re treating adoption barriers beyond the label.
+ 
+DNA ME can support your microbiome-therapeutics accounts with three concrete advantages:
+ 
+Species-level resolution using long-read sequencing (including full-length 16S) to rapidly verify microbial identity in process checks, environmental monitoring, and investigational workflows where culture can be slow or incomplete.
+High throughput for multi-site programs: multiplexed sequencing to process large sample volumes quickly, enabling practical cost reduction per monitoring cycle.
+Clinical-workflow alignment: standardized QC metrics, versioned analysis, and outputs that map cleanly into CLIA-style documentation expectations for hospitals/labs that demand audit-ready traceability.
+ 
+Would you be open to a 500-sample pilot over 3–4 months, run in parallel with current microbiology workflows at a subset of target sites, to benchmark turnaround time, detection yield, and per-sample cost?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Ferring,,,,
+import+40@placeholder.local,Doug,Lynch,,Dr.,https://www.linkedin.com/in/placeholder,"Longevity + AI claims need species-level microbiome proof (500-sample pilot)
+
+Dear Dr. Lynch,
+ 
+Your positioning around longevity, AI-enabled discovery, and IP-backed proprietary ingredients is exactly where microbiome analytics either makes a product defensible—or exposes it. In your recent interview, you called out personalized nutrition, postbiotics, and longevity solutions as major next waves, and emphasized bringing pharma-grade rigor into wellness via medical foods and better evidence.
+ 
+DNA ME helps ingredient and brand teams generate that rigor with an Oxford Nanopore workflow combining full-length 16S plus targeted enrichment. Three advantages that map to your go-to-market/IP lens: (1) Species resolution so claims are tied to specific microbial shifts (not vague genus-level “gut health” language); (2) Throughput + cost reduction so brands can run real-world evidence cohorts with multiple timepoints and still hit commercial timelines; (3) Clinical workflow readiness—standardized sample handling/reporting that can plug into CLIA-aligned partners when products evolve from supplement → medical food → clinician channel.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months, processed in parallel with the brand’s current microbiome vendor to benchmark species calls, reproducibility, and the cost-per-insight for repeat testing.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",,,,,
+import+41@placeholder.local,Amira,Metwaly,,Dr.,https://www.linkedin.com/in/placeholder,"GEM-CAP + causality-first microbiome work: a 500-sample long-read pilot at ZIEL
+
+Dear Dr. Metwaly,
+
+I saw the ZIEL update on the GEM-CAP initiative and the Cairo symposium—congratulations on leading a DAAD Ta’ziz Partnerschaft–supported program that builds microbiome bioinformatics capacity through hands-on training and international collaboration. I also noted your 2025 Nature Reviews Gastroenterology & Hepatology consensus statement on establishing causality and selecting preclinical models in microbiome research, which is highly aligned with “data that holds up” rather than exploratory-only findings.
+ 
+DNA ME can support your Core Facility Microbiome work with three concrete advantages:
+ 
+Higher taxonomic confidence via long reads, including full-length 16S, improving species-level calls in hard-to-resolve gut taxa and enabling cleaner cross-study comparability.
+Throughput for core-facility demand: multiplexed nanopore runs + automated pipelines to process large cohorts and training datasets without bottlenecking staff time.
+Clinical-workflow alignment: standardized QC metrics, versioned analysis, and outputs that can be packaged in a CLIA-style validation dossier for clinical-adjacent collaborations.
+ 
+Would you be open to a 500-sample pilot over 3–4 months, run in parallel with your current 16S/metagenomic workflows, to benchmark species resolution, turnaround time, and per-sample cost?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",ZIEL,,,,
+import+42@placeholder.local,J. Steven,Alexander,,Dr. / Editor-in-Chief,https://www.linkedin.com/in/placeholder,"IMPACT‑IBD + transplant injury: species‑resolved microbiome profiling at scale
+
+Dear Dr. Alexander,
+ 
+Your dual focus on barrier/vascular inflammation in GI disease and real-world translation through Arganum Transplant Solutions is compelling—especially your work around reducing transplantation injury and expanding organ availability. I also noted your leadership as Editor‑in‑Chief of Pathophysiology, which gives you a clear view of where mechanistic rigor and translational evidence are heading.
+ 
+DNA ME can support IMPACT‑IBD and transplant-adjacent studies with an Oxford Nanopore workflow combining full‑length 16S plus targeted enrichment. Three concrete advantages for inflammation-driven cohorts: (1) Species resolution to move beyond genus-level “dysbiosis” and pinpoint organisms associated with barrier disruption, endotoxemia, and flare risk; (2) Throughput to handle longitudinal sampling (stool + mucosal + peri‑op timepoints) without ballooning sequencing spend; (3) Clinical workflow readiness—standardized sample-to-report processes that fit CLIA-aligned partners when studies move toward actionable diagnostics.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months, run in parallel with your current 16S/qPCR workflows to benchmark species calls, reproducibility, and cost reduction for repeat sampling.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Arganum Transplant Solutions,,,,
+import+43@placeholder.local,Molly,McGlaughlin,,,https://www.linkedin.com/in/placeholder,"Sequencing-to-dose for personalized mRNA: faster in-process verification with Nanopore
+
+Dear Ms. McGlaughlin,
+ 
+I’ve been following your push to make personalized mRNA practical in the U.S.—especially your point that today’s manufacturing infrastructure wasn’t built for individualized therapies, and that Revolution Biomanufacturing was founded to close that gap. I also saw your announcement on integrating AI-driven mRNA sequence optimization with end-to-end GMP manufacturing to help innovators move from design to sterile drug product more confidently.
+ 
+DNA ME can complement that “sequence → patient” pipeline with three concrete advantages:
+ 
+Rapid, high-confidence ID using long-read sequencing (e.g., full-length 16S for bioburden investigations and organism confirmation when culture is slow/ambiguous).
+Throughput for manufacturing operations: multiplexed runs to process environmental monitoring, water, and in-process samples at scale—supporting cost reduction per monitoring cycle.
+Clinical-workflow alignment: standardized QC metrics, versioned analysis, and outputs that can be packaged in a CLIA-style validation dossier for partners who need audit-ready traceability and deviation investigations.
+ 
+Would you consider a 500-sample pilot over 3–4 months, run in parallel with your current EM/micro testing workflow, to benchmark time-to-ID, detection yield, and per-sample cost?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Revolution Biomanufacturing,,,,
+import+44@placeholder.local,Bilal,Ahmed,,MD MBA,https://www.linkedin.com/in/placeholder,"“Show the data” microbiome→LDL: species-resolved validation for Lylah
+
+Dr. Ahmed,
+ 
+Your recent posts laying out Lylah’s non‑negotiables—“No bullshit, ever” and “Show the data”—are exactly the mindset microbiome therapeutics needs, especially with your claim that Biotics3 is backed by RCT‑level LDL reduction data. Your LinkedIn bio also makes the scientific direction clear: connecting gut microbiome therapeutics to cardiovascular disease prevention with formulations aligned to robust academic evidence.
+ 
+DNA ME can help you strengthen that evidence base with an Oxford Nanopore workflow combining full-length 16S plus targeted enrichment. Three concrete advantages for a cardiometabolic product like Lylah: (1) Species resolution to identify which taxa actually move with Biotics3 (and avoid genus-level signals that can’t be tied to mechanisms); (2) Throughput to power real-world evidence and iterative formulation testing without prohibitive sequencing costs; (3) Clinical workflow readiness—standardized sample handling and reporting that can support a future CLIA-aligned pathway if you expand into companion diagnostics for responder stratification.
+ 
+I’d like to propose a pilot: 500 stool samples over 3–4 months, processed in parallel with your current microbiome vendor/qPCR so we can benchmark species calls, longitudinal stability, and cost reduction for repeat testing cadence.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Lylah,,,,
+import+45@placeholder.local,Eliana,Mariño,,Dr.,https://www.linkedin.com/in/placeholder,"Species-level microbiome profiling for SCFA-biotherapy trials in T1D
+
+Dear Dr. Mariño,
+ 
+Your Nature Communications paper demonstrating SCFA-responder microbiota delaying diabetes in humanized mice is remarkable work—particularly the discovery that only 2 of 4 trial subjects' microbiota conferred protection, underscoring the critical need for species-level biomarker identification. Your 2022 Microbiome study correlating Bifidobacterium longum and B. adolescentis with improved HbA1c represents exactly the precision ImmunoBiota needs to stratify patients and accelerate clinical translation.
+ 
+DNA ME's Oxford Nanopore-based platform delivers full-length 16S rRNA sequencing (~1,500 bp) providing species-level resolution at $15-85/sample—a 60-80% cost reduction versus Illumina while capturing all nine variable regions rather than just V3-V4. Recent validations show 87% accuracy distinguishing species-level colorectal cancer biomarkers, and the R10.4.1 chemistry now achieves single-nucleotide resolution for strain-level discrimination. For oral-gut axis studies, our workflow profiles both compartments with identical precision, directly addressing your 2023 Molecular Immunology work on periodontal-intestinal translocation.
+ 
+We propose a 500-sample pilot (3-4 months) profiling baseline microbiomes from your next HAMSAB trial cohort, running parallel to standard clinical workflows. This would identify predictive taxa for SCFA-responder phenotypes, validate metabolite-microbe associations at species resolution, and generate regulatory-grade data for TGA/FDA submissions.
+ 
+Would you be open to an exploratory call next week to discuss integration timelines and data-sharing frameworks?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",ImmunoBiota,,,,
+import+46@placeholder.local,Kevin,Spelman,,PhD,https://www.linkedin.com/in/placeholder,"Our authentomics framework + molecular diagnostics for cannabis QC
+
+Dear Dr. Spelman,
+ 
+Your September 2024 postmarketing surveillance study demonstrating 0.05% adverse event rates in 646,391 hemp extract consumers underscores what your 2023 Frontiers authentomics review made explicit: product safety hinges on upstream authentication. Yet metabolomic big data approaches remain cost-prohibitive for the mid-tier producers you consult—creating a validation gap between research-grade and commercial-scale quality control.
+ 
+DNA ME's Oxford Nanopore platform addresses three bottlenecks in botanical authentication: (1) Species resolution via full-length ITS2 sequencing and adaptive sampling distinguishes Cannabis sativa from adulterants at genetic level, catching contamination before extraction; (2) Cost reduction through targeted sequencing with hybridization capture delivers 10× throughput gains versus Sanger methods, making routine authentication economically viable at $8-12/sample; (3) CLIA-ready workflows integrate with your GMP frameworks, generating certificate-of-analysis data for FDA botanical drug guidance submissions.
+ 
+Given your consulting portfolio spans supply chain verification to clinical trial standardization, we'd value piloting 500 samples over 3-4 months—processing material in parallel with your current metabolomic QC to benchmark DNA ME's molecular diagnostics against your authentomics gold standard.
+ 
+Would you be open to an exploratory call next week?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",,,,,
+import+47@placeholder.local,Laura,Rago,,PhD / MBA,https://www.linkedin.com/in/placeholder,"Biobank authentication meets nanopore sequencing – validating ADM's probiotic quality standards
+
+Dear Dr. Rago,
+ 
+Your May 2025 Animals paper demonstrating L. plantarum CECT 9161's 10% plaque reduction in 60 dogs exemplifies the rigorous strain characterization ADM demands—yet biobank quality assurance at scale remains constrained by short-read sequencing limitations. With ADM's new Lausanne R&D center positioning your team as microbiome innovation leaders, upstream strain authentication directly impacts every downstream application from clinical trials to regulatory submissions.
+ 
+DNA ME's Oxford Nanopore platform addresses three bottlenecks in probiotic biobanking: (1) Species-level resolution through full-length 16S sequencing with adaptive sampling distinguishes closely-related Lactobacillus species and detects low-abundance contaminants that V3-V4 amplicons miss—critical for certificate-of-analysis documentation; (2) Throughput cost reduction via hybridization capture delivers strain verification at $8-12/sample versus traditional Sanger methods, enabling quarterly re-authentication of 500+ strain collections; (3) CLIA-ready workflows generate antimicrobial resistance gene profiles and metagenome-assembled genomes in 24-48 hours, accelerating product development pipelines from strain screening to clinical substantiation.
+ 
+Given your dual mandate managing ADM's biobank infrastructure while advancing microbiome applications research, we'd value piloting 500 samples over 3-4 months—comparing DNA ME's nanopore authentication against your current sequencing workflows across both archived strains and incoming commercial probiotic materials.
+ 
+Would you be open to an exploratory call next week?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",ADM,,,,
+import+48@placeholder.local,Rudi,Schmidt,,Dr.,https://www.linkedin.com/in/placeholder,"Abu Dhabi longevity + RWD: species‑resolved microbiome as an actionable multiomics layer
+
+Dear Dr. Schmidt,
+ 
+Your work at Amanahyat Institute Abu Dhabi sits at the intersection that matters most right now: precision medicine driven by real‑world data, AI, and multi‑omics with an explicit aging/longevity mandate. I also noted your emphasis that lab signals only become meaningful when connected to clinical phenotypes and real‑world evidence—an “actionability” filter many multiomics programs still lack.
+ 
+DNA ME can add an actionable microbiome layer to that stack using Oxford Nanopore full‑length 16S plus targeted enrichment. Three advantages for a longevity/RWD platform: (1) Species resolution for clinically interpretable features (moving beyond genus‑level summaries that don’t replicate across cohorts); (2) Throughput that supports routine longitudinal sampling and population programs without runaway sequencing spend; (3) Clinical workflow readiness—standardized sample handling and reporting that can plug into CLIA‑aligned partners when programs shift from research → clinical decision support.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months, processed in parallel with your current microbiome/omics vendors, aligned to your existing phenotypes (cardiometabolic, immune, mental health) to benchmark species stability, predictive lift, and cost reduction for repeat testing.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Amanahyat Institute Abu Dhabi,,,,
+import+49@placeholder.local,Pradheep,Chhalliyil,,Dr.,https://www.linkedin.com/in/placeholder,"Species-Resolution Microbiome Diagnostics: Bridging PCR Speed with NGS Precision
+
+Dear Dr. Chhalliyil,
+ 
+I came across your work at AMMAGENOMICS on rapid PCR-based microbiome diagnostics, including <24-hour gut dysbiosis testing and blood bacteremia detection to support ICU septic shock prediction. Your 2020 Foods study (PMID: 32906573) on genome-edited plant detection also stood out for its qPCR specificity down to single-nucleotide variants—exactly the rigor needed for clinical microbiome applications.
+ 
+DNA-ME’s Oxford Nanopore platform with adaptive sampling and hybridization capture addresses three limitations of PCR panels: (1) species-level resolution while preserving rapid turnaround—targeted enrichment can deliver species discrimination in ~6–8 hours (versus weeks for standard NGS); (2) lower cost via selective sequencing of clinically relevant targets rather than whole metagenomes; and (3) a validation-ready path with real-time basecalling, aligned with clinical implementation needs and your NABL-accredited lab environment.
+ 
+I’d like to propose a pilot validation: 500 paired samples spanning gut dysbiosis and blood bacteremia cohorts over 3–4 months, running DNA-ME targeted sequencing in parallel with your current PCR workflows. We would benchmark species-level concordance, clinical sensitivity/specificity, and integration into your sepsis/ICU pipeline where time-to-ID directly impacts outcomes.
+ 
+Would you be open to a brief exploratory call to review technical requirements and collaboration options?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",AMMAGENOMICS,,,,
+import+50@placeholder.local,Gang,Fang,,Dr.,https://www.linkedin.com/in/placeholder,"LongTrack + mEnrich-seq meet targeted enrichment: A nanopore synergy?
+
+Dear Dr. Fang,
+ 
+Your recent Nature Microbiology work on LongTrack reshapes strain-level tracking in FMT, especially the 5-year epigenomic stability data showing adaptation signatures—exactly the resolution missing in clinical microbiome diagnostics.
+ 
+I’m reaching out from DNA-ME. We’re developing hybridization-capture workflows optimized for Oxford Nanopore adaptive sampling, enabling targeted enrichment for genomic panels (SNPs/STRs, pharmacogenes, pathogens) at substantially lower cost than whole-genome approaches. We see 2 synergies:
+ 
+Strain tracking at scale: LongTrack yields high-purity strain-level MAGs. Targeted capture could pre-enrich donor/recipient samples prior to assembly, reducing depth while maintaining purity—important at the 648-strain scale you demonstrated.
+ 
+Methylation + probes: mEnrich-seq’s methylation-sensitive background depletion is elegant. Pairing it with probe-based capture could further boost enrichment: deplete host/background first, then capture specific taxa/regions—potentially exceeding the 117-fold gains you reported, especially for low-abundance microbes.
+ 
+We’d like to propose a pilot: ~500 samples over 3–4 months, run in parallel with your existing cohorts to benchmark targeted capture vs standard metagenomics, using LongTrack as the analysis reference. This would be additive only, with no disruption to current workflows.
+ 
+Would you be open to a short call to discuss technical fit and overlap with your Center for Genomic AI and Microbiome Medicine initiatives?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Center for Genomic AI and Microbiome Medicine,,,,
+import+51@placeholder.local,Alexander,Kopatsis,,Dr.,https://www.linkedin.com/in/placeholder,"Fermentation LIVE: species-resolved contamination + faster root-cause in scale-up
+
+Dear Dr. Kopatsis,
+ 
+Your background across lab-to-commercial fermentation—plus your current “Fermentation LIVE” role at IFF after 35+ years at DuPont—stood out, especially the breadth spanning enzymes, recombinant proteins, and primary/secondary metabolites. I also noticed your authorship on “Metabolic engineering for acetate control in large scale fermentation,” which is still highly relevant to modern high-cell-density runs where small process deviations spiral into yield loss.
+ 
+DNA ME can help your teams shorten time-to-answer when a run drifts by combining Oxford Nanopore full-length 16S plus targeted enrichment. Three advantages we repeatedly see in industrial fermentation troubleshooting: (1) Species resolution for fast discrimination of closely related contaminants (and confirmation of production strain identity in mixed signals); (2) Throughput that supports routine in-process monitoring across vessels, seed trains, and environmental swabs; (3) Clinical-grade workflow discipline (chain-of-custody, standardized reporting) that maps cleanly to regulated customer requirements—even if the end-use isn’t CLIA.
+ 
+I’d like to propose a pilot: 500 samples over 3–4 months (in-process broth timepoints + swabs), run in parallel with your current QC (plating/qPCR) to benchmark detection lead-time, false positives, and cost reduction from fewer failed batches.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",IFF / DuPont,,,,
+import+52@placeholder.local,Kirsten,Copren,,Dr.,https://www.linkedin.com/in/placeholder,"Subject Line: Advancing Analytical Development for Cell & Gene Therapies—DNA-ME & Multiomics
+
+Dear Dr. Copren,
+ 
+I was impressed by your June 2024 presentation on multiomic sequencing for cell and gene therapy QC at the @Philly CGT Conference, and your pivotal contributions to the Martins et al. study characterizing rAAV integration patterns across 168 NHPs and 85 humans. Your work exemplifies the analytical rigor required as gene therapies scale toward commercialization.
+ 
+DNA-ME addresses three critical bottlenecks in analytical development: (1) Species-level microbial resolution—our full-length 16S nanopore platform delivers species identification in 27-100% of reads versus 16.75% with Illumina V3-V4, critical for contamination screening in cell therapy manufacturing; (2) Cost reduction at scale—multiplexing 30-60 samples per MinION flow cell at 100× coverage reduces per-sample costs by 60-70% versus traditional approaches; (3) CLIA-compatible workflows—pre-validated digital genomic panels streamline regulatory pathways for diagnostic translation, eliminating months of in-house validation.
+ 
+We propose a 500-sample pilot study over 3-4 months, running DNA-ME panels in parallel with your current analytical workflows to benchmark turnaround time, taxonomic resolution, and cost-efficiency for cell therapy release testing or AAV product characterization. This would generate comparative data on contamination detection sensitivity and species-level resolution improvements.
+ 
+Would you be open to an exploratory call next week to discuss how DNA-ME could accelerate analytical method development at Resilience?
+ 
+Sincerely,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494(Edited)",Resilience,,,,
+import+53@placeholder.local,Joerg,Heyer,,Dr.,https://www.linkedin.com/in/placeholder,"Advancing IBD precision medicine: PALI-2108's RNA-seq insights mirror your translational approach
+
+Dear Dr. Heyer,
+ 
+Your talk on AI-driven patient subtyping at the Precision Medicine in IBD Summit stood out, especially the focus on overcoming the efficacy ceiling by resolving molecular heterogeneity. At Palisade, your paired ileal biopsy RNA-seq work supports PALI-2108’s dual anti-inflammatory and anti-fibrotic activity, including 100% clinical response in the Phase 1b UC cohort with tissue-level PDE4B downregulation (51%) and coordinated suppression of fibrotic markers.
+ 
+DNA ME’s Oxford Nanopore platform could add three capabilities to your Phase 2 IBD programs: (1) species-resolved microbiome profiling to identify β-glucuronidase–producing taxa relevant to PALI-2108 prodrug activation, enabling stratification by colonization patterns; (2) targeted adaptive sampling for haplotype-resolved PGx genotyping (CYP/NAT2/UGT) at ~$150/sample versus $800+ short-read workflows, useful for patients on complex regimens; and (3) hybridization-capture enrichment for SNP/STR panels in IBD pathways (e.g., IL23R, NOD2, ATG16L1), with CLIA-validated turnaround within ~48 hours to complement companion diagnostic development.
+ 
+With Phase 2 IND submissions planned for H1 2026 and your work integrating single-nucleus RNA-seq into clinical endpoints, would a 500-sample pilot (3–4 months, parallel to UC/FSCD trials) assessing microbiome–genotype correlates of PALI-2108 response be of interest? We can run alongside your existing biopsy collection workflow without protocol changes.
+ 
+Would you be open to a brief exploratory call next week to discuss integration points?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Palisade,,,,
+import+54@placeholder.local,Rosina,Pavia,,Dr.,https://www.linkedin.com/in/placeholder,"Microbiome-driven therapeutics meet precision clinical validation
+
+Dear Dr. Pavia,
+ 
+Your leadership across clinical operations, trial strategy, and high-stakes medical deployments—spanning large global programs and biotech portfolio oversight—puts you in a rare position to translate microbiome science into pragmatic, regulator-ready development. Your recent work and presentations connecting the gut microbiome to brain and systemic health suggest a focus on therapeutics where mechanistic microbiome evidence supports clinical endpoints, not just correlations.
+ 
+DNA ME’s Oxford Nanopore–based targeted sequencing is built to address three recurring constraints as microbiome therapeutics move toward IND and beyond: (1) limited ability to resolve therapeutic strains and functional gene shifts at single-nucleotide resolution in 300–1,000 subject studies, which is key for engraftment readouts, responder stratification, and mechanism-of-action narratives; (2) prohibitive per-sample costs when powering Phase II/III trials or post-market commitments; and (3) lack of an integrated, reproducible workflow combining full-length 16S with functional panels (e.g., SCFA biosynthesis, neuroactive metabolite pathways) suitable for clinical-grade validation.
+ 
+A pragmatic next step would be a 500-sample pilot over 3–4 months, run in parallel with your stealth program’s current preclinical or early clinical work, focused on strain-resolved engraftment, functional gene correlations, and responder stratification.
+ 
+Would you be open to a brief exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",,,,,
+import+55@placeholder.local,Zachery,Lewis,,Product Innovation Lead,https://www.linkedin.com/in/placeholder,"Species-resolution microbiome profiling for IFF's next-gen probiotic pipeline
+
+Dr. Lewis,
+ 
+I noticed your recent move to IFF as Product Innovation Lead and your upcoming talk at Probiota Americas 2026. Your 2016 Pediatric Research paper on validating Bifidobacterium subspecies identity highlighted a challenge we've been solving: species-resolution microbiome profiling at clinical throughput.
+ 
+DNA ME combines Oxford Nanopore adaptive sampling with hybridization capture for targeted microbiome sequencing. Three advantages directly address IFF's NGP pipeline needs: (1) Species resolution — full-length 16S reads differentiate B. longum subspecies and Akkermansia phylogroups without whole-genome sequencing costs; (2) 500-sample throughput — our CLIA-grade workflow processes cohorts like your 96-patient Gambian study in weeks, not months, at 60% lower cost per sample; (3) Strain tracking — adaptive sampling enriches target taxa 1,700-fold, enabling real-time quality control for IFF's industrial-scale anaerobic production.
+ 
+Given IFF's focus on digestive health clinical validation and your expertise in vulnerable populations, we'd like to propose a pilot: 500 samples from your next infant or adult clinical cohort, processed in parallel to your current methods over 3–4 months. This would benchmark species-level accuracy, turnaround time, and cost reduction against shotgun metagenomic or amplicon workflows.
+ 
+Would you be open to an exploratory call to discuss how targeted sequencing could accelerate IFF's strain characterization pipeline?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",IFF,,,,
+import+56@placeholder.local,William,Stanford,,Dr.,https://www.linkedin.com/in/placeholder,"Bringing Precision Medicine from Beverly Hills to Your LA Practice
+
+Dear Dr. Stanford,
+ 
+I've been impressed by Biography Health's vision for scaling precision medicine consultations to primary care providers at meaningful volume. Your GET DNAbled program—combining whole genome sequencing with multi-omic analysis and patient medical history—represents exactly the clinical decision-support infrastructure that's poised to transform preventive care. Your recent presentation at London Calling 2024 reinforces this.
+ 
+DNA ME solves three critical bottlenecks I see in your pipeline: (1) targeted enrichment efficiency—our adaptive sampling and hybridization capture methods enable cost-optimized sequencing for the genomic regions driving pharmacogenomics and disease risk stratification, reducing per-sample sequencing cost by 40–60% versus whole genome alone; (2) clinical-grade throughput—parallel processing of 500+ samples per run with CLIA-aligned quality metrics ensures your provider network can scale consultation volume without infrastructure constraints; and (3) full-length variant resolution—our long-read approach captures structural variants and complex pharmacogenetic alleles (CYP2D6, NAT2, HLA) that short-read methods miss, directly improving treatment recommendations.
+ 
+I'd like to propose a focused pilot: 500 clinical samples sequenced in parallel with your current workflow (3–4 months) to benchmark cost, turnaround time, and clinical actionability against your existing methodology. This would validate the integration before broader deployment.
+ 
+Would you be open to an exploratory call to discuss how DNA ME might complement Biography Health's infrastructure?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Biography Health,,,,
+import+57@placeholder.local,Gerard,Honig,,Dr.,https://www.linkedin.com/in/placeholder,"Scaling biomarker discovery for Otsuka's nephrology pipeline
+ 
+Dear Dr. Honig,
+ 
+I’ve been following your work advancing precision medicine at Otsuka, including your contributions to VOYXACT®’s clinical development and your move into biomarker strategy for nephrology and immunology. With 10+ years in multi-omics biomarker discovery and validation, I share your focus on scalable, cost-effective molecular tools when teams enter new therapeutic areas.
+ 
+At DNA ME, we use Oxford Nanopore sequencing to solve a key R&D gap: discovering robust biomarkers when established infrastructure is limited. We offer three capabilities aligned with your biomarker strategy:
+ 
+Immune profiling with species-level resolution: Adaptive sampling enables targeted sequencing of immune cell clones, T-cell receptor diversity, and complex immunological signatures relevant to nephrology and IBD-adjacent immunology.
+Throughput and cost efficiency: We can process 500+ clinical samples in parallel over 3–4 months at a fraction of traditional proteomics or RNA-seq costs, speeding cohort-scale discovery.
+Clinical-ready workflow: Our pipeline supports harmonization and standardization to help translate discoveries into biomarker-stratified clinical trials.
+ 
+We’re proposing a pilot: 500 samples from a nephrology or immunology cohort, run in parallel to your current workflow over 3–4 months, to generate actionable biomarker insights and validate platform fit.
+ 
+Would you be open to a brief exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Otsuka,,,,
+import+58@placeholder.local,Nihan,Marun,,Dr.,https://www.linkedin.com/in/placeholder,"Your NGS + animal microbiome perspective (standardization + pathogen “miss” gaps)
+
+Dear Dr. Marun,
+
+I enjoyed your recent LinkedIn writing on next-generation sequencing in animal microbiome work—especially the point that culture can miss clinically relevant organisms and that lab-to-lab standardization still limits how confidently we act on reports. That combination (higher detection + the need for defensible workflows) is exactly where we’ve been focusing at DNA ME.
+ 
+DNA ME could support your microbiome/probiotics and regulatory-facing projects at SIGMA BioVet Sciences in three concrete ways:
+ 
+Species-level resolution using long-read workflows that support full-length 16S alongside optional metagenomic profiling when strain/AMR context matters (reducing “genus-only” ambiguity in interpretation).
+High sample throughput with batchable library prep and analysis designed for routine reporting (not just discovery runs).
+Clinical-workflow alignment: standardized QC checkpoints, audit-ready outputs, and a path to CLIA-style documentation expectations for partners who need defensible results for stakeholder/regulatory review.
+ 
+Would you be open to a 500-sample pilot over 3–4 months, run in parallel with your current pipeline, to compare species calls, turnaround time, and cost per sample?
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",SIGMA BioVet Sciences,,,,
+import+59@placeholder.local,Serena,Fraraccio,,,https://www.linkedin.com/in/placeholder,"Advancing Cancer Detection & Soil Microbiome Research with Long-Read Sequencing
+
+Dear Fraraccio,
+ 
+Your recent work on circulating microbial DNA biomarkers for early-stage lung cancer detection caught our attention—particularly the machine learning classification models demonstrating clinical utility at scale. This represents exactly the kind of translational microbiome research that benefits from high-accuracy species-level resolution and cost-effective throughput.
+ 
+At DNA ME, we partner with Oxford Nanopore sequencing to solve three critical challenges in microbiome research:
+ 
+1. Species Resolution: Long-read technology resolves taxonomic ambiguity at the species and strain level, eliminating the short-read classification errors you've encountered in previous methodology papers—crucial for biomarker validation in cancer cohorts.
+ 
+2. Adaptive Sampling Efficiency: Real-time selective sequencing for enriched detection of rare microbial signatures in cell-free blood samples, reducing sequencing costs by 60–70% while maintaining clinical sensitivity.
+ 
+3. Parallel Processing at Scale: We support simultaneous processing of large sample cohorts (500+ samples, 3–4 months) using targeted hybridization capture workflows compatible with your existing Oath laboratory infrastructure.
+ 
+Given your dual focus—cancer microbiome biomarkers and soil probiotic discovery—we'd like to explore a pilot collaboration. Your team has the expertise in clinical microbiome characterization; we bring the sequencing platform and cost model to enable larger-scale validation studies that would otherwise be prohibitive.
+ 
+Would you be open to an exploratory call to discuss how DNA ME's long-read approach could accelerate your early-stage cancer detection pipeline or soil consortium validation workflows?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Oath laboratory,,,,
+import+60@placeholder.local,Eszter Judit,Tóth,,Dr.,https://www.linkedin.com/in/placeholder,"Scaling microbiome insights from individual health to clinical validation
+
+Dear Dr. Tóth,
+ 
+I came across your presentation at the ELMO 2023 conference on personalized lifestyle interventions driven by functional microbiome analysis. Your work at Medipredict—translating full metagenomic sequencing into actionable dietary and metabolic recommendations—aligns remarkably well with the challenges we're addressing at DNA ME.
+ 
+We're a biotech team specializing in Oxford Nanopore-based microbiome analysis for clinical applications, and we've developed workflows that deliver three specific advantages for the type of translational work you're leading: (1) species-level resolution through long-read sequencing that captures strain-level variation critical for personalized interventions; (2) adaptive sampling and targeted sequencing that reduce per-sample costs by 5-10× while maintaining depth on clinically relevant taxa; and (3) real-time analysis enabling rapid turnaround (4-6 hours) for time-sensitive clinical decisions. These capabilities directly address the scalability and cost barriers facing microbiome diagnostics today.
+ 
+We're exploring a pilot collaboration with 500 samples over 3-4 months, designed to run in parallel with your current client workflow. The goal would be to validate whether nanopore-based functional profiling enhances predictive power for dietary response and metabolic outcomes—particularly for the dysbiosis-inflammation-metabolic disease axis your ELMO research highlighted. This wouldn't disrupt Medipredict's operations but would generate comparative data on Oxford Nanopore's advantages for clinical-grade microbiome analysis.
+ 
+Would you be open to an exploratory call to discuss how this might complement your translational research strategy?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Medipredict,,,,
+import+61@placeholder.local,Vanessa,Rouaud,,,https://www.linkedin.com/in/placeholder,"Bio Logbook’s AI decision-support meets Oxford Nanopore targeted sequencing
+
+Dear Ms Rouaud,
+ 
+Your recent work positioning Bio Logbook’s AI-driven clinical decision support to detect early biological imbalances and de-risk clinical trials, including the COVID-X–funded collaboration with CHU de Liège and the UK NHS/GIANT outreach, is exactly where DNA ME operates on the molecular side.
+ 
+At DNA ME, we use Oxford Nanopore–based targeted sequencing with adaptive sampling and hybridization capture to:
+ 
+push species- and strain-level resolution in complex clinical samples (beyond 16S/short-read panels),
+increase actionable throughput for multi-marker microbiology and host-response readouts in a single run,
+reduce per-sample cost while staying compatible with CLIA-oriented and translational study designs.
+ 
+A joint pilot could combine Bio Logbook’s “dérive biologique” and predictive models with high-resolution nanopore readouts on, for example, 500 biobanked or prospective samples over 3–4 months, run in parallel to your current lab and data workflows. This would let you test whether richer molecular inputs translate into stronger risk scores, better patient stratification, or leaner biomarker panels.
+ 
+Would you be open to an exploratory call to scope such a pilot and identify one or two concrete use cases from your current pharma or hospital partners?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Bio Logbook,,,,
+import+62@placeholder.local,Noah,Voreades,,,https://www.linkedin.com/in/placeholder,"From “Diet and the Development of the Human Intestinal Microbiome” to OLIPOP’s next R&D chapter
+
+Dear Mr. Voreades,
+ 
+Your review on “Diet and the Development of the Human Intestinal Microbiome” and your more recent work translating microbiome science into CPG with OLIPOP and GenBiome are exactly the kind of rigor-meets-consumer-impact story DNA ME is built around. The way OLIPOP has used clinical‑grade thinking to substantiate digestive health claims in a soda format is a rare benchmark in this space.
+ 
+At DNA ME, we use Oxford Nanopore–based targeted sequencing to:
+ 
+Resolve microbiome shifts down to species and often strain level, beyond what standard 16S panels capture
+Increase throughput and flexibility for large commercial cohorts without losing depth on key taxa and functional signals
+Design adaptive sampling or hybridization capture panels that cut per‑sample cost while keeping the readout clinically meaningful
+ 
+A pilot in the range of 500 stool samples over 3–4 months, run in parallel with OLIPOP’s existing analytics stack, could benchmark product responders, refine claim substantiation, and inform next‑gen formulations for new TAM pools. We have not yet processed at that exact scale, so your input on study design would be particularly valuable.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",OLIPOP / GenBiome,,,,
+import+63@placeholder.local,Jeff,Alix,,,https://www.linkedin.com/in/placeholder,"Postbiotics and precision prebiotics for next‑gen pet gut health
+
+Dear Mr. Alix,
+ 
+Your upcoming Petfood Forum session with Brian Klein on dual-strain Lactobacillus postbiotics in cats and the recent Benicaros® precision prebiotic work in dogs show how dsm-firmenich is treating the microbiome and palatability as strategic growth pillars rather than add-ons in pet nutrition.
+ 
+DNA ME works with Oxford Nanopore–based targeted sequencing to give pet nutrition teams three concrete advantages:
+ 
+Species-level resolution of gut and oral microbiota, including low-abundance taxa relevant for palatability, SCFA production, and pathogen control.
+High-throughput processing for longitudinal or multi-arm diet trials (e.g., prebiotic vs. postbiotic vs. synbiotic) at a cost point that supports R&D iteration, thanks to adaptive sampling and hybridization capture.
+Clinical workflow readiness: protocols designed to be transferrable into CLIA-type or contract lab environments as microbiome endpoints move closer to regulatory and health-claim discussions.
+ 
+A focused pilot could be 500 canine or feline samples over 3–4 months (pilot samples amount is a topic for discussion), run in parallel to your existing microbiome work on postbiotics and precision fibers, to deepen species-level insights without disrupting current platforms.
+ 
+Would you be open to an exploratory call to see where Oxford Nanopore–based microbiome readouts could plug into your palatability and “Health from the Gut” programs?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",dsm-firmenich,,,,
+import+64@placeholder.local,Nadim,Ajami,,Dr.,https://www.linkedin.com/in/placeholder,"PRIME-TR’s “profile → intervene” workflow — ready for species-level readouts at scale?
+
+Dear Dr. Ajami,
+ 
+I’ve been following PRIME-TR’s push to translate microbiome profiling into interventions (e.g., profiling to inform trials, including FMT, diet, and synthetic communities), and your emphasis on building methodological standards for how we process, sequence, and report taxonomy/functional state across studies. Your recent comments on longitudinal sampling (“create a movie”) also resonated with how we think about clinical utility vs. one-time snapshots.
+ 
+At DNA ME, we run Oxford Nanopore targeted sequencing workflows designed to help groups like PRIME-TR:
+ 
+Species/strain-resolution calls where 16S collapses signal (useful for responder/non-responder biomarker work).
+Higher actionable throughput via targeted panels + adaptive sampling to keep cost per sample down.
+A translational path toward clinical workflows (hybridization capture options, audit-ready reporting, CLIA-minded design discussions).
+ 
+Would you consider a pilot: 500 samples over 3–4 months, processed in parallel to your current workflow to benchmark concordance, turnaround time, and per-sample cost? We haven’t yet processed samples at that scale, but we can commit to a phased ramp (e.g., 50→150→300) with clear QC gates.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",PRIME-TR,,,,
+import+65@placeholder.local,Arvind,Kumar (Mahajan),Dr.,https://www.linkedin.com/in/placeholder,"Advancing BiomEdit's microbiome discovery with species-resolution sequencing
+
+Dear Dr. Mahajan,
+ 
+Congratulations on BiomEdit's USDA FONSI for BE-101 and the upcoming field trials—this represents a significant milestone for the first probiotic vectored antibody targeting necrotic enteritis. Your 2022 PLOS ONE publication on the L. reuteri strains provided an impressive foundation for this work, demonstrating the rigor needed for both regulatory approval and commercial translation.
+ 
+I'm reaching out because DNA ME's Oxford Nanopore-based platform addresses three challenges central to BiomEdit's mission: species-level microbiome resolution (distinguishing strain-specific functional differences critical for intervention design), accelerated throughput (processing complex samples in days, not weeks, enabling faster discovery cycles), and clinical-grade workflows (CLIA-certified pipelines ready for regulatory submission). For your Rumen Digital Twin project—where you're training AI models on 10,000+ microbiome profiles—the species-resolution data from targeted sequencing could significantly enhance model accuracy compared to short-read methods, particularly for identifying low-abundance functional taxa driving methane production.
+ 
+We propose a pilot study of 500 samples over 3–4 months, processed in parallel with your current workflows to validate performance without disrupting BE-101's final development phase or the Bezos Earth Fund project timeline. 
+ 
+Would you be open to an exploratory call to discuss how species-resolution sequencing might complement BiomEdit's discovery platform, particularly as you expand from poultry to ruminant applications?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",BiomEdit,,,,
+import+66@placeholder.local,Ruth Ann,Luna,,Director of Medical Metagenomics,https://www.linkedin.com/in/placeholder,"Advancing clinical metagenomics for pediatric populations—ASD microbiome insights from Texas Children's
+
+Dear Dr. Luna,
+ 
+Your work on microbiome–neuroimmune signatures in ASD (Nature Microbiology commentary, 2024; Digestive Diseases & Sciences, 2020) and your leadership of the largest pediatric ASD microbiome study are setting the pace for translating microbiome science into clinical practice. As Director of Medical Metagenomics at Texas Children’s Microbiome Center, you’ve shown how integrating microbiome, metabolome, and clinical phenotypes can yield actionable biomarkers.
+ 
+DNA ME’s Oxford Nanopore metagenomic platform targets key gaps you’ve highlighted: species-level resolution via full-length 16S plus adaptive sampling for low-abundance taxa (reducing amplicon taxonomic blind spots), higher throughput for longitudinal cohort profiling with cost-effective parallel processing, and clinical workflow integration with CLIA-compatible protocols for pathogen detection and antimicrobial resistance profiling—relevant to your C. difficile and infectious disease work.
+ 
+We propose a pilot: 500 pediatric samples processed over 3–4 months in parallel to your current workflows. This would enable a head-to-head comparison of taxonomic accuracy, functional annotation depth, and biomarker reproducibility versus your established 16S/shotgun pipelines, without disrupting ongoing studies. We also support hybridization capture and targeted sequencing to improve species resolution while controlling cost via adaptive sampling.
+ 
+Would you be open to a brief exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Texas Children’s Microbiome Center,,,,
+import+67@placeholder.local,Xavier,Janvier,,PhD,https://www.linkedin.com/in/placeholder,"Preventing S. aureus adhesion – potential for targeted microbiome sequencing?
+
+Dear Dr. Janvier,
+ 
+Your September 2024 publication in NPJ Biofilms and Microbiomes on preventing bacterial adhesion through physicochemical modulation caught my attention—particularly the species-specific effects you achieved with 3.3 Log reduction in S. aureus while preserving commensal balance. As L'Oréal scales microbiome evaluation following the Lactobio acquisition, the challenge of achieving species-level resolution at scale becomes critical.
+ 
+DNA ME specializes in Oxford Nanopore sequencing for complex microbiome applications. Three specific advantages align with your microbiome evaluation lab's needs: species-level resolution through full-length 16S and adaptive sampling (eliminating the Staphylococcus overrepresentation bias documented in standard ONT protocols), targeted sequencing via hybridization capture to enrich functional genes relevant to cosmetic formulation testing, and cost-effective throughput to evaluate larger cohorts without sacrificing taxonomic precision.
+ 
+We propose a pilot study processing microbiome samples in parallel with your current workflow—approximately 50-100 samples over 3-4 months to benchmark our approach against your existing methods. This would allow direct comparison of species identification accuracy and functional gene profiling without disrupting ongoing projects. 
+ 
+Would you be open to an exploratory call to discuss how Oxford Nanopore's adaptive sampling might complement your 3D skin model evaluations?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",L'Oréal / Lactobio,,,,
+import+68@placeholder.local,L. Dean,Alberty,,,https://www.linkedin.com/in/placeholder,"Soil genomics meets clinical sequencing—Oxford Nanopore breakthrough for ISHGD
+
+Dear Mr. Alberty,
+ 
+Your work launching the Institute for Soil Heritage & Genomic Discovery and Modern Pomona demonstrates the power of soil microbiome science to transform communities. As someone who pivoted from breast cancer genetics to soil science, you understand how genomic tools unlock biological systems—and that's exactly where DNA ME can accelerate your mission.
+ 
+We use Oxford Nanopore sequencing with adaptive sampling and hybridization capture to deliver species-level microbial resolution at 70% reduced cost versus traditional methods. For soil microbiome work, this means: 1) Species-level PGPR identification beyond genus (critical for distinguishing beneficial Bacillus or Pseudomonas strains), 2) 10-15x throughput increase using targeted sequencing vs. shotgun metagenomics, and 3) CLIA-ready workflows that bridge research and clinical applications.
+ 
+We're proposing a pilot collaboration: 500 soil samples from ISHGD's urban forestry sites, processed over 3–4 months parallel to your current work. This would provide unprecedented microbial profiling for your educational programs while helping us refine soil matrix protocols.
+ 
+Would you be open to an exploratory call to discuss how targeted nanopore sequencing could support ISHGD's mission?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Institute for Soil Heritage & Genomic Discovery,,,,
+import+69@placeholder.local,Eline S.,Klaassens,,Dr.,https://www.linkedin.com/in/placeholder,"Vaginal Microbiome Insights: Translating Your L. crispatus Work to Maternal-Infant Health
+
+Dear Dr. Klaassens,
+ 
+I enjoyed your recent PLoS ONE paper on the “Van Vrouwen voor Vrouwen” citizen science project—especially the use of shotgun metagenomics to resolve strain-level differences in Lactobacillus crispatus across 48 women and translate those findings into a probiotic development pipeline. It’s a strong example of moving from sequencing data to clinical application.
+ 
+At DNA ME, we’re tackling a similar translation challenge in maternal–infant microbiome research using Oxford Nanopore sequencing with adaptive sampling and hybridization capture to enable targeted, cost-efficient profiling. Your expertise aligns with three areas we’re focused on:
+ 
+Species/strain-level profiling beyond 16S without full WGS costs
+Translating research-grade microbiome sequencing into clinically deployable workflows
+Study design for low-biomass samples, including standardized sampling/metadata and statistical rigor (as reflected in your Nutrients 2024 work)
+ 
+We’d like to propose a pilot (about 500 samples over 3–4 months) running in parallel to your current workflow. The goal is a validation phase to demonstrate robust species-level (and where possible strain-level) maternal–infant microbiome readouts suitable for research groups like yours, and to generate strong proof-of-concept data.
+ 
+Would you be open to a brief exploratory call to discuss where DNA ME’s targeted nanopore approach could complement BaseClear’s current microbiome services—particularly for maternal–infant studies where rapid, cost-effective strain typing matters?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",BaseClear,,,,
+import+70@placeholder.local,Dirk,Gevers,,Dr.,https://www.linkedin.com/in/placeholder,"Seed's metabolite-driven microbiome work & Oxford Nanopore sequencing at scale
+ 
+Dear Dr. Gevers,
+ 
+Your recent DDW 2025 presentation on DS-01® increasing both Urolithin A and butyrate production—the first synbiotic to demonstrate this dual metabolite effect—represents exactly the kind of functional microbiome insight that drives our work at DNA ME. The shift from compositional analysis to measuring biological impact through metabolites mirrors our approach to clinical metagenomics.
+ 
+At DNA ME, we've developed an Oxford Nanopore-based sequencing platform optimized for three specific advantages in microbiome studies: species-level resolution through full-length 16S and adaptive sampling (similar to the strain-specific selection you employed for VS-01's L. crispatus strains), cost-effective throughput via targeted enrichment that reduces human DNA contamination by 1.7-fold, and rapid clinical workflows enabling same-week functional profiling of metabolic pathways. Given your focus on translating functional insights into FDA-validated interventions—evidenced by your IBS IND trial and the Nature-published vaginal microbiome study—we believe DNA ME's platform could support pilot-scale validation of emerging Live Biotherapeutic Products.
+ 
+We're proposing a collaborative pilot study: 500 samples processed over 3–4 months in parallel with your current workflow, comparing our Oxford Nanopore adaptive sampling approach against your existing sequencing methods. 
+ 
+Would you be open to an exploratory call to discuss how DNA ME's targeted sequencing capabilities might accelerate functional validation in your live biotherapeutics pipeline?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Seed,,,,
+import+71@placeholder.local,Sonny,Berry,,,https://www.linkedin.com/in/placeholder,"Targeting ENS-driven pain via gut-focused therapeutics at NociBio
+
+Dear Mr. Berry,
+ 
+Your work at NociBio on ENS-centered pain therapeutics and your recent patents on enteric TRPV1 and gut receptor modulation caught particular attention, especially the triterpenoid and polyphenol formulations targeting nociception in the digestive tract. Coupled with your ENS-based cancer and chronic disease concepts, this positions NociBio squarely at the frontier of gut–brain–pain biology.
+ 
+At DNA ME, all sequencing is run on Oxford Nanopore, which lets us:
+ 
+Resolve complex gut communities at true species/strain level to link specific taxa and metabolites to ENS-driven pain phenotypes.
+Run high-throughput targeted sequencing (adaptive sampling and hybridization capture) to focus on pain-relevant pathways (TRPV1/TRPA1, dopamine/serotonin modulation, inflammatory circuits) while reducing costs per sample.
+Begin building clinically translatable, CLIA-ready workflows that connect microbiome and host markers to response against enteric formulations.
+ 
+A focused pilot—500 stool and/or mucosal samples over 3–4 months, processed in parallel to your existing IA-IDC and gut-ENS programs—could generate the first sequencing-backed responder/non-responder stratification for NociBio’s formulations.
+ 
+Would you be open to an exploratory call to scope a pilot aligned with your current IP and development timelines?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",NociBio,,,,
+import+72@placeholder.local,Britta,Weseloh,,,https://www.linkedin.com/in/placeholder,"S3** cleanroom QC: Nanopore sequencing for PROVIREX's lentiviral vector & CAR-T manufacturing
+
+Dear Ms. Weseloh,
+ 
+Congratulations on PROVIREX's completion of Germany's first S3** cleanroom for CAR-T cell production—a remarkable achievement positioning Hamburg at the forefront of ATMP innovation. As you approach GMP certification in Q3 2026 and scale operations for both the HIVcure trial and CAR-T manufacturing, I wanted to introduce DNA ME's Oxford Nanopore-based sequencing capabilities that directly address your quality control challenges.
+ 
+Our platform delivers three critical advantages for your operations: (1) Species-resolution pathogen detection for cleanroom environmental monitoring and sterility assurance—essential for S3** biosafety compliance; (2) Rapid lentiviral vector QC via nanopore direct RNA sequencing, already validated for detecting cryptic splicing, polyadenylation defects, and genome completeness issues in LV-based gene therapies (published in PLoS ONE 2024 and Nature Communications 2024); (3) Cost-effective targeted sequencing through adaptive sampling and hybridization capture, reducing per-sample costs by 50-70% compared to standard workflows while maintaining CLIA-compatible accuracy.
+ 
+Given PROVIREX's parallel development of Brec1-based therapies and CAR-T production, we propose a pilot validation study: processing environmental swabs, vector batches, and cell therapy intermediates (flexible scale, 3-4 months) alongside your existing QC methods. This would provide head-to-head performance data during your pre-GMP certification phase without disrupting current workflows. 
+ 
+Would you be open to an exploratory call to discuss how DNA ME could support PROVIREX's quality infrastructure as you scale Europe's leading viral genome editing platform?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",PROVIREX,,,,
+import+73@placeholder.local,Ole,Dammann,,Dr.,https://www.linkedin.com/in/placeholder,"Bridging Clinical Trials and Microbiome Precision—OnkoPlus Meets Nanopore
+
+Dear Dr. Dammann,
+ 
+I was impressed by iduneo's January launch and your dual-channel approach to connecting cancer patients with clinical trials across Europe. Your AI-driven platform addresses a critical gap—and it intersects with our work at DNA ME in a compelling way.
+ 
+At DNA ME, we use Oxford Nanopore adaptive sampling to deliver species-level microbiome resolution for clinical applications. Three specific advantages align with the oncology trial ecosystem you're building: species-resolution profiling enables precise patient stratification based on gut microbiome composition, which emerging research links to immunotherapy response and treatment outcomes; scalable throughput with targeted sequencing supports cohort-level analysis without the time and cost burdens of traditional shotgun metagenomics; and CLIA-track workflows position our nanopore-based approach for clinical integration, providing actionable insights within trial timelines.
+ 
+Given your network of trial sites through KFGN/Pratia and iduneo's direct patient access, we see potential for a collaborative pilot: 500 cancer patient samples processed over 3–4 months, running in parallel to ongoing treatment pathways. This would explore microbiome signatures as predictive biomarkers for trial eligibility or response, leveraging OnkoPlus's infrastructure to identify participants and Oxford Nanopore's real-time sequencing to deliver rapid results.
+ 
+We're building this capability now and would welcome the chance to explore how microbiome data could enhance the precision of your trial-matching platform.
+ 
+Would you be open to an exploratory call?
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",iduneo / KFGN / Pratia,,,,
+import+74@placeholder.local,Ole,Pless,,Dr.,https://www.linkedin.com/in/placeholder,"Advancing drug discovery for brain metastases—your cortical organoid work caught our attention
+
+Dear Dr. Pless,
+ 
+I was impressed by your Cell Reports Methods study on melanoma brain metastasis using cortical organoids, including the screen of 315 compounds that prioritized selinexor. Integrating patient-derived disseminated cancer cells with hiPSC-based systems reflects the kind of translational rigor we value.
+ 
+At DNA ME, we’re building Oxford Nanopore sequencing workflows aimed at clinical-grade, species-level microbial profiling. By combining adaptive sampling with hybridization capture, we enable targeted sequencing at costs compatible with routine use. For complex disease models like yours, this can add a complementary layer: high-resolution microbial signatures from organoid cultures, patient-derived material, or CSF/tissue biobanks—helping probe host–microbe effects on disease mechanisms and therapeutic response.
+ 
+Given your high-throughput screening expertise at Fraunhofer ITMP ScreeningPort and your experience translating programs toward clinical impact (e.g., Leigh syndrome orphan drug designation), we see a strong fit for a pilot. We propose parallel processing of ~500 samples over 3–4 months, running DNA ME analysis alongside your existing biomarker workflows (e.g., organoid supernatants, patient CSF from LOAD cohorts, or brain metastasis model tissues) without disrupting current pipelines.
+ 
+Would you be open to a brief exploratory call to discuss where targeted nanopore sequencing could complement your neurovascular unit models or drug repurposing efforts?
+ 
+Best regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Fraunhofer ITMP ScreeningPort,,,,
+import+75@placeholder.local,Simon,Weigmann,,Dr. habil.,https://www.linkedin.com/in/placeholder,"Long-read eDNA metabarcoding for Indian Ocean elasmobranch conservation—validating Oxford Nanopore for your IUCN work
+ 
+Dear Dr. Weigmann,
+ 
+As lead of the IUCN Shark Specialist Group’s Integrative Taxonomy Working Group, you’re tackling a central bottleneck in elasmobranch monitoring: many Red List assessments still depend on trawling-based surveys that are invasive, expensive, and poorly suited for rare species and remote MPAs.
+ 
+A practical alternative has matured in 2024–2025: long-read eDNA metabarcoding with Oxford Nanopore can deliver species-level elasmobranch detections from simple water samples, and recent validations (e.g., Welsh SACs, North Sea, Chagos Archipelago) show sensitive, repeatable detection of threatened taxa. To make this conservation-grade, robust taxonomic validation is essential—exactly where your expertise sets the standard.
+ 
+At DNA ME, we work exclusively with Oxford Nanopore sequencing and develop targeted long-read eDNA workflows for biodiversity monitoring. We’d like to propose a pilot aligned with your Indian Ocean MPA focus:
+ 
+Scope: elasmobranch biodiversity assessment across selected MPAs
+Scale/timeline: ~500–1,000 water samples over 3–4 months, in parallel to ongoing monitoring
+Collaboration: your input on species-assignment validation and protocol standardization for broader IUCN use
+Outputs: a peer-reviewed methodology paper plus a validated protocol suitable for routine assessments
+ 
+Would you be open to a brief exploratory call to discuss how long-read eDNA could strengthen IUCN’s elasmobranch monitoring capacity?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",IUCN Shark Specialist Group,,,,
+import+76@placeholder.local,Björn,Windshügel,,Dr.,https://www.linkedin.com/in/placeholder,"Accelerating pathogen characterization in AVITHRAPID: parallel nanopore sequencing for your infection biology screening
+
+Dear Dr. Windshügel,
+ 
+Congratulations on leading AVITHRAPID—your work establishing a pipeline of broad-spectrum antivirals for pandemic preparedness is impressive. We've been following your recent publications on Staphylococcus aureus lipoic acid salvage pathways and SARS-CoV-2 polymerase/helicase inhibitors, and we believe DNA ME could accelerate your strain characterization and target validation workflows.
+ 
+As you scale virulence screening and therapeutic candidate testing, nanopore sequencing via Oxford Nanopore technology offers three distinct advantages: (1) species resolution at scale—rapidly profile bacterial and viral populations in your samples with full genomic context; (2) throughput for high-content assays—run parallel sequencing alongside your biochemical/cell-based screening without workflow bottlenecks; (3) cost efficiency on clinical workloads—reduce per-sample sequencing costs when validating therapeutic candidates across diverse isolates or viral variants.
+ 
+We'd like to propose a pilot study: process ~500 samples (bacterial isolates, viral samples, or environmental specimens) over 3–4 months in parallel with your existing screening pipeline. This would give your team hands-on experience integrating nanopore data into virulence mechanistic studies and therapeutic target prioritization.
+ 
+Would you be open to an exploratory call to discuss whether this could strengthen your AVITHRAPID outcomes or infection biology research?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",AVITHRAPID,,,,
+import+77@placeholder.local,Edgar,Ferrer-González,,Scientist, Host Microbiome,https://www.linkedin.com/in/placeholder,"Vulvar microbiome profiling → faster species/strain decisions with ONT
+ 
+Dear Dr. Ferrer-González,
+ 
+Bharath Prithiviraj suggested you may be the right contact—thanks in advance for considering. He pointed me to your work as Scientist, Host Microbiome at Reckitt. I also saw you’re a co-author on the 2025 Frontiers in Microbiology paper “Taxonomic and functional profiling of the vulvar microbiome…” (skin–vagina interface, ecological signatures, aging/health effects), which feels directly relevant to intimate-wellness claim substantiation.
+ 
+At DNA ME, we work with Oxford Nanopore sequencing and are building a workflow aimed at three practical R&D bottlenecks:
+ 
+Species/strain resolution to separate key Lactobacillus species (e.g., L. crispatus vs L. iners) and minority taxa that are often ambiguous with short V3–V4 16S.
+Throughput with standardized wet lab + bioinformatics so multi-arm formulation studies stay comparable across batches.
+Clinical-workflow readiness: optional host-DNA depletion via ONT adaptive sampling to improve microbial yield in high-host samples (relevant for swabs/skin-adjacent sites).
+ 
+If useful, I’d like to propose a pilot: ~500 samples over 3–4 months, processed in parallel to your current workflow. We haven’t run that scale yet, so we’d set clear QC gates and interim milestones to de-risk execution.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Reckitt,,,,
+import+78@placeholder.local,Daniel,Couto,,,https://www.linkedin.com/in/placeholder,"VE303's Phase 3 Global Scale – Species-Level QC for 200 Sites Across 22 Countries
+
+Dear Mr. Couto,
+ 
+Congratulations on dosing the first patient in RESTORATiVE303—the first pivotal Phase 3 study of a live biotherapeutic for recurrent CDI prevention. Your point about industrializing anaerobic consortia manufacturing resonates; as VE303 scales across 200 sites in 22 countries, the bottleneck often becomes analytical: can we characterize it fast enough?
+ 
+DNA ME uses Oxford Nanopore adaptive sequencing to support defined consortia at scale with three advantages:
+ 
+Species-resolution ID: Full-length 16S differentiates the eight commensal strains without culture
+Faster throughput: Adaptive sampling depletes host DNA in clinical matrices and enables real-time sequencing
+Workflow fit: Reduced batch delays, QC/stability data generated continuously, and regulatory-ready outputs that can support a BLA package
+ 
+We propose a low-risk pilot: 500 samples over 3–4 months, run in parallel to your current methods, to validate performance without impacting the Phase 3 timeline.
+ 
+Would you be open to a brief exploratory call on how adaptive sampling could support Vedanta’s commercial manufacturing readiness?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Vedanta,,,,
+import+79@placeholder.local,John,Hoffman,,,https://www.linkedin.com/in/placeholder,"Turning your detox + recovery program into measurable proof (without adding friction)
+
+Dear Mr. Hoffman,
+
+Your focus on Wellness Reset/Detox, athlete “recovery-time” improvement, championship diet planning, and a microplastics detox option reads like a single core problem: clients want to feel better, but they also want clear, objective evidence it’s working. You’ve also pointed to gut microbes in the context of gut health and immunity, which is a natural place to anchor measurement without changing your coaching philosophy.
+ 
+DNA ME runs Oxford Nanopore sequencing to quantify what your program is already trying to improve:
+ 
+Species/strain-level resolution to see meaningful shifts (not just broad “good/bad bacteria”).
+Throughput to drive cost reduction as volume increases (multiplexing; cohort dashboards).
+Clinical-style workflow options (adaptive sampling; targeted sequencing via hybridization capture) to keep outputs focused and coach-friendly, with a clear path toward CLIA with the right lab partner.
+ 
+Would you be open to a pilot: up to 500 samples over 3–4 months, run in parallel with your current check-ins (baseline → mid → end)? We haven’t processed a single program at 500 yet, so we’d start smaller (e.g., first 50–100) and scale safely.
+ 
+Would you be open to an exploratory call?
+ 
+Kind regards,
+ 
+Evgenii Varlygin
+GF / Chief Executive Officer
+DNA ME UG (haftungsbeschränkt)
+Pestalozzistrasse 25, DE-22305 Hamburg
+Amtsgericht Hamburg HRB 181494",Wellness Reset / Detox,,,,

@@ -6,6 +6,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { db } from '../../db/index.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getScoringEngine } from '../../services/scoringEngine.js';
 import { SCORE_THRESHOLDS, getScoreTier } from '../../config/scoringRules.js';
 import { NotFoundError, ValidationError } from '../../errors/index.js';
@@ -55,7 +56,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/rules - List all scoring rules
   // ===========================================================================
-  fastify.get('/scoring/rules', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/scoring/rules', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const query = paginationSchema.parse(request.query);
     const { page, limit, category, is_active } = query;
     const offset = (page - 1) * limit;
@@ -109,7 +110,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/rules/:id - Get single rule
   // ===========================================================================
-  fastify.get('/scoring/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/scoring/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     const rule = await db.queryOne<ScoringRule>(`
@@ -143,7 +144,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // POST /scoring/rules - Create new rule
   // ===========================================================================
-  fastify.post('/scoring/rules', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/scoring/rules', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const data = createRuleSchema.parse(request.body);
 
     // Check if slug already exists
@@ -187,7 +188,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // PATCH /scoring/rules/:id - Update rule
   // ===========================================================================
-  fastify.patch('/scoring/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.patch('/scoring/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const data = updateRuleSchema.parse(request.body);
 
@@ -267,7 +268,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // DELETE /scoring/rules/:id - Delete rule
   // ===========================================================================
-  fastify.delete('/scoring/rules/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.delete('/scoring/rules/:id', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
     const result = await db.execute(`
@@ -288,7 +289,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/thresholds - Get score thresholds config
   // ===========================================================================
-  fastify.get('/scoring/thresholds', async () => {
+  fastify.get('/scoring/thresholds', { preHandler: authenticateOrApiKey }, async () => {
     return {
       thresholds: SCORE_THRESHOLDS,
       tiers: [
@@ -303,7 +304,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/leads/:leadId/history - Get lead's score history
   // ===========================================================================
-  fastify.get('/scoring/leads/:leadId/history', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/scoring/leads/:leadId/history', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { leadId } = request.params as { leadId: string };
     const { limit = 50 } = request.query as { limit?: number };
 
@@ -324,7 +325,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/leads/:leadId/breakdown - Get lead's score breakdown
   // ===========================================================================
-  fastify.get('/scoring/leads/:leadId/breakdown', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/scoring/leads/:leadId/breakdown', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { leadId } = request.params as { leadId: string };
 
     // Verify lead exists
@@ -349,7 +350,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // POST /scoring/leads/:leadId/recalculate - Recalculate lead scores
   // ===========================================================================
-  fastify.post('/scoring/leads/:leadId/recalculate', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/scoring/leads/:leadId/recalculate', { preHandler: authenticateOrApiKey }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { leadId } = request.params as { leadId: string };
 
     // Verify lead exists
@@ -376,7 +377,7 @@ export async function scoringRoutes(fastify: FastifyInstance): Promise<void> {
   // ===========================================================================
   // GET /scoring/stats - Get overall scoring statistics
   // ===========================================================================
-  fastify.get('/scoring/stats', async () => {
+  fastify.get('/scoring/stats', { preHandler: authenticateOrApiKey }, async () => {
     // Rules stats - separate queries for clarity
     const rulesCounts = await db.queryOne<{
       total_rules: number;

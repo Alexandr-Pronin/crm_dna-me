@@ -15,7 +15,8 @@ export const QUEUE_NAMES = {
   ROUTING: 'routing',
   SYNC: 'sync',
   SCHEDULED: 'scheduled',
-  NOTIFICATIONS: 'notifications'
+  NOTIFICATIONS: 'notifications',
+  EMAIL_SYNC: 'email-sync'
 } as const;
 
 export type QueueName = typeof QUEUE_NAMES[keyof typeof QUEUE_NAMES];
@@ -90,3 +91,4 @@ export const getRoutingQueue = () => getQueue(QUEUE_NAMES.ROUTING);
 export const getSyncQueue = () => getQueue(QUEUE_NAMES.SYNC);
 export const getScheduledQueue = () => getQueue(QUEUE_NAMES.SCHEDULED);
 export const getNotificationsQueue = () => getQueue(QUEUE_NAMES.NOTIFICATIONS);
+export const getEmailSyncQueue = () => getQueue(QUEUE_NAMES.EMAIL_SYNC);

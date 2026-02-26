@@ -5,22 +5,24 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
-import { 
+import { authenticateOrApiKey } from '../middleware/auth.js';
+import {
   getDealService,
   type CreateDealInput,
   type UpdateDealInput,
   type MoveDealInput,
   type CloseDealInput,
   type DealFiltersInput,
-  type DealWithRelations
+  type DealWithRelations,
+  type ReorderDealsInput
 } from '../../services/dealService.js';
 import { ValidationError } from '../../errors/index.js';
-import type { Deal, DealStatus } from '../../types/index.js';
 
 // =============================================================================
 // Zod Schemas
 // =============================================================================
+
+const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const createDealSchema = z.object({
   lead_id: z.string().uuid(),
@@ -29,7 +31,7 @@ const createDealSchema = z.object({
   name: z.string().max(255).optional(),
   value: z.number().min(0).optional(),
   currency: z.string().length(3).default('EUR'),
-  expected_close_date: z.string().datetime().optional(),
+  expected_close_date: z.union([z.string().datetime(), dateOnlySchema]).optional(),
   assigned_to: z.string().uuid().optional(),
   assigned_region: z.string().max(50).optional(),
   metadata: z.record(z.unknown()).optional()
@@ -39,7 +41,7 @@ const updateDealSchema = z.object({
   name: z.string().max(255).optional(),
   value: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
-  expected_close_date: z.string().datetime().nullable().optional(),
+  expected_close_date: z.union([z.string().datetime(), dateOnlySchema]).nullable().optional(),
   assigned_to: z.string().uuid().nullable().optional(),
   assigned_region: z.string().max(50).nullable().optional(),
   metadata: z.record(z.unknown()).optional()
@@ -47,6 +49,11 @@ const updateDealSchema = z.object({
 
 const moveDealSchema = z.object({
   stage_id: z.string().uuid()
+});
+
+const reorderDealsSchema = z.object({
+  stage_id: z.string().uuid(),
+  ordered_ids: z.array(z.string().uuid()).min(1)
 });
 
 const closeDealSchema = z.object({
@@ -66,7 +73,7 @@ const dealFiltersSchema = z.object({
   created_before: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sort_by: z.enum(['created_at', 'updated_at', 'value', 'name', 'stage_entered_at']).default('created_at'),
+  sort_by: z.enum(['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position']).default('created_at'),
   sort_order: z.enum(['asc', 'desc']).default('desc')
 });
 
@@ -87,17 +94,48 @@ interface IdParams {
 // =============================================================================
 
 function transformDealResponse(deal: DealWithRelations) {
+  const expectedClose = deal.expected_close_date?.toISOString?.() ?? (deal.expected_close_date as unknown as string) ?? null;
+  const leadName = deal.lead_name?.trim() || `${deal.lead_first_name || ''} ${deal.lead_last_name || ''}`.trim() || deal.lead_email || null;
+  const leadEmail = deal.lead_email ?? null;
+  const leadCompany = deal.lead_company ?? null;
+  const stepsTotal = deal.sequence_steps_total !== undefined && deal.sequence_steps_total !== null
+    ? parseInt(String(deal.sequence_steps_total), 10)
+    : null;
+  const currentStep = deal.sequence_current_step !== undefined && deal.sequence_current_step !== null
+    ? Number(deal.sequence_current_step)
+    : null;
+  const nextDueAt = deal.sequence_next_email_due_at
+    ? (typeof deal.sequence_next_email_due_at === 'string' 
+        ? deal.sequence_next_email_due_at 
+        : deal.sequence_next_email_due_at.toISOString())
+    : null;
+  const emailSequence = deal.sequence_id ? {
+    enrollment_id: deal.sequence_enrollment_id ?? null,
+    sequence_id: deal.sequence_id,
+    sequence_name: deal.sequence_name ?? null,
+    status: deal.sequence_status ?? null,
+    current_step: currentStep,
+    steps_total: stepsTotal,
+    next_email_due_at: nextDueAt,
+    stage_id: deal.sequence_stage_id ?? null
+  } : null;
+
   return {
     id: deal.id,
     lead_id: deal.lead_id,
     pipeline_id: deal.pipeline_id,
     stage_id: deal.stage_id,
+    position: deal.position,
     name: deal.name ?? null,
+    title: deal.name ?? null,
     value: deal.value ?? null,
     currency: deal.currency,
-    expected_close_date: deal.expected_close_date?.toISOString?.() ?? (deal.expected_close_date as unknown as string) ?? null,
+    expected_close_date: expectedClose,
+    expected_close: expectedClose,
     stage_entered_at: deal.stage_entered_at?.toISOString?.() ?? (deal.stage_entered_at as unknown as string),
     assigned_to: deal.assigned_to ?? null,
+    assigned_to_name: deal.assigned_to_name ?? null,
+    assigned_to_avatar: deal.assigned_to_avatar ?? null,
     assigned_region: deal.assigned_region ?? null,
     assigned_at: deal.assigned_at?.toISOString?.() ?? (deal.assigned_at as unknown as string) ?? null,
     status: deal.status,
@@ -108,7 +146,14 @@ function transformDealResponse(deal: DealWithRelations) {
     created_at: deal.created_at?.toISOString?.() ?? (deal.created_at as unknown as string),
     updated_at: deal.updated_at?.toISOString?.() ?? (deal.updated_at as unknown as string),
     pipeline_name: deal.pipeline_name ?? undefined,
-    stage_name: deal.stage_name ?? undefined
+    stage_name: deal.stage_name ?? undefined,
+    lead_name: leadName,
+    lead_email: leadEmail,
+    lead_company: leadCompany,
+    contact_name: leadName,
+    contact_email: leadEmail,
+    company_name: leadCompany,
+    email_sequence: emailSequence
   };
 }
 
@@ -130,10 +175,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'List deals with filtering and pagination',
-        tags: ['Deals'],
         querystring: {
           type: 'object',
           properties: {
@@ -148,7 +191,7 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
             created_before: { type: 'string', format: 'date-time' },
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-            sort_by: { type: 'string', enum: ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at'], default: 'created_at' },
+            sort_by: { type: 'string', enum: ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position'], default: 'created_at' },
             sort_order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' }
           }
         },
@@ -202,10 +245,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get deal statistics',
-        tags: ['Deals'],
         querystring: {
           type: 'object',
           properties: {
@@ -249,10 +290,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get a deal by ID',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -302,10 +341,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Create a new deal',
-        tags: ['Deals'],
         body: {
           type: 'object',
           required: ['lead_id', 'pipeline_id'],
@@ -360,14 +397,18 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
       
-      const deal = await dealService.createDeal(parseResult.data);
-      
+      const userId = (request as { user?: { id: string } }).user?.id;
+      const deal = await dealService.createDeal(parseResult.data, {
+        created_by: userId,
+        source: 'manual',
+      });
+
       request.log.info({
         dealId: deal.id,
         leadId: deal.lead_id,
         pipelineId: deal.pipeline_id
       }, 'Deal created');
-      
+
       return reply.code(201).send(transformDealResponse(deal));
     }
   );
@@ -384,10 +425,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Update a deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -461,10 +500,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/move',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Move a deal to a different stage',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -535,6 +572,63 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ===========================================================================
+  // POST /api/v1/deals/reorder
+  // ===========================================================================
+  /**
+   * Reorder deals within a stage.
+   */
+  fastify.post<{
+    Body: ReorderDealsInput;
+  }>(
+    '/deals/reorder',
+    {
+      preHandler: authenticateOrApiKey,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['stage_id', 'ordered_ids'],
+          properties: {
+            stage_id: { type: 'string', format: 'uuid' },
+            ordered_ids: { type: 'array', items: { type: 'string', format: 'uuid' }, minItems: 1 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' }
+            }
+          },
+          422: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const bodyResult = reorderDealsSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new ValidationError('Invalid reorder data', {
+          validationErrors: bodyResult.error.errors
+        });
+      }
+
+      await dealService.reorderDealsInStage(bodyResult.data);
+
+      return { success: true };
+    }
+  );
+
+  // ===========================================================================
   // POST /api/v1/deals/:id/close
   // ===========================================================================
   /**
@@ -546,10 +640,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/close',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Close a deal as won or lost',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -632,10 +724,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id/reopen',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Reopen a closed deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],
@@ -692,6 +782,89 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // ===========================================================================
+  // PATCH /api/v1/deals/:id/lead
+  // ===========================================================================
+  /**
+   * Update the lead associated with a deal.
+   */
+  fastify.patch<{
+    Params: IdParams;
+    Body: { lead_id: string };
+  }>(
+    '/deals/:id/lead',
+    {
+      preHandler: authenticateOrApiKey,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' }
+          }
+        },
+        body: {
+          type: 'object',
+          required: ['lead_id'],
+          properties: {
+            lead_id: { type: 'string', format: 'uuid' }
+          }
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          },
+          409: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const paramResult = dealIdParamSchema.safeParse(request.params);
+      if (!paramResult.success) {
+        throw new ValidationError('Invalid deal ID', {
+          validationErrors: paramResult.error.errors
+        });
+      }
+      
+      const bodyResult = z.object({ lead_id: z.string().uuid() }).safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new ValidationError('Invalid lead ID', {
+          validationErrors: bodyResult.error.errors
+        });
+      }
+      
+      const deal = await dealService.updateDealLead(paramResult.data.id, bodyResult.data.lead_id);
+      
+      request.log.info({
+        dealId: deal.id,
+        newLeadId: bodyResult.data.lead_id
+      }, 'Deal lead updated');
+      
+      return transformDealResponse(deal);
+    }
+  );
+
+  // ===========================================================================
   // DELETE /api/v1/deals/:id
   // ===========================================================================
   /**
@@ -702,10 +875,8 @@ export async function dealsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/deals/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Delete a deal',
-        tags: ['Deals'],
         params: {
           type: 'object',
           required: ['id'],

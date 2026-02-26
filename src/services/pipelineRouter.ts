@@ -5,6 +5,7 @@
 
 import { db } from '../db/index.js';
 import { getRoutingQueue, getNotificationsQueue } from '../config/queues.js';
+import { recordActivity } from './activityService.js';
 import { 
   ROUTING_CONFIG, 
   getPipelineForIntent, 
@@ -159,21 +160,36 @@ export class PipelineRouter {
     // Create deal name
     const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${pipeline.name}`.trim() || `${lead.email} - ${pipeline.name}`;
     
-    // Create deal
-    const deal = await db.queryOne<Deal>(`
+    // Create or update deal (only record activity when newly created)
+    let deal = await db.queryOne<Deal>(`
       INSERT INTO deals (lead_id, pipeline_id, stage_id, name, status, created_at, updated_at, stage_entered_at)
       VALUES ($1, $2, $3, $4, 'open', NOW(), NOW(), NOW())
-      ON CONFLICT (lead_id, pipeline_id) DO UPDATE SET
-        stage_id = EXCLUDED.stage_id,
-        updated_at = NOW()
+      ON CONFLICT (lead_id, pipeline_id) DO NOTHING
       RETURNING *
     `, [lead.id, pipeline.id, firstStage.id, dealName]);
-    
+    const isNewDeal = !!deal;
+    if (!deal) {
+      await db.execute(`
+        UPDATE deals SET stage_id = $3, updated_at = NOW()
+        WHERE lead_id = $1 AND pipeline_id = $2
+      `, [lead.id, pipeline.id, firstStage.id]);
+      deal = await db.queryOne<Deal>(`SELECT * FROM deals WHERE lead_id = $1 AND pipeline_id = $2`, [lead.id, pipeline.id]);
+    }
     if (!deal) {
       console.error(`[Router] Failed to create deal`);
       return { action: 'skip', reason: 'deal_creation_failed' };
     }
-    
+    if (isNewDeal) {
+      recordActivity({
+        lead_id: deal.lead_id,
+        event_type: 'deal_created',
+        event_category: 'activity',
+        source: 'api',
+        metadata: { deal_id: deal.id, deal_name: deal.name, pipeline_id: deal.pipeline_id },
+        update_lead_activity: true,
+      }).catch((err) => console.warn('[Router] Failed to record deal_created activity:', (err as Error).message));
+    }
+
     // Update lead
     await db.execute(`
       UPDATE leads SET 
@@ -437,18 +453,37 @@ export class PipelineRouter {
   ): Promise<void> {
     const notificationsQueue = getNotificationsQueue();
     
+    const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email;
+    const slackMessage = `🎯 Lead Routed!\n` +
+      `${leadName} (${lead.email})\n` +
+      `→ ${pipeline.name}\n` +
+      `Intent: ${intent} (${lead.intent_confidence}% confidence)\n` +
+      `Score: ${lead.total_score}\n` +
+      `Assigned: ${owner?.email || 'Unassigned'}`;
+
     await notificationsQueue.add('slack_notification', {
       channel: '#hot-leads',
       type: 'lead_routed',
-      message: `🎯 Lead Routed!\n` +
-               `${lead.first_name || ''} ${lead.last_name || ''} (${lead.email})\n` +
-               `→ ${pipeline.name}\n` +
-               `Intent: ${intent} (${lead.intent_confidence}% confidence)\n` +
-               `Score: ${lead.total_score}\n` +
-               `Assigned: ${owner?.email || 'Unassigned'}`,
+      message: slackMessage,
       lead_id: lead.id,
       deal_id: deal.id
     });
+
+    if (owner?.email) {
+      await notificationsQueue.add('email_notification', {
+        to: owner.email,
+        subject: `[DNA ME] Neuer Lead: ${leadName}`,
+        html: `<h3>Neuer Lead zugewiesen</h3>
+          <p><strong>Name:</strong> ${leadName}</p>
+          <p><strong>E-Mail:</strong> ${lead.email}</p>
+          <p><strong>Pipeline:</strong> ${pipeline.name}</p>
+          <p><strong>Intent:</strong> ${intent} (${lead.intent_confidence}% Konfidenz)</p>
+          <p><strong>Score:</strong> ${lead.total_score}</p>
+          <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/deals/${deal.id}">Deal anzeigen</a></p>`,
+        lead_id: lead.id,
+        deal_id: deal.id
+      });
+    }
   }
   
   /**
@@ -545,18 +580,32 @@ export class PipelineRouter {
     
     const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${pipeline.name}`.trim() || `${lead.email} - ${pipeline.name}`;
     
-    // Create or update deal
-    const deal = await db.queryOne<Deal>(`
+    // Create or update deal (only record activity when newly created)
+    let deal = await db.queryOne<Deal>(`
       INSERT INTO deals (lead_id, pipeline_id, stage_id, name, assigned_to, assigned_at, status, created_at, updated_at, stage_entered_at)
       VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW(), NOW(), NOW())
-      ON CONFLICT (lead_id, pipeline_id) DO UPDATE SET
-        stage_id = EXCLUDED.stage_id,
-        assigned_to = EXCLUDED.assigned_to,
-        assigned_at = EXCLUDED.assigned_at,
-        updated_at = NOW()
+      ON CONFLICT (lead_id, pipeline_id) DO NOTHING
       RETURNING *
     `, [lead.id, pipeline.id, firstStage.id, dealName, assignedTo || null, assignedTo ? new Date() : null]);
-    
+    const isNewDeal = !!deal;
+    if (!deal) {
+      await db.execute(`
+        UPDATE deals SET stage_id = $3, assigned_to = $4, assigned_at = $5, updated_at = NOW()
+        WHERE lead_id = $1 AND pipeline_id = $2
+      `, [lead.id, pipeline.id, firstStage.id, assignedTo || null, assignedTo ? new Date() : null]);
+      deal = await db.queryOne<Deal>(`SELECT * FROM deals WHERE lead_id = $1 AND pipeline_id = $2`, [lead.id, pipeline.id]);
+    }
+    if (isNewDeal && deal) {
+      recordActivity({
+        lead_id: deal.lead_id,
+        event_type: 'deal_created',
+        event_category: 'activity',
+        source: 'api',
+        metadata: { deal_id: deal.id, deal_name: deal.name, pipeline_id: deal.pipeline_id },
+        update_lead_activity: true,
+      }).catch((err) => console.warn('[Router] Failed to record deal_created activity:', (err as Error).message));
+    }
+
     // Update lead
     await db.execute(`
       UPDATE leads SET 
@@ -566,7 +615,7 @@ export class PipelineRouter {
         updated_at = NOW()
       WHERE id = $1
     `, [lead.id, pipeline.id]);
-    
+
     // Update team member lead count if assigned
     if (assignedTo) {
       await db.execute(`

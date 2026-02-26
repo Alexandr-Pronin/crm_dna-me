@@ -1,9 +1,9 @@
 /**
  * Deal List Component
- * Placeholder - connects to REAL API (GET /deals)
- * Full Kanban implementation in later phase
+ * Connects to REAL API (GET /deals)
+ * Kanban board implementation included
  */
-import { useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   List,
   Datagrid,
@@ -11,9 +11,8 @@ import {
   DateField,
   FunctionField,
   NumberField,
+  useDataProvider,
   useRefresh,
-  TopToolbar,
-  FilterButton,
   CreateButton,
   SearchInput,
   SelectInput,
@@ -33,68 +32,36 @@ import {
   Refresh as RefreshIcon,
   ViewKanban as KanbanIcon,
   ViewList as ListIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
+import { KanbanBoard } from '../../components/Kanban';
 
-const dealFilters = [
-  <SearchInput source="q" alwaysOn placeholder="Search deals..." />,
-  <SelectInput
-    source="pipeline_id"
-    label="Pipeline"
-    choices={[
-      { id: 'research-lab', name: 'Research Lab' },
-      { id: 'b2b-lab', name: 'B2B Lab Enablement' },
-      { id: 'co-creation', name: 'Panel Co-Creation' },
-    ]}
-  />,
-  <SelectInput
-    source="stage"
-    choices={[
-      { id: 'awareness', name: 'Awareness' },
-      { id: 'interest', name: 'Interest' },
-      { id: 'consideration', name: 'Consideration' },
-      { id: 'decision', name: 'Decision' },
-      { id: 'won', name: 'Won' },
-      { id: 'lost', name: 'Lost' },
-    ]}
-  />,
-];
+const pipelineColorPalette = ['#4A90A4', '#6C5CE7', '#28A745', '#F59E0B', '#17A2B8', '#DC3545'];
+const stageColorPalette = ['#64748B', '#F59E0B', '#4A90A4', '#6C5CE7', '#17A2B8', '#28A745', '#DC3545'];
 
-const PipelineChip = ({ pipelineId }) => {
-  const pipelineConfig = {
-    'research-lab': { color: '#4A90A4', label: 'Research Lab' },
-    'b2b-lab': { color: '#6C5CE7', label: 'B2B Lab' },
-    'co-creation': { color: '#28A745', label: 'Co-Creation' },
-  };
-  
-  const config = pipelineConfig[pipelineId] || { color: '#64748B', label: pipelineId || 'Unknown' };
-  
+const PipelineChip = ({ pipelineId, pipelineMap }) => {
+  const pipeline = pipelineMap[pipelineId];
+  const color = pipeline?.color || '#64748B';
+  const label = pipeline?.name || pipelineId || 'Unknown';
+
   return (
     <Chip
-      label={config.label}
+      label={label}
       size="small"
       sx={{
-        bgcolor: `${config.color}20`,
-        color: config.color,
+        bgcolor: `${color}20`,
+        color: color,
         fontWeight: 500,
       }}
     />
   );
 };
 
-const StageChip = ({ stage }) => {
-  const stageColors = {
-    awareness: '#64748B',
-    interest: '#F59E0B',
-    consideration: '#4A90A4',
-    decision: '#6C5CE7',
-    purchase: '#17A2B8',
-    won: '#28A745',
-    lost: '#DC3545',
-  };
-  
-  const color = stageColors[stage] || '#64748B';
-  const label = stage?.charAt(0).toUpperCase() + stage?.slice(1) || 'Unknown';
-  
+const StageChip = ({ stageId, stageName, stageMap }) => {
+  const stage = stageMap[stageId];
+  const color = stage?.color || '#64748B';
+  const label = stageName || stage?.name || stageId || 'Unknown';
+
   return (
     <Chip
       label={label}
@@ -118,75 +85,254 @@ const ValueField = ({ value }) => {
   );
 };
 
-const ListActions = ({ viewMode, onViewChange }) => (
-  <TopToolbar sx={{ gap: 1 }}>
-    <ToggleButtonGroup
-      value={viewMode}
-      exclusive
-      onChange={onViewChange}
-      size="small"
-    >
-      <ToggleButton value="list">
-        <ListIcon fontSize="small" />
-      </ToggleButton>
-      <ToggleButton value="kanban">
-        <KanbanIcon fontSize="small" />
-      </ToggleButton>
-    </ToggleButtonGroup>
-    <FilterButton />
-    <CreateButton label="Create Deal" />
-  </TopToolbar>
-);
+const SequenceChip = ({ sequence }) => {
+  if (!sequence || sequence.status !== 'active') {
+    return <Typography color="text.secondary">—</Typography>;
+  }
 
-const KanbanPlaceholder = () => (
-  <Card sx={{ textAlign: 'center', py: 6, mt: 2 }}>
-    <CardContent>
-      <KanbanIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-      <Typography variant="h6" color="text.secondary" gutterBottom>
-        Kanban Board
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        The drag-and-drop Kanban board will be implemented in a later phase.
-        <br />
-        Switch to List view to see deals.
-      </Typography>
-    </CardContent>
-  </Card>
-);
+  const stepsTotal = sequence.steps_total ? Number(sequence.steps_total) : null;
+  const currentStep = Number.isFinite(sequence.current_step) ? Number(sequence.current_step) : 0;
+  const nextStep = stepsTotal ? Math.min(currentStep + 1, stepsTotal) : currentStep + 1;
+  const label = sequence.sequence_name
+    ? `${sequence.sequence_name} · ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`
+    : `Aktiv · ${nextStep}${stepsTotal ? `/${stepsTotal}` : ''}`;
+
+  return (
+    <Chip
+      icon={<EmailIcon sx={{ fontSize: 14 }} />}
+      label={label}
+      size="small"
+      sx={{
+        bgcolor: 'rgba(74, 144, 164, 0.12)',
+        color: '#4A90A4',
+        fontWeight: 500,
+        '& .MuiChip-icon': { color: '#4A90A4' },
+      }}
+    />
+  );
+};
+
+/** Einheitliche Toolbar: Ansicht, Create, Refresh (unter Überschrift) */
+const DealsToolbar = ({ viewMode, onViewChange }) => {
+  const refresh = useRefresh();
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={onViewChange}
+        size="small"
+      >
+        <ToggleButton value="list">
+          <Tooltip title="Listenansicht">
+            <ListIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="kanban">
+          <Tooltip title="Kanban Board">
+            <KanbanIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <CreateButton
+        label="Deal erstellen"
+        variant="contained"
+        sx={{
+          fontWeight: 600,
+          textTransform: 'none',
+          px: 2,
+          boxShadow: '0 2px 8px rgba(74, 144, 164, 0.3)',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(74, 144, 164, 0.4)',
+          },
+        }}
+      />
+      <Tooltip title="Aktualisieren">
+        <IconButton onClick={refresh} size="small">
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
+
+
+// localStorage Key für Ansichts-Persistenz
+const VIEW_MODE_STORAGE_KEY = 'dna-me-deals-view-mode';
 
 const DealList = () => {
-  const [viewMode, setViewMode] = useState('list');
-  const refresh = useRefresh();
+  // Lade gespeicherte Ansicht aus localStorage
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      return saved === 'kanban' ? 'kanban' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const [pipelines, setPipelines] = useState([]);
+  const [stages, setStages] = useState([]);
+  const [defaultPipelineId, setDefaultPipelineId] = useState('');
+  const dataProvider = useDataProvider();
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadPipelines = async () => {
+      try {
+        const { data } = await dataProvider.getList('pipelines', {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: 'name', order: 'ASC' },
+          filter: { include_inactive: 'false' },
+        });
+        if (isActive) {
+          setPipelines(data || []);
+          if (!defaultPipelineId && data?.length > 0) {
+            setDefaultPipelineId(data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load pipelines', error);
+        if (isActive) {
+          setPipelines([]);
+        }
+      }
+    };
+
+    loadPipelines();
+
+    return () => {
+      isActive = false;
+    };
+  }, [dataProvider]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadStages = async () => {
+      if (!pipelines.length) {
+        setStages([]);
+        return;
+      }
+
+      try {
+        const stageResponses = await Promise.all(
+          pipelines.map((pipeline) =>
+            dataProvider
+              .getList(`pipelines/${pipeline.id}/stages`, {
+                pagination: { page: 1, perPage: 100 },
+                sort: { field: 'position', order: 'ASC' },
+                filter: {},
+              })
+              .then(({ data }) => data.map((stage) => ({ ...stage, pipeline_id: pipeline.id })))
+              .catch((error) => {
+                console.error('Failed to load stages for pipeline', pipeline.id, error);
+                return [];
+              })
+          )
+        );
+
+        const mergedStages = stageResponses.flat();
+        if (isActive) {
+          setStages(mergedStages);
+        }
+      } catch (error) {
+        console.error('Failed to load stages', error);
+        if (isActive) {
+          setStages([]);
+        }
+      }
+    };
+
+    loadStages();
+
+    return () => {
+      isActive = false;
+    };
+  }, [dataProvider, pipelines]);
 
   const handleViewChange = (event, newValue) => {
-    if (newValue) setViewMode(newValue);
+    if (newValue) {
+      setViewMode(newValue);
+      // Speichere Ansicht in localStorage
+      try {
+        localStorage.setItem(VIEW_MODE_STORAGE_KEY, newValue);
+      } catch (e) {
+        console.warn('Could not save view mode to localStorage:', e);
+      }
+    }
   };
+
+  const pipelineMap = useMemo(() => {
+    return pipelines.reduce((acc, pipeline, index) => {
+      acc[pipeline.id] = {
+        name: pipeline.name,
+        color: pipelineColorPalette[index % pipelineColorPalette.length],
+      };
+      return acc;
+    }, {});
+  }, [pipelines]);
+
+  const stageMap = useMemo(() => {
+    return stages.reduce((acc, stage) => {
+      const colorIndex = stage.position ? stage.position - 1 : 0;
+      acc[stage.id] = {
+        name: stage.name,
+        color: stageColorPalette[colorIndex % stageColorPalette.length],
+        pipeline_id: stage.pipeline_id,
+      };
+      return acc;
+    }, {});
+  }, [stages]);
+
+  const pipelineChoices = useMemo(
+    () => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name })),
+    [pipelines]
+  );
+
+  const stageChoices = useMemo(() => {
+    return stages.map((stage) => {
+      const pipelineName = pipelineMap[stage.pipeline_id]?.name;
+      const label = pipelineName ? `${pipelineName} — ${stage.name}` : stage.name;
+      return { id: stage.id, name: label };
+    });
+  }, [pipelines, pipelineMap, stages]);
+
+  const dealFilters = [
+    <SelectInput source="pipeline_id" label="Pipeline" choices={pipelineChoices} alwaysOn />,
+    <SelectInput source="stage_id" label="Stage" choices={stageChoices} alwaysOn />,
+    <SearchInput source="q" alwaysOn placeholder="Search deals..." />,
+  ];
+
+  const pageHeader = (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="h4" sx={{ fontWeight: 300 }}>
+        Deals
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {viewMode === 'kanban' ? 'Drag & Drop für Pipeline-Management' : 'Verwalten Sie Ihre Sales Pipeline'}
+      </Typography>
+      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <DealsToolbar viewMode={viewMode} onViewChange={handleViewChange} />
+      </Box>
+    </Box>
+  );
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Page Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 300 }}>
-            Deals
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage your sales pipeline
-          </Typography>
-        </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={refresh}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
       {viewMode === 'kanban' ? (
-        <KanbanPlaceholder />
+        <>
+          {pageHeader}
+          <KanbanBoard hideCreateButton />
+        </>
       ) : (
-        <List
-          filters={dealFilters}
-          actions={<ListActions viewMode={viewMode} onViewChange={handleViewChange} />}
+        <>
+          {pageHeader}
+          <List
+            title={false}
+            actions={false}
+            filterDefaultValues={defaultPipelineId ? { pipeline_id: defaultPipelineId } : {}}
+            filters={dealFilters}
           sort={{ field: 'created_at', order: 'DESC' }}
           perPage={25}
           empty={
@@ -222,21 +368,35 @@ const DealList = () => {
             <TextField source="title" label="Deal" />
             <FunctionField
               label="Pipeline"
-              render={(record) => <PipelineChip pipelineId={record?.pipeline_id} />}
+              render={(record) => (
+                <PipelineChip pipelineId={record?.pipeline_id} pipelineMap={pipelineMap} />
+              )}
             />
             <FunctionField
               label="Stage"
-              render={(record) => <StageChip stage={record?.stage} />}
+              render={(record) => (
+                <StageChip
+                  stageId={record?.stage_id || record?.stage}
+                  stageName={record?.stage_name}
+                  stageMap={stageMap}
+                />
+              )}
             />
             <FunctionField
               label="Value"
               render={(record) => <ValueField value={record?.value} />}
             />
+            <FunctionField
+              label="E-Mail-Sequenz"
+              render={(record) => <SequenceChip sequence={record?.email_sequence} />}
+            />
+            <TextField source="assigned_to_name" label="Owner" emptyText="—" />
             <TextField source="contact_name" label="Contact" emptyText="—" />
             <DateField source="expected_close" label="Expected Close" />
             <DateField source="created_at" label="Created" showTime={false} />
           </Datagrid>
         </List>
+        </>
       )}
     </Box>
   );

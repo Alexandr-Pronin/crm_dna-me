@@ -6,6 +6,7 @@
 import { db } from '../db/index.js';
 import { NotFoundError, ValidationError, ConflictError, BusinessLogicError } from '../errors/index.js';
 import { getSyncQueue } from '../config/queues.js';
+import { recordActivity, type ActivitySource } from './activityService.js';
 import { getPipelineService } from './pipelineService.js';
 import { getAutomationEngine } from './automationEngine.js';
 import type {
@@ -48,6 +49,11 @@ export interface MoveDealInput {
   stage_id: string;
 }
 
+export interface ReorderDealsInput {
+  stage_id: string;
+  ordered_ids: string[];
+}
+
 export interface CloseDealInput {
   status: 'won' | 'lost';
   close_reason?: string;
@@ -73,6 +79,21 @@ export interface DealWithRelations extends Deal {
   lead?: Lead;
   pipeline_name?: string;
   stage_name?: string;
+  lead_first_name?: string | null;
+  lead_last_name?: string | null;
+  lead_email?: string | null;
+  lead_name?: string | null;
+  lead_company?: string | null;
+  assigned_to_name?: string | null;
+  assigned_to_avatar?: string | null;
+  sequence_enrollment_id?: string | null;
+  sequence_id?: string | null;
+  sequence_name?: string | null;
+  sequence_status?: string | null;
+  sequence_current_step?: number | null;
+  sequence_steps_total?: string | number | null;
+  sequence_next_email_due_at?: Date | string | null;
+  sequence_stage_id?: string | null;
 }
 
 // =============================================================================
@@ -86,7 +107,14 @@ export class DealService {
   // Create Deal
   // ===========================================================================
   
-  async createDeal(data: CreateDealInput): Promise<Deal> {
+  /**
+   * @param data - Deal data
+   * @param activityContext - Optional: who created (for "Letzte Aktivitäten") and source (manual vs api/routing)
+   */
+  async createDeal(
+    data: CreateDealInput,
+    activityContext?: { created_by?: string; source?: ActivitySource },
+  ): Promise<Deal> {
     // Verify lead exists
     const lead = await db.queryOne<Lead>(
       'SELECT * FROM leads WHERE id = $1',
@@ -135,15 +163,24 @@ export class DealService {
     const dealName = data.name || 
       `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
     
+    const positionResult = await db.queryOne<{ next_position: number }>(
+      `SELECT COALESCE(MAX(position), 0) + 1 AS next_position
+       FROM deals
+       WHERE pipeline_id = $1 AND stage_id = $2`,
+      [data.pipeline_id, stageId]
+    );
+
+    const position = positionResult?.next_position ?? 1;
+
     const sql = `
       INSERT INTO deals (
-        lead_id, pipeline_id, stage_id, name, value, currency,
+        lead_id, pipeline_id, stage_id, position, name, value, currency,
         expected_close_date, assigned_to, assigned_region,
         assigned_at, status, metadata, created_at, updated_at, stage_entered_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9,
-        $10, 'open', $11, NOW(), NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10,
+        $11, 'open', $12, NOW(), NOW(), NOW()
       )
       RETURNING *
     `;
@@ -152,6 +189,7 @@ export class DealService {
       data.lead_id,
       data.pipeline_id,
       stageId,
+      position,
       dealName,
       data.value || null,
       data.currency || 'EUR',
@@ -163,7 +201,28 @@ export class DealService {
     ];
     
     const deals = await db.query<Deal>(sql, params);
-    return deals[0];
+    const deal = deals[0];
+    if (!deal) {
+      throw new BusinessLogicError('Failed to create deal');
+    }
+
+    recordActivity({
+      lead_id: deal.lead_id,
+      event_type: 'deal_created',
+      event_category: 'activity',
+      source: activityContext?.source ?? 'manual',
+      metadata: {
+        deal_id: deal.id,
+        deal_name: deal.name,
+        pipeline_id: deal.pipeline_id,
+        created_by: activityContext?.created_by,
+      },
+      update_lead_activity: true,
+    }).catch((err) => {
+      console.warn('[DealService] Failed to record deal_created activity:', (err as Error).message);
+    });
+
+    return deal;
   }
 
   // ===========================================================================
@@ -192,10 +251,44 @@ export class DealService {
       `SELECT 
         d.*,
         p.name as pipeline_name,
-        ps.name as stage_name
+        ps.name as stage_name,
+        l.first_name as lead_first_name,
+        l.last_name as lead_last_name,
+        l.email as lead_email,
+        CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
+        o.name as lead_company,
+        tm.name as assigned_to_name,
+        tm.avatar as assigned_to_avatar,
+        seq.sequence_enrollment_id,
+        seq.sequence_id,
+        seq.sequence_name,
+        seq.sequence_status,
+        seq.sequence_current_step,
+        seq.sequence_steps_total,
+        seq.sequence_next_email_due_at,
+        seq.sequence_stage_id
        FROM deals d
        JOIN pipelines p ON p.id = d.pipeline_id
        JOIN pipeline_stages ps ON ps.id = d.stage_id
+       LEFT JOIN leads l ON l.id = d.lead_id
+       LEFT JOIN organizations o ON o.id = l.organization_id
+       LEFT JOIN team_members tm ON tm.email = d.assigned_to
+       LEFT JOIN LATERAL (
+         SELECT 
+           ese.id as sequence_enrollment_id,
+           ese.sequence_id,
+           ese.status as sequence_status,
+           ese.current_step as sequence_current_step,
+           ese.next_email_due_at as sequence_next_email_due_at,
+           ese.stage_id as sequence_stage_id,
+           es.name as sequence_name,
+           (SELECT COUNT(*)::text FROM email_sequence_steps ess WHERE ess.sequence_id = ese.sequence_id) as sequence_steps_total
+         FROM email_sequence_enrollments ese
+         JOIN email_sequences es ON es.id = ese.sequence_id
+         WHERE ese.deal_id = d.id AND ese.status = 'active'
+         ORDER BY ese.enrolled_at DESC
+         LIMIT 1
+       ) seq ON true
        WHERE d.id = $1`,
       [id]
     );
@@ -232,7 +325,7 @@ export class DealService {
       params.push(options.status);
     }
     
-    sql += ' ORDER BY ps.position ASC, d.created_at DESC';
+    sql += ' ORDER BY ps.position ASC, d.position ASC, d.created_at DESC';
     
     if (options?.limit) {
       sql += ` LIMIT $${paramIndex++}`;
@@ -333,7 +426,7 @@ export class DealService {
     const totalPages = Math.ceil(total / limit);
     
     // Build order clause
-    const validSortColumns = ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at'];
+    const validSortColumns = ['created_at', 'updated_at', 'value', 'name', 'stage_entered_at', 'position'];
     const sortBy = validSortColumns.includes(filters.sort_by || '') ? filters.sort_by : 'created_at';
     const sortOrder = (filters.sort_order || 'desc').toUpperCase();
     const orderClause = `ORDER BY d.${sortBy} ${sortOrder} NULLS LAST`;
@@ -343,10 +436,44 @@ export class DealService {
       SELECT 
         d.*,
         p.name as pipeline_name,
-        ps.name as stage_name
+        ps.name as stage_name,
+        l.first_name as lead_first_name,
+        l.last_name as lead_last_name,
+        l.email as lead_email,
+        CONCAT_WS(' ', l.first_name, l.last_name) as lead_name,
+        o.name as lead_company,
+        tm.name as assigned_to_name,
+        tm.avatar as assigned_to_avatar,
+        seq.sequence_enrollment_id,
+        seq.sequence_id,
+        seq.sequence_name,
+        seq.sequence_status,
+        seq.sequence_current_step,
+        seq.sequence_steps_total,
+        seq.sequence_next_email_due_at,
+        seq.sequence_stage_id
       FROM deals d
       JOIN pipelines p ON p.id = d.pipeline_id
       JOIN pipeline_stages ps ON ps.id = d.stage_id
+      LEFT JOIN leads l ON l.id = d.lead_id
+      LEFT JOIN organizations o ON o.id = l.organization_id
+      LEFT JOIN team_members tm ON tm.email = d.assigned_to
+      LEFT JOIN LATERAL (
+        SELECT 
+          ese.id as sequence_enrollment_id,
+          ese.sequence_id,
+          ese.status as sequence_status,
+          ese.current_step as sequence_current_step,
+          ese.next_email_due_at as sequence_next_email_due_at,
+          ese.stage_id as sequence_stage_id,
+          es.name as sequence_name,
+          (SELECT COUNT(*)::text FROM email_sequence_steps ess WHERE ess.sequence_id = ese.sequence_id) as sequence_steps_total
+        FROM email_sequence_enrollments ese
+        JOIN email_sequences es ON es.id = ese.sequence_id
+        WHERE ese.deal_id = d.id AND ese.status = 'active'
+        ORDER BY ese.enrolled_at DESC
+        LIMIT 1
+      ) seq ON true
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex}
@@ -372,7 +499,7 @@ export class DealService {
   // Update Deal
   // ===========================================================================
   
-  async updateDeal(id: string, data: UpdateDealInput): Promise<Deal> {
+  async updateDeal(id: string, data: UpdateDealInput): Promise<DealWithRelations> {
     // Check if deal exists
     await this.getDealById(id);
     
@@ -420,7 +547,7 @@ export class DealService {
     }
     
     if (updates.length === 0) {
-      return this.getDealById(id);
+      return this.getDealWithRelations(id);
     }
     
     params.push(id);
@@ -433,7 +560,7 @@ export class DealService {
     `;
     
     const deals = await db.query<Deal>(sql, params);
-    return deals[0];
+    return await this.getDealWithRelations(deals[0].id);
   }
 
   // ===========================================================================
@@ -464,14 +591,37 @@ export class DealService {
       throw new ValidationError('Target stage does not belong to the deal\'s pipeline');
     }
     
+    const positionResult = await db.queryOne<{ next_position: number }>(
+      `SELECT COALESCE(MAX(position), 0) + 1 AS next_position
+       FROM deals
+       WHERE pipeline_id = $1 AND stage_id = $2`,
+      [deal.pipeline_id, data.stage_id]
+    );
+    const position = positionResult?.next_position ?? 1;
+
     // Update deal with new stage
     const updatedDeal = await db.queryOne<Deal>(
       `UPDATE deals 
-       SET stage_id = $1, stage_entered_at = NOW(), updated_at = NOW()
-       WHERE id = $2
+       SET stage_id = $1, position = $2, stage_entered_at = NOW(), updated_at = NOW()
+       WHERE id = $3
        RETURNING *`,
-      [data.stage_id, id]
+      [data.stage_id, position, id]
     );
+
+    // Cancel all active/paused enrollments for this deal (not just pause)
+    try {
+      await db.execute(
+        `UPDATE email_sequence_enrollments
+         SET status = 'unsubscribed',
+             unsubscribed_at = NOW(),
+             next_email_due_at = NULL,
+             updated_at = NOW()
+         WHERE deal_id = $1 AND status IN ('active', 'paused')`,
+        [deal.id]
+      );
+    } catch (pauseError) {
+      console.error('[Deal Service] Failed to cancel email enrollments:', pauseError);
+    }
     
     // Process stage change automation
     try {
@@ -483,6 +633,43 @@ export class DealService {
     }
     
     return updatedDeal!;
+  }
+
+  // ===========================================================================
+  // Reorder Deals within a Stage
+  // ===========================================================================
+  
+  async reorderDealsInStage(data: ReorderDealsInput): Promise<void> {
+    if (!data.ordered_ids.length) {
+      return;
+    }
+
+    const existing = await db.query<{ id: string }>(
+      `SELECT id FROM deals WHERE stage_id = $1 AND id = ANY($2::uuid[])`,
+      [data.stage_id, data.ordered_ids]
+    );
+
+    if (existing.length !== data.ordered_ids.length) {
+      throw new ValidationError('One or more deals do not belong to the target stage');
+    }
+
+    const values: string[] = [];
+    const params: unknown[] = [data.stage_id];
+    let paramIndex = 2;
+
+    data.ordered_ids.forEach((id, index) => {
+      values.push(`($${paramIndex++}::uuid, $${paramIndex++}::int)`);
+      params.push(id, index + 1);
+    });
+
+    const sql = `
+      UPDATE deals AS d
+      SET position = v.position, updated_at = NOW()
+      FROM (VALUES ${values.join(', ')}) AS v(id, position)
+      WHERE d.id = v.id AND d.stage_id = $1
+    `;
+
+    await db.execute(sql, params);
   }
 
   // ===========================================================================
@@ -546,6 +733,50 @@ export class DealService {
     );
     
     return updatedDeal!;
+  }
+
+  // ===========================================================================
+  // Update Deal Lead
+  // ===========================================================================
+  
+  async updateDealLead(id: string, newLeadId: string): Promise<DealWithRelations> {
+    // Verify deal exists
+    const deal = await this.getDealById(id);
+    
+    // Verify new lead exists
+    const lead = await db.queryOne<Lead>(
+      'SELECT * FROM leads WHERE id = $1',
+      [newLeadId]
+    );
+    
+    if (!lead) {
+      throw new NotFoundError('Lead', newLeadId);
+    }
+    
+    // Check if there's already a deal for this lead in this pipeline
+    const existingDeal = await db.queryOne<Deal>(
+      'SELECT * FROM deals WHERE lead_id = $1 AND pipeline_id = $2 AND id != $3',
+      [newLeadId, deal.pipeline_id, id]
+    );
+    
+    if (existingDeal) {
+      throw new ConflictError('A deal already exists for this lead in this pipeline', {
+        existing_deal_id: existingDeal.id
+      });
+    }
+    
+    // Update deal name based on new lead
+    const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
+    
+    const updatedDeal = await db.queryOne<Deal>(
+      `UPDATE deals 
+       SET lead_id = $1, name = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [newLeadId, dealName, id]
+    );
+
+    return await this.getDealWithRelations(updatedDeal!.id);
   }
 
   // ===========================================================================

@@ -347,7 +347,7 @@ export class ScoringEngine {
       return organization[parts[1] as keyof typeof organization];
     }
     
-    return (lead as Record<string, unknown>)[field];
+    return (lead as unknown as Record<string, unknown>)[field];
   }
 
   // ===========================================================================

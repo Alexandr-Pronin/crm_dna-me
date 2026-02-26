@@ -63,27 +63,41 @@ services:
   #   networks:
   #     - dna_network
 
-  # workers:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: dna_workers
-  #   command: ["npm", "run", "workers"]
-  #   environment:
-  #     NODE_ENV: production
-  #     DATABASE_URL: postgres://dna:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/dna_marketing
-  #     REDIS_URL: redis://redis:6379
-  #     MOCO_API_KEY: ${MOCO_API_KEY}
-  #     MOCO_SUBDOMAIN: ${MOCO_SUBDOMAIN}
-  #     SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   networks:
-  #     - dna_network
+  workers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dna_workers
+    command: ["npm", "run", "workers"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://dna:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/dna_marketing
+      REDIS_URL: redis://redis:6379
+      MOCO_API_KEY: ${MOCO_API_KEY}
+      MOCO_SUBDOMAIN: ${MOCO_SUBDOMAIN}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      MARKETING_SMTP_HOST: ${MARKETING_SMTP_HOST:-}
+      MARKETING_SMTP_PORT: ${MARKETING_SMTP_PORT:-}
+      MARKETING_SMTP_USER: ${MARKETING_SMTP_USER:-}
+      MARKETING_SMTP_PASS: ${MARKETING_SMTP_PASS:-}
+      MARKETING_SMTP_SECURE: ${MARKETING_SMTP_SECURE:-}
+      MARKETING_SMTP_FROM: ${MARKETING_SMTP_FROM:-}
+      MARKETING_SMTP_FROM_NAME: ${MARKETING_SMTP_FROM_NAME:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dna_network
 
 volumes:
   postgres_data:

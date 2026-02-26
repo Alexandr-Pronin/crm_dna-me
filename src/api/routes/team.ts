@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import {
   createTeamMemberSchema,
   updateTeamMemberSchema,
@@ -18,6 +18,7 @@ import {
   type TeamMemberStatsResponse
 } from '../schemas/team.js';
 import { db } from '../../db/index.js';
+import { recordSystemActivity } from '../../services/activityService.js';
 import { ValidationError, NotFoundError, ConflictError } from '../../errors/index.js';
 import type { TeamMember } from '../../types/index.js';
 
@@ -46,6 +47,7 @@ function transformTeamMemberResponse(member: TeamMember): TeamMemberResponse {
     is_active: member.is_active,
     max_leads: member.max_leads,
     current_leads: member.current_leads,
+    avatar: member.avatar ?? null,
     created_at: member.created_at?.toISOString?.() ?? (member.created_at as unknown as string)
   };
 }
@@ -68,10 +70,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'List team members with filtering and pagination',
-        tags: ['Team'],
         querystring: {
           type: 'object',
           properties: {
@@ -195,10 +195,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get team member statistics',
-        tags: ['Team'],
         response: {
           200: {
             type: 'object',
@@ -287,10 +285,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get a team member by ID',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -349,10 +345,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Create a new team member',
-        tags: ['Team'],
         body: {
           type: 'object',
           required: ['email', 'name', 'role'],
@@ -423,6 +417,18 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
       if (!member) {
         throw new Error('Team Member konnte nicht erstellt werden');
       }
+
+      await recordSystemActivity({
+        event_type: 'team_member_created',
+        event_category: 'system',
+        source: 'system',
+        metadata: {
+          label: 'Neues Teammitglied hinzugefügt',
+          team_member_id: member.id,
+          team_member_email: member.email,
+          team_member_name: member.name ?? undefined,
+        },
+      });
       
       request.log.info({
         teamMemberId: member.id,
@@ -447,10 +453,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Update a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -466,7 +470,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
             role: { type: 'string', enum: ['bdr', 'ae', 'partnership_manager', 'marketing_manager', 'admin'] },
             region: { type: ['string', 'null'], maxLength: 50 },
             is_active: { type: 'boolean' },
-            max_leads: { type: 'integer', minimum: 0, maximum: 1000 }
+            max_leads: { type: 'integer', minimum: 0, maximum: 1000 },
+            avatar: { type: ['string', 'null'], maxLength: 512 }
           }
         },
         response: {
@@ -569,6 +574,12 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
         paramIndex++;
       }
       
+      if (data.avatar !== undefined) {
+        updates.push(`avatar = $${paramIndex}`);
+        params.push(data.avatar);
+        paramIndex++;
+      }
+      
       if (updates.length === 0) {
         return transformTeamMemberResponse(existing);
       }
@@ -608,10 +619,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Delete a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -712,10 +721,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/deactivate',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Deactivate a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -778,10 +785,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/activate',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Activate a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
@@ -854,10 +859,8 @@ export async function teamRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/team/:id/workload',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get workload information for a team member',
-        tags: ['Team'],
         params: {
           type: 'object',
           required: ['id'],
