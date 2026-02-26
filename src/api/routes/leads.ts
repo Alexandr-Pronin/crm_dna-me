@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import {
   createLeadSchema,
   updateLeadSchema,
@@ -19,7 +19,9 @@ import {
   type LeadResponse,
   type LeadListResponse
 } from '../schemas/leads.js';
+import { db } from '../../db/index.js';
 import { getLeadService } from '../../services/leadService.js';
+import { recordActivity, type ActivitySource } from '../../services/activityService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { Lead, MarketingEvent, ScoreHistory, IntentSignal } from '../../types/index.js';
 
@@ -64,6 +66,7 @@ function transformLeadResponse(lead: Lead): LeadResponse {
     phone: lead.phone ?? null,
     job_title: lead.job_title ?? null,
     organization_id: lead.organization_id ?? null,
+    organization_name: (lead as Lead & { organization_name?: string | null }).organization_name ?? null,
     status: lead.status,
     lifecycle_stage: lead.lifecycle_stage,
     demographic_score: lead.demographic_score,
@@ -114,10 +117,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'List leads with filtering and pagination',
-        tags: ['Leads'],
         querystring: {
           type: 'object',
           properties: {
@@ -192,10 +193,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/unrouted',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get leads that are pending routing',
-        tags: ['Leads'],
         querystring: {
           type: 'object',
           properties: {
@@ -231,10 +230,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/leads/stats',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get lead statistics',
-        tags: ['Leads'],
         response: {
           200: {
             type: 'object',
@@ -271,10 +268,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get a lead by ID',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -325,10 +320,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Create a new lead',
-        tags: ['Leads'],
         body: {
           type: 'object',
           required: ['email'],
@@ -378,12 +371,31 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
       }
       
       const lead = await leadService.createLead(parseResult.data);
-      
+      const userId = (request as { user?: { id: string } }).user?.id;
+      const validSources: ActivitySource[] = ['waalaxy', 'portal', 'lemlist', 'ads', 'conference', 'website', 'linkedin', 'manual', 'api', 'import'];
+      const source: ActivitySource = validSources.includes(lead.first_touch_source as ActivitySource) ? (lead.first_touch_source as ActivitySource) : 'manual';
+
+      recordActivity({
+        lead_id: lead.id,
+        event_type: 'lead_created',
+        event_category: 'activity',
+        source,
+        metadata: {
+          email: lead.email,
+          first_name: lead.first_name,
+          last_name: lead.last_name,
+          created_by: userId,
+        },
+        update_lead_activity: true,
+      }).catch((err) => {
+        request.log.warn({ err }, 'Failed to record lead_created activity');
+      });
+
       request.log.info({
         leadId: lead.id,
         email: lead.email
       }, 'Lead created');
-      
+
       return reply.code(201).send(transformLeadResponse(lead));
     }
   );
@@ -401,10 +413,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Update a lead',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -486,10 +496,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Delete a lead',
-        tags: ['Leads'],
         params: {
           type: 'object',
           required: ['id'],
@@ -555,10 +563,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id/events',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get events for a lead',
-        tags: ['Leads', 'Events'],
         params: {
           type: 'object',
           required: ['id'],
@@ -614,10 +620,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id/scores',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get score history for a lead',
-        tags: ['Leads', 'Scoring'],
         params: {
           type: 'object',
           required: ['id'],
@@ -678,10 +682,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id/intents',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get intent signals for a lead',
-        tags: ['Leads', 'Intent'],
         params: {
           type: 'object',
           required: ['id'],
@@ -742,10 +744,8 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/:id/route',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Manually route a lead to a pipeline',
-        tags: ['Leads', 'Routing'],
         params: {
           type: 'object',
           required: ['id'],
@@ -804,6 +804,158 @@ export async function leadsRoutes(fastify: FastifyInstance): Promise<void> {
       }, 'Lead manually routed');
       
       return transformLeadResponse(lead);
+    }
+  );
+  // ===========================================================================
+  // POST /api/v1/leads/import
+  // ===========================================================================
+  fastify.post(
+    '/leads/import',
+    {
+      preHandler: authenticateOrApiKey,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['email'],
+          properties: {
+            email: { type: 'string', format: 'email' },
+            first_name: { type: 'string', maxLength: 100 },
+            last_name: { type: 'string', maxLength: 100 },
+            phone: { type: 'string', maxLength: 50 },
+            job_title: { type: 'string', maxLength: 150 },
+            linkedin_url: { type: 'string', maxLength: 255 },
+            first_touch_source: { type: 'string', maxLength: 100 },
+            messages: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['direction', 'body_text'],
+                properties: {
+                  direction: { type: 'string', enum: ['inbound', 'outbound'] },
+                  subject: { type: 'string', maxLength: 500 },
+                  body_text: { type: 'string' },
+                  body_html: { type: 'string' },
+                  sent_at: { type: 'string', format: 'date-time' },
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as {
+        email: string;
+        first_name?: string;
+        last_name?: string;
+        phone?: string;
+        job_title?: string;
+        linkedin_url?: string;
+        first_touch_source?: string;
+        messages?: Array<{
+          direction: 'inbound' | 'outbound';
+          subject?: string;
+          body_text: string;
+          body_html?: string;
+          sent_at?: string;
+        }>;
+      };
+
+      const user = (request as any).user;
+      const userId = user?.id;
+
+      let lead = await db.queryOne<Lead>(
+        'SELECT * FROM leads WHERE email = $1',
+        [body.email.toLowerCase().trim()],
+      );
+
+      if (!lead) {
+        lead = await db.queryOne<Lead>(
+          `INSERT INTO leads (
+            email, first_name, last_name, phone, job_title, linkedin_url,
+            status, lifecycle_stage, first_touch_source, first_touch_date,
+            created_at, updated_at
+          ) VALUES ($1,$2,$3,$4,$5,$6,'new','subscriber',$7,NOW(),NOW(),NOW())
+          RETURNING *`,
+          [
+            body.email.toLowerCase().trim(),
+            body.first_name || null,
+            body.last_name || null,
+            body.phone || null,
+            body.job_title || null,
+            body.linkedin_url || null,
+            body.first_touch_source || 'manual_import',
+          ],
+        );
+      }
+
+      if (!lead) throw new ValidationError('Failed to create or find lead');
+
+      let conversationId: string | null = null;
+      let messagesImported = 0;
+
+      if (body.messages && body.messages.length > 0) {
+        const { getConversationService } = await import('../../services/conversationService.js');
+        const convService = getConversationService();
+
+        const deal = await db.queryOne<{ id: string }>(
+          `SELECT id FROM deals WHERE lead_id = $1 AND status = 'open' ORDER BY created_at DESC LIMIT 1`,
+          [lead.id],
+        );
+
+        const firstSubject = body.messages.find(m => m.subject)?.subject || 'Importierter E-Mail-Verlauf';
+        const conversation = await convService.findOrCreateConversation(
+          lead.id,
+          deal?.id ?? null,
+          userId,
+          firstSubject,
+        );
+        conversationId = conversation.id;
+
+        const { getMessageService } = await import('../../services/messageService.js');
+        const messageService = getMessageService();
+
+        const sortedMessages = [...body.messages].sort((a, b) => {
+          const da = a.sent_at ? new Date(a.sent_at).getTime() : 0;
+          const db2 = b.sent_at ? new Date(b.sent_at).getTime() : 0;
+          return da - db2;
+        });
+
+        for (const msg of sortedMessages) {
+          const senderEmail = msg.direction === 'outbound'
+            ? user?.email || 'system@dna-me.org'
+            : body.email;
+          const senderName = msg.direction === 'outbound'
+            ? user?.name || 'Team'
+            : [body.first_name, body.last_name].filter(Boolean).join(' ') || body.email;
+
+          await messageService.createMessage(conversationId, {
+            message_type: 'email',
+            direction: msg.direction,
+            sender_email: senderEmail,
+            sender_name: senderName,
+            subject: msg.subject,
+            body_text: msg.body_text,
+            body_html: msg.body_html || `<p>${msg.body_text.replace(/\n/g, '<br/>')}</p>`,
+            sent_at: msg.sent_at || new Date().toISOString(),
+            skip_send: true,
+          }, userId);
+
+          messagesImported++;
+        }
+      }
+
+      request.log.info({
+        leadId: lead.id,
+        email: lead.email,
+        messagesImported,
+      }, 'Lead imported with message history');
+
+      return reply.code(201).send({
+        lead: transformLeadResponse(lead),
+        conversation_id: conversationId,
+        messages_imported: messagesImported,
+      });
     }
   );
 }

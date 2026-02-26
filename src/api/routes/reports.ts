@@ -5,7 +5,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getReportService } from '../../services/reportService.js';
 import { ValidationError } from '../../errors/index.js';
 
@@ -40,10 +40,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/leads-by-score',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get lead distribution by score tier',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -107,10 +105,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/leads-by-intent',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get lead distribution by intent type',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -167,10 +163,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/pipeline-funnel',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get pipeline funnel metrics with stage analysis',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -250,10 +244,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/campaign-attribution',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get campaign attribution metrics with ROI analysis',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -329,10 +321,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/routing-effectiveness',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get routing effectiveness metrics',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {
@@ -426,10 +416,8 @@ export async function reportsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/reports/summary',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Get high-level summary of all key metrics',
-        tags: ['Reports'],
         querystring: {
           type: 'object',
           properties: {

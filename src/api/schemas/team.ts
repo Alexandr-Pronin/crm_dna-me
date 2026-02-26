@@ -42,7 +42,8 @@ export const updateTeamMemberSchema = z.object({
   role: teamRoleSchema.optional(),
   region: z.string().max(50).optional().nullable(),
   is_active: z.boolean().optional(),
-  max_leads: z.number().int().min(0).max(1000).optional()
+  max_leads: z.number().int().min(0).max(1000).optional(),
+  avatar: z.string().max(512).optional().nullable()
 }).partial();
 
 export type UpdateTeamMemberInput = z.infer<typeof updateTeamMemberSchema>;
@@ -101,6 +102,7 @@ export interface TeamMemberResponse {
   is_active: boolean;
   max_leads: number;
   current_leads: number;
+  avatar: string | null;
   created_at: string;
 }
 

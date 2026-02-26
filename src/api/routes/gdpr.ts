@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { FastifyInstance } from 'fastify';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError } from '../../errors/index.js';
 import type { Lead, Organization, MarketingEvent, ScoreHistory, IntentSignal, Deal, Task } from '../../types/index.js';
@@ -90,10 +90,8 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/gdpr/export/:leadId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Export all lead data for GDPR compliance',
-        tags: ['GDPR'],
         params: {
           type: 'object',
           required: ['leadId'],
@@ -231,10 +229,8 @@ export async function gdprRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/gdpr/delete/:leadId',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Delete lead and anonymize data for GDPR compliance',
-        tags: ['GDPR'],
         params: {
           type: 'object',
           required: ['leadId'],

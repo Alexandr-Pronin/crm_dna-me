@@ -113,9 +113,14 @@ export const bulkLeadSchema = z.object({
   job_title: z.string().max(150).optional(),
   company_name: z.string().max(255).optional(),
   company_domain: z.string().max(255).optional(),
+  industry: z.string().max(100).optional(),
+  company_size: z.string().max(50).optional(),
+  country: z.string().max(2).optional(),
   linkedin_url: z.string().url().optional(),
   source: z.string().max(100).optional(),
   campaign_id: z.string().max(100).optional(),
+  /** Optional message to import as internal note in chat (marked as imported). Full text only if CSV column is not truncated. */
+  message: z.string().max(100_000).optional(),
   metadata: eventMetadataSchema
 });
 

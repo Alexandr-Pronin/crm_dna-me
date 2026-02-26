@@ -5,6 +5,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getTaskService } from '../../services/taskService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { TaskStatus } from '../../types/index.js';
@@ -62,7 +63,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Querystring: z.infer<typeof taskFiltersSchema>
-  }>('/tasks', async (request, reply) => {
+  }>('/tasks', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const filters = taskFiltersSchema.parse(request.query);
     const result = await taskService.searchTasks(filters);
     
@@ -75,7 +76,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Querystring: { assigned_to?: string }
-  }>('/tasks/statistics', async (request, reply) => {
+  }>('/tasks/statistics', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { assigned_to } = request.query;
     const stats = await taskService.getTaskStatistics(assigned_to);
     
@@ -88,7 +89,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Querystring: { days?: string; assigned_to?: string }
-  }>('/tasks/due-soon', async (request, reply) => {
+  }>('/tasks/due-soon', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { days, assigned_to } = request.query;
     const daysAhead = days ? parseInt(days, 10) : 3;
     const tasks = await taskService.getDueSoonTasks(daysAhead, assigned_to);
@@ -108,7 +109,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Querystring: { assigned_to?: string }
-  }>('/tasks/overdue', async (request, reply) => {
+  }>('/tasks/overdue', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { assigned_to } = request.query;
     
     // Get overdue tasks by setting due_before to now
@@ -128,7 +129,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Params: { id: string }
-  }>('/tasks/:id', async (request, reply) => {
+  }>('/tasks/:id', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -145,7 +146,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.post<{
     Body: z.infer<typeof createTaskSchema>
-  }>('/tasks', async (request, reply) => {
+  }>('/tasks', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const validatedData = createTaskSchema.parse(request.body);
     const task = await taskService.createTask(validatedData);
     
@@ -162,7 +163,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.patch<{
     Params: { id: string };
     Body: z.infer<typeof updateTaskSchema>
-  }>('/tasks/:id', async (request, reply) => {
+  }>('/tasks/:id', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -184,7 +185,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.post<{
     Params: { id: string }
-  }>('/tasks/:id/complete', async (request, reply) => {
+  }>('/tasks/:id/complete', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -205,7 +206,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.post<{
     Params: { id: string }
-  }>('/tasks/:id/cancel', async (request, reply) => {
+  }>('/tasks/:id/cancel', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -226,7 +227,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.post<{
     Params: { id: string }
-  }>('/tasks/:id/reopen', async (request, reply) => {
+  }>('/tasks/:id/reopen', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -247,7 +248,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.delete<{
     Params: { id: string }
-  }>('/tasks/:id', async (request, reply) => {
+  }>('/tasks/:id', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { id } = request.params;
     
     if (!z.string().uuid().safeParse(id).success) {
@@ -267,7 +268,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Params: { leadId: string }
-  }>('/leads/:leadId/tasks', async (request, reply) => {
+  }>('/leads/:leadId/tasks', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { leadId } = request.params;
     
     if (!z.string().uuid().safeParse(leadId).success) {
@@ -291,7 +292,7 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
   
   fastify.get<{
     Params: { dealId: string }
-  }>('/deals/:dealId/tasks', async (request, reply) => {
+  }>('/deals/:dealId/tasks', { preHandler: authenticateOrApiKey }, async (request, reply) => {
     const { dealId } = request.params;
     
     if (!z.string().uuid().safeParse(dealId).success) {

@@ -12,11 +12,12 @@ import type {
   IntentSignal,
   PaginatedResponse
 } from '../types/index.js';
-import type {
-  CreateLeadInput,
-  UpdateLeadInput,
-  LeadFiltersInput,
-  ManualRouteInput
+import {
+  createLeadSchema,
+  type CreateLeadInput,
+  type UpdateLeadInput,
+  type LeadFiltersInput,
+  type ManualRouteInput
 } from '../api/schemas/leads.js';
 
 // =============================================================================
@@ -24,6 +25,37 @@ import type {
 // =============================================================================
 
 export class LeadService {
+  // ===========================================================================
+  // Organization Helpers
+  // ===========================================================================
+
+  private extractDomainFromEmail(email?: string | null): string | null {
+    if (!email) return null;
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1) return null;
+    const domain = email.slice(atIndex + 1).trim().toLowerCase();
+    return domain || null;
+  }
+
+  private async getOrganizationIdByDomain(domain: string): Promise<string | null> {
+    const org = await db.queryOne<{ id: string }>(
+      'SELECT id FROM organizations WHERE domain = $1 ORDER BY created_at ASC LIMIT 1',
+      [domain]
+    );
+    return org?.id ?? null;
+  }
+
+  private async createOrganizationForDomain(domain: string): Promise<string> {
+    const name = domain;
+    const rows = await db.query<{ id: string }>(
+      `INSERT INTO organizations (name, domain, created_at, updated_at)
+       VALUES ($1, $2, NOW(), NOW())
+       RETURNING id`,
+      [name, domain]
+    );
+    return rows[0].id;
+  }
+
   // ===========================================================================
   // Find or Create Lead
   // ===========================================================================
@@ -54,14 +86,18 @@ export class LeadService {
       throw new ValidationError('Email is required to create a new lead');
     }
     
-    const newLead = await this.createLead({
-      email: identifier.email,
-      portal_id: identifier.portal_id,
-      waalaxy_id: identifier.waalaxy_id,
-      linkedin_url: identifier.linkedin_url,
-      lemlist_id: identifier.lemlist_id,
-      ...defaults
-    });
+    const newLead = await this.createLead(
+      createLeadSchema.parse({
+        email: identifier.email,
+        status: 'new',
+        lifecycle_stage: 'lead',
+        portal_id: identifier.portal_id,
+        waalaxy_id: identifier.waalaxy_id,
+        linkedin_url: identifier.linkedin_url,
+        lemlist_id: identifier.lemlist_id,
+        ...defaults
+      })
+    );
     
     return { lead: newLead, created: true };
   }
@@ -161,6 +197,15 @@ export class LeadService {
     }
     
     const now = new Date().toISOString();
+    let organizationId = data.organization_id || null;
+
+    if (!organizationId) {
+      const domain = this.extractDomainFromEmail(data.email);
+      if (domain) {
+        const existingOrgId = await this.getOrganizationIdByDomain(domain);
+        organizationId = existingOrgId || (await this.createOrganizationForDomain(domain));
+      }
+    }
     
     const sql = `
       INSERT INTO leads (
@@ -189,7 +234,7 @@ export class LeadService {
       data.last_name || null,
       data.phone || null,
       data.job_title || null,
-      data.organization_id || null,
+      organizationId,
       data.status || 'new',
       data.lifecycle_stage || 'lead',
       data.portal_id || null,
@@ -290,10 +335,10 @@ export class LeadService {
     // Full text search
     if (filters.search) {
       conditions.push(`(
-        email ILIKE $${paramIndex} OR
-        first_name ILIKE $${paramIndex} OR
-        last_name ILIKE $${paramIndex} OR
-        job_title ILIKE $${paramIndex}
+        l.email ILIKE $${paramIndex} OR
+        l.first_name ILIKE $${paramIndex} OR
+        l.last_name ILIKE $${paramIndex} OR
+        l.job_title ILIKE $${paramIndex}
       )`);
       params.push(`%${filters.search}%`);
       paramIndex++;
@@ -301,69 +346,69 @@ export class LeadService {
     
     // Status filters
     if (filters.status) {
-      conditions.push(`status = $${paramIndex++}`);
+      conditions.push(`l.status = $${paramIndex++}`);
       params.push(filters.status);
     }
     
     if (filters.lifecycle_stage) {
-      conditions.push(`lifecycle_stage = $${paramIndex++}`);
+      conditions.push(`l.lifecycle_stage = $${paramIndex++}`);
       params.push(filters.lifecycle_stage);
     }
     
     if (filters.routing_status) {
-      conditions.push(`routing_status = $${paramIndex++}`);
+      conditions.push(`l.routing_status = $${paramIndex++}`);
       params.push(filters.routing_status);
     }
     
     if (filters.primary_intent) {
-      conditions.push(`primary_intent = $${paramIndex++}`);
+      conditions.push(`l.primary_intent = $${paramIndex++}`);
       params.push(filters.primary_intent);
     }
     
     if (filters.pipeline_id) {
-      conditions.push(`pipeline_id = $${paramIndex++}`);
+      conditions.push(`l.pipeline_id = $${paramIndex++}`);
       params.push(filters.pipeline_id);
     }
     
     if (filters.organization_id) {
-      conditions.push(`organization_id = $${paramIndex++}`);
+      conditions.push(`l.organization_id = $${paramIndex++}`);
       params.push(filters.organization_id);
     }
     
     // Score filters
     if (filters.min_score !== undefined) {
-      conditions.push(`total_score >= $${paramIndex++}`);
+      conditions.push(`l.total_score >= $${paramIndex++}`);
       params.push(filters.min_score);
     }
     
     if (filters.max_score !== undefined) {
-      conditions.push(`total_score <= $${paramIndex++}`);
+      conditions.push(`l.total_score <= $${paramIndex++}`);
       params.push(filters.max_score);
     }
     
     if (filters.min_intent_confidence !== undefined) {
-      conditions.push(`intent_confidence >= $${paramIndex++}`);
+      conditions.push(`l.intent_confidence >= $${paramIndex++}`);
       params.push(filters.min_intent_confidence);
     }
     
     // Date filters
     if (filters.created_after) {
-      conditions.push(`created_at >= $${paramIndex++}`);
+      conditions.push(`l.created_at >= $${paramIndex++}`);
       params.push(filters.created_after);
     }
     
     if (filters.created_before) {
-      conditions.push(`created_at <= $${paramIndex++}`);
+      conditions.push(`l.created_at <= $${paramIndex++}`);
       params.push(filters.created_before);
     }
     
     if (filters.last_activity_after) {
-      conditions.push(`last_activity >= $${paramIndex++}`);
+      conditions.push(`l.last_activity >= $${paramIndex++}`);
       params.push(filters.last_activity_after);
     }
     
     if (filters.last_activity_before) {
-      conditions.push(`last_activity <= $${paramIndex++}`);
+      conditions.push(`l.last_activity <= $${paramIndex++}`);
       params.push(filters.last_activity_before);
     }
     
@@ -372,7 +417,7 @@ export class LeadService {
       : '';
     
     // Count total
-    const countSql = `SELECT COUNT(*) as count FROM leads ${whereClause}`;
+    const countSql = `SELECT COUNT(*) as count FROM leads l ${whereClause}`;
     const countResult = await db.queryOne<{ count: string }>(countSql, params);
     const total = parseInt(countResult?.count || '0', 10);
     
@@ -385,11 +430,15 @@ export class LeadService {
     // Build order clause
     const sortBy = filters.sort_by;
     const sortOrder = filters.sort_order.toUpperCase();
-    const orderClause = `ORDER BY ${sortBy} ${sortOrder} NULLS LAST`;
+    const orderClause = `ORDER BY l.${sortBy} ${sortOrder} NULLS LAST`;
     
     // Get data
     const dataSql = `
-      SELECT * FROM leads 
+      SELECT 
+        l.*,
+        o.name as organization_name
+      FROM leads l
+      LEFT JOIN organizations o ON o.id = l.organization_id
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex}
@@ -446,6 +495,46 @@ export class LeadService {
        LIMIT $2 OFFSET $3`,
       [leadId, limit, offset]
     );
+  }
+
+  // ===========================================================================
+  // Get Recent Events (all leads, for dashboard activity feed)
+  // ===========================================================================
+
+  async getRecentEvents(options?: { limit?: number; offset?: number }): Promise<{ data: Array<MarketingEvent & { lead: Pick<Lead, 'id' | 'email' | 'first_name' | 'last_name'> | null }>; total: number }> {
+    const limit = Math.min(options?.limit ?? 50, 100);
+    const offset = options?.offset ?? 0;
+
+    const [rows, countResult] = await Promise.all([
+      db.query<MarketingEvent & { lead_email: string | null; lead_first_name: string | null; lead_last_name: string | null }>(
+        `SELECT e.*, l.email AS lead_email, l.first_name AS lead_first_name, l.last_name AS lead_last_name
+         FROM events e
+         LEFT JOIN leads l ON e.lead_id = l.id
+         ORDER BY e.occurred_at DESC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ),
+      db.queryOne<{ count: string }>('SELECT COUNT(*) AS count FROM events'),
+    ]);
+
+    const data = rows.map((row) => {
+      const { lead_email, lead_first_name, lead_last_name, ...event } = row;
+      const lead = event.lead_id
+        ? {
+            id: event.lead_id,
+            email: lead_email ?? '',
+            first_name: lead_first_name ?? undefined,
+            last_name: lead_last_name ?? undefined,
+          }
+        : null;
+      return {
+        ...event,
+        lead,
+      };
+    });
+
+    const total = parseInt(countResult?.count ?? '0', 10);
+    return { data, total };
   }
 
   // ===========================================================================

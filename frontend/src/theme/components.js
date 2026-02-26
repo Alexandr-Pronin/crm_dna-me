@@ -32,7 +32,7 @@ export const components = {
         borderRadius: 8,
         textTransform: 'none',
         fontWeight: 500,
-        padding: '8px 16px',
+        padding: '6px 12px', // Reduced padding
       },
       contained: {
         boxShadow: 'none',
@@ -79,6 +79,7 @@ export const components = {
       root: {
         borderRadius: 6,
         fontWeight: 500,
+        height: 24, // Explicit reduced height
       },
       outlined: {
         borderWidth: 1.5,
@@ -90,10 +91,12 @@ export const components = {
     styleOverrides: {
       root: {
         borderColor: 'rgba(255, 255, 255, 0.08)',
+        padding: '8px 16px', // Reduced padding
       },
       head: {
         fontWeight: 600,
         backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        padding: '10px 16px', // Slightly larger for header
       },
     },
   },

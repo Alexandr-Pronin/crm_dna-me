@@ -38,7 +38,63 @@ export function createEventWorker(
         // 1. Find or create lead
         const lead = await findOrCreateLead(lead_identifier, source, metadata);
         console.log(`[Event Worker] Lead: ${lead.id} (${lead.email})`);
-        
+
+        // 1.5. If bulk import included a message, add it to chat as imported note
+        const initialMessage = metadata.initial_message;
+        if (typeof initialMessage === 'string' && initialMessage.trim()) {
+          try {
+            const { getConversationService } = await import('../services/conversationService.js');
+            const { getMessageService } = await import('../services/messageService.js');
+            const convService = getConversationService();
+            const messageService = getMessageService();
+            // Prefer the user who triggered the import so they can see it
+            // (access control: non-admins only see conversations they created)
+            const requestedById = metadata.requested_by_id as string | null | undefined;
+            let createdById: string | null = null;
+            if (requestedById) {
+              const requester = await db.queryOne<{ id: string }>(
+                'SELECT id FROM team_members WHERE id = $1 AND is_active = TRUE',
+                [requestedById]
+              );
+              createdById = requester?.id ?? null;
+            }
+            if (!createdById) {
+              const systemUser = await db.queryOne<{ id: string }>(
+                'SELECT id FROM team_members WHERE is_active = TRUE ORDER BY created_at ASC LIMIT 1'
+              );
+              createdById = systemUser?.id ?? null;
+            }
+            if (createdById) {
+              const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
+              const companyName = (metadata.company_name as string) || undefined;
+              const subject = leadName || companyName || lead.email || 'Import';
+              const conversation = await convService.findOrCreateConversation(
+                lead.id,
+                null,
+                createdById,
+                subject,
+                false,
+                { imported: true }
+              );
+              const bodyText = initialMessage.trim();
+              await messageService.createMessage(
+                conversation.id,
+                {
+                  message_type: 'internal_note',
+                  direction: 'internal',
+                  body_text: bodyText,
+                  body_html: `<p>${bodyText.replace(/\n/g, '<br/>')}</p>`,
+                  metadata: { imported: true },
+                },
+                undefined
+              );
+              console.log(`[Event Worker] Imported note added to conversation ${conversation.id}`);
+            }
+          } catch (chatErr) {
+            console.error('[Event Worker] Failed to import initial message to chat:', chatErr);
+          }
+        }
+
         // 2. Store event
         const event = await storeEvent({
           id: event_id,
@@ -228,20 +284,24 @@ async function findOrCreateLead(
     }
   }
   
-  // Try other identifiers
-  const identifierFields = ['portal_id', 'waalaxy_id', 'linkedin_url', 'lemlist_id'] as const;
-  
-  for (const field of identifierFields) {
-    const value = identifier[field];
-    if (value) {
-      const existing = await db.queryOne<Lead>(`
-        SELECT * FROM leads WHERE ${field} = $1
-      `, [value]);
-      
-      if (existing) {
-        await updateLeadIdentifiers(existing.id, identifier);
-        await updateLeadFromMetadata(existing.id, metadata);
-        return existing;
+  // Only fall back to secondary identifiers when no email was provided.
+  // When an email IS provided but not found, we always create a new lead
+  // to avoid merging unrelated leads that share a generic linkedin_url.
+  if (!identifier.email) {
+    const identifierFields = ['portal_id', 'waalaxy_id', 'linkedin_url', 'lemlist_id'] as const;
+    
+    for (const field of identifierFields) {
+      const value = identifier[field];
+      if (value) {
+        const existing = await db.queryOne<Lead>(`
+          SELECT * FROM leads WHERE ${field} = $1
+        `, [value]);
+        
+        if (existing) {
+          await updateLeadIdentifiers(existing.id, identifier);
+          await updateLeadFromMetadata(existing.id, metadata);
+          return existing;
+        }
       }
     }
   }
@@ -367,6 +427,7 @@ async function updateLeadFromMetadata(
 
 /**
  * Creates or links an organization to a lead.
+ * Supports optional industry, company_size, and country from CSV/bulk import metadata.
  */
 async function createOrLinkOrganization(
   leadId: string,
@@ -374,6 +435,9 @@ async function createOrLinkOrganization(
 ): Promise<void> {
   const companyName = metadata.company_name as string;
   const companyDomain = metadata.company_domain as string;
+  const industry = (metadata.industry as string) || null;
+  const companySize = (metadata.company_size as string) || null;
+  const country = (metadata.country as string) || null;
   
   if (!companyName && !companyDomain) return;
   
@@ -384,15 +448,22 @@ async function createOrLinkOrganization(
       SELECT id FROM organizations WHERE domain = $1
     `, [companyDomain]);
   }
+
+  // Also try to find by name if no domain match
+  if (!org && companyName) {
+    org = await db.queryOne<{ id: string }>(`
+      SELECT id FROM organizations WHERE name = $1
+    `, [companyName]);
+  }
   
   // Create organization if not found
   if (!org && companyName) {
     org = await db.queryOne<{ id: string }>(`
-      INSERT INTO organizations (name, domain)
-      VALUES ($1, $2)
+      INSERT INTO organizations (name, domain, industry, company_size, country)
+      VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (portal_id) DO NOTHING
       RETURNING id
-    `, [companyName, companyDomain || null]);
+    `, [companyName, companyDomain || null, industry, companySize, country]);
   }
   
   // Link to lead
@@ -436,6 +507,9 @@ async function storeEvent(event: {
   delete cleanMetadata.job_title;
   delete cleanMetadata.company_name;
   delete cleanMetadata.company_domain;
+  delete cleanMetadata.industry;
+  delete cleanMetadata.company_size;
+  delete cleanMetadata.country;
   
   const result = await db.queryOne<MarketingEvent>(`
     INSERT INTO events (

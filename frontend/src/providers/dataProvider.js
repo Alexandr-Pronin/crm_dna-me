@@ -7,17 +7,53 @@
 import queryString from 'query-string';
 const { stringify } = queryString;
 
-// API Configuration - HARDCODED FOR DEV MODE
-const API_URL = 'http://localhost:3000/api/v1';
-const API_KEY = 'test123';
+// API Configuration
+// Production: VITE_API_URL=/api/v1 → resolved via window.location.origin
+// file:// guard: browsers resolve /api/v1 → file:///…/api/v1 (blocked)
+const PRODUCTION_ORIGIN = 'https://crm.dna-me.net';
+const _rawApiUrl = import.meta?.env?.VITE_API_URL || '';
+const _fallbackUrl = import.meta?.env?.VITE_API_FALLBACK || '';
+const _isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
+const _isHttpProtocol = typeof window !== 'undefined' && window.location?.protocol?.startsWith('http');
+
+function _resolveApiUrl() {
+  // 1) Absolute URL given (e.g. http://localhost:3000/api/v1) → use as-is
+  if (_rawApiUrl.startsWith('http')) return _rawApiUrl;
+
+  // 2) Relative URL (/api/v1) served over HTTP(S) → prepend origin
+  if (_rawApiUrl.startsWith('/') && _isHttpProtocol) {
+    return `${window.location.origin}${_rawApiUrl}`;
+  }
+
+  // 3) file:// protocol detected → use explicit fallback or production URL
+  if (_isFileProtocol || !_isHttpProtocol) {
+    const url = _fallbackUrl || `${PRODUCTION_ORIGIN}${_rawApiUrl || '/api/v1'}`;
+    console.warn(
+      `[DNA CRM] App opened via file:// protocol. API requests go to ${url}.\n` +
+      `Bitte die App über ${PRODUCTION_ORIGIN} öffnen!`
+    );
+    return url;
+  }
+
+  // 4) Fallback: relative path on HTTP origin (shouldn't happen, safety net)
+  if (_rawApiUrl) return _rawApiUrl;
+
+  // 5) No VITE_API_URL at all → local dev default
+  return 'http://localhost:3000/api/v1';
+}
+
+export const API_URL = _resolveApiUrl();
+export const API_KEY = import.meta?.env?.VITE_API_KEY || 'test123';
 
 /**
  * Custom HTTP Client with hardcoded API Key header
  */
-const httpClient = async (url, options = {}) => {
+export const httpClient = async (url, options = {}) => {
   // Correlation ID for distributed tracing
   const correlationId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
+  const token = localStorage.getItem('auth_token');
+
   const headers = new Headers({
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -25,19 +61,38 @@ const httpClient = async (url, options = {}) => {
     'X-API-Key': API_KEY,
     // Correlation ID for request tracing
     'X-Correlation-ID': correlationId,
+    ...(token && { 'Authorization': `Bearer ${token}` }),
   });
 
-  const response = await fetch(url, { 
-    ...options, 
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, { 
+      ...options, 
+      headers,
+    });
+  } catch (error) {
+    const networkError = new Error('API недоступен. Проверьте, запущен ли сервер.');
+    networkError.status = 0;
+    networkError.originalError = error;
+    throw networkError;
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    const error = new Error(errorBody.error?.message || response.statusText);
+    const message = String(errorBody.error?.message || errorBody.message || response.statusText || 'Unknown error');
+    const error = new Error(message);
     error.status = response.status;
     error.body = errorBody;
     throw error;
+  }
+
+  // Handle 204 No Content responses (e.g., DELETE requests)
+  if (response.status === 204) {
+    return {
+      json: {},
+      headers: response.headers,
+      status: response.status,
+    };
   }
 
   const json = await response.json();
@@ -74,6 +129,16 @@ const dataProvider = {
   getList: async (resource, params) => {
     const { page, perPage } = params.pagination || { page: 1, perPage: 25 };
     const { field, order } = params.sort || { field: 'id', order: 'DESC' };
+
+    // GET /events — global activity feed (limit/offset)
+    if (resource === 'events') {
+      const offset = (page - 1) * perPage;
+      const url = `${API_URL}/events?limit=${perPage}&offset=${offset}`;
+      const { json } = await httpClient(url);
+      const data = json.data || [];
+      const total = typeof json.total === 'number' ? json.total : data.length;
+      return { data, total };
+    }
     
     // Map React-Admin params to backend format
     const query = {
@@ -169,18 +234,20 @@ const dataProvider = {
   },
   
   update: async (resource, params) => {
+    const method = resource === 'organizations' ? 'PUT' : 'PATCH';
     const { json } = await httpClient(`${API_URL}/${resource}/${params.id}`, {
-      method: 'PUT',
+      method,
       body: JSON.stringify(params.data),
     });
     return { data: json.data || json };
   },
   
   updateMany: async (resource, params) => {
+    const method = resource === 'organizations' ? 'PUT' : 'PATCH';
     const responses = await Promise.all(
       params.ids.map(id =>
         httpClient(`${API_URL}/${resource}/${id}`, {
-          method: 'PUT',
+          method,
           body: JSON.stringify(params.data),
         })
       )
@@ -213,13 +280,71 @@ const dataProvider = {
 
 /**
  * Move deal to a new stage
+ * @param {string} dealId - Deal UUID
+ * @param {string} newStageId - New stage UUID
+ * @returns {Promise<Object>} Updated deal
  */
-export const moveDealStage = async (dealId, newStage) => {
-  const { json } = await httpClient(`${API_URL}/deals/${dealId}/stage`, {
-    method: 'PUT',
-    body: JSON.stringify({ stage: newStage }),
+export const moveDealStage = async (dealId, newStageId) => {
+  const { json } = await httpClient(`${API_URL}/deals/${dealId}/move`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_id: newStageId }),
   });
   return json;
+};
+
+/**
+ * Move deal to a new stage (alias for moveDealStage)
+ * @param {string} dealId - Deal UUID
+ * @param {string} newStageId - New stage UUID
+ * @returns {Promise<Object>} Updated deal
+ */
+export const moveDealToStage = async (dealId, newStageId) => {
+  return moveDealStage(dealId, newStageId);
+};
+
+/**
+ * Reorder deals within a stage
+ * @param {string} stageId - Stage UUID
+ * @param {string[]} orderedIds - Ordered deal UUIDs
+ * @returns {Promise<Object>} Result
+ */
+export const reorderDealsInStage = async (stageId, orderedIds) => {
+  const { json } = await httpClient(`${API_URL}/deals/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_id: stageId, ordered_ids: orderedIds }),
+  });
+  return json;
+};
+
+/**
+ * Update the lead associated with a deal
+ * @param {string} dealId - Deal UUID
+ * @param {string} leadId - New Lead UUID
+ * @returns {Promise<Object>} Updated deal
+ */
+export const updateDealLead = async (dealId, leadId) => {
+  const { json } = await httpClient(`${API_URL}/deals/${dealId}/lead`, {
+    method: 'PATCH',
+    body: JSON.stringify({ lead_id: leadId }),
+  });
+  return json;
+};
+
+/**
+ * Search leads for autocomplete
+ * @param {Object} params - Search parameters
+ * @param {string} params.search - Search term
+ * @param {number} params.limit - Max results (default: 20)
+ * @returns {Promise<Array>} List of leads
+ */
+export const searchLeads = async (params = {}) => {
+  const query = stringify({
+    search: params.search || '',
+    limit: params.limit || 20,
+    page: 1,
+  });
+  const { json } = await httpClient(`${API_URL}/leads?${query}`);
+  return json.data || json;
 };
 
 /**
@@ -308,6 +433,18 @@ export const getLeadEvents = async (leadId, params = {}) => {
   });
   const { json } = await httpClient(`${API_URL}/leads/${leadId}/events?${query}`);
   return json.data || json;
+};
+
+/**
+ * Ingest a manual event for a lead
+ * POST /events/ingest
+ */
+export const ingestLeadEvent = async (eventData) => {
+  const { json } = await httpClient(`${API_URL}/events/ingest`, {
+    method: 'POST',
+    body: JSON.stringify(eventData),
+  });
+  return json;
 };
 
 // ==========================================
@@ -568,6 +705,268 @@ export const deactivateTeamMember = async (memberId) => {
 export const getTeamWorkload = async (memberId) => {
   const { json } = await httpClient(`${API_URL}/team/${memberId}/workload`);
   return json.data || json;
+};
+
+// ==========================================
+// Integration Status API
+// ==========================================
+
+/**
+ * Get status of all integrations
+ * @returns {Promise<Object>} Status of Moco and Slack integrations
+ */
+export const getIntegrationsStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/status`);
+  return json;
+};
+
+/**
+ * Get Moco connection status with connection test
+ * @returns {Promise<Object>} Moco status with connection details
+ */
+export const getMocoStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/status`);
+  return json;
+};
+
+/**
+ * Get Moco config for UI (subdomain + api_configured). API key is never returned.
+ * @returns {Promise<{ subdomain: string, api_configured: boolean }>}
+ */
+export const getMocoConfig = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/config`);
+  return json;
+};
+
+/**
+ * Save Moco API key and/or subdomain.
+ * @param {Object} params
+ * @param {string} [params.api_key] - New API key (omit or empty to leave unchanged)
+ * @param {string} [params.subdomain] - Subdomain
+ * @returns {Promise<Object>}
+ */
+export const saveMocoConfig = async (params = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/config`, {
+    method: 'PUT',
+    body: JSON.stringify(params),
+  });
+  return json;
+};
+
+/**
+ * Get Cituro connection status with connection test
+ * @returns {Promise<Object>} Cituro status with connection details
+ */
+export const getCituroStatus = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/status`);
+  return json;
+};
+
+/**
+ * Get Cituro E-Mail-Vorlage (HTML) für Termin-Einladungen
+ */
+export const getCituroTemplate = async () => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/template`);
+  return json;
+};
+
+/**
+ * Save Cituro E-Mail-Vorlage (HTML)
+ * @param {string} emailTemplateHtml - HTML string
+ */
+export const saveCituroTemplate = async (emailTemplateHtml) => {
+  const { json } = await httpClient(`${API_URL}/integrations/cituro/template`, {
+    method: 'PUT',
+    body: JSON.stringify({ email_template_html: emailTemplateHtml }),
+  });
+  return json;
+};
+
+/**
+ * Send Cituro meeting invitation for a conversation (lead gets booking link email)
+ * @param {string} conversationId - Conversation UUID (must have lead_id)
+ * @returns {Promise<{ success: boolean, booking_link: string, email_sent: boolean }>}
+ */
+export const sendCituroInvite = async (conversationId) => {
+  const { json } = await httpClient(`${API_URL}/conversations/${conversationId}/send-cituro-invite`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  return json;
+};
+
+/**
+ * Trigger manual Moco sync for a lead
+ * @param {string} leadId - Lead UUID
+ * @param {Object} options - Sync options
+ * @param {string} options.action - Action: 'create_customer'
+ * @param {boolean} options.force - Force sync even if already synced
+ * @returns {Promise<Object>} Job status
+ */
+export const triggerMocoLeadSync = async (leadId, options = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/sync/lead/${leadId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: options.action || 'create_customer',
+      force: options.force || false,
+    }),
+  });
+  return json;
+};
+
+/**
+ * Trigger manual Moco sync for a deal
+ * @param {string} dealId - Deal UUID
+ * @param {Object} options - Sync options
+ * @param {string} options.action - Action: 'create_offer' | 'create_invoice'
+ * @param {boolean} options.force - Force sync even if already synced
+ * @returns {Promise<Object>} Job status
+ */
+export const triggerMocoDealSync = async (dealId, options = {}) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/sync/deal/${dealId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: options.action || 'create_offer',
+      force: options.force || false,
+    }),
+  });
+  return json;
+};
+
+/**
+ * Find Moco customer by email
+ * @param {string} email - Customer email
+ * @returns {Promise<Object>} Moco customer details
+ */
+export const findMocoCustomer = async (email) => {
+  const { json } = await httpClient(`${API_URL}/integrations/moco/customer/${encodeURIComponent(email)}`);
+  return json;
+};
+
+// ==========================================
+// Bulk Import API (CSV Import)
+// ==========================================
+
+/**
+ * Bulk import leads via POST /leads/bulk
+ * @param {Object} payload
+ * @param {Array} payload.leads - Array of lead objects (email required)
+ * @param {string} payload.source - Import source identifier
+ * @param {boolean} [payload.skip_duplicates=true] - Skip existing emails
+ * @returns {Promise<Object>} { success, message, batch_id, total_leads, queued_at }
+ */
+export const bulkImportLeads = async (payload) => {
+  const { json } = await httpClient(`${API_URL}/leads/bulk`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return json;
+};
+
+// ==========================================
+// Routing Configuration API
+// ==========================================
+
+/**
+ * Get routing configuration
+ * @returns {Promise<Object>} Routing config with thresholds and mappings
+ */
+export const getRoutingConfig = async () => {
+  const { json } = await httpClient(`${API_URL}/routing/config`);
+  return json;
+};
+
+/**
+ * Get clear-databases schema: groups, FK edges, labels. Admin only.
+ * @returns {Promise<{ groups: Array<{ id, tableName, label, description, cascadeTo }>, edges: Array<{ from, to }>, tableLabels: Object }>}
+ */
+export const getClearDatabasesSchema = async () => {
+  const { json } = await httpClient(`${API_URL}/admin/clear-databases/schema`);
+  return json;
+};
+
+/**
+ * Clear selected database groups (or all if groupIds empty/omitted). Admin only.
+ * @param {string[]} [groupIds] - Optional. IDs from schema.groups (e.g. ['leads','deals']). If empty/omitted, clears all.
+ * @returns {Promise<{ success: boolean, cleared_tables: string[] }>}
+ */
+export const clearDatabases = async (groupIds = null) => {
+  const body = groupIds && groupIds.length ? { groupIds } : {};
+  const { json } = await httpClient(`${API_URL}/admin/clear-databases`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return json;
+};
+
+// ==========================================
+// Reports & Analytics API
+// ==========================================
+
+/**
+ * Get routing statistics
+ * @returns {Promise<Object>} Routing stats with pipeline and intent breakdown
+ */
+export const getRoutingStats = async () => {
+  const { json } = await httpClient(`${API_URL}/routing/stats`);
+  return json;
+};
+
+/**
+ * Get lead statistics
+ * @returns {Promise<Object>} Lead stats by status and routing status
+ */
+export const getLeadStats = async () => {
+  const { json } = await httpClient(`${API_URL}/leads/stats`);
+  return json;
+};
+
+/**
+ * Get deal statistics
+ * @param {string} pipelineId - Optional pipeline ID to filter by
+ * @returns {Promise<Object>} Deal stats by status
+ */
+export const getDealStats = async (pipelineId) => {
+  const query = pipelineId ? `?pipeline_id=${pipelineId}` : '';
+  const { json } = await httpClient(`${API_URL}/deals/stats${query}`);
+  return json;
+};
+
+/**
+ * Get pipeline metrics with stage breakdown
+ * @param {string} pipelineId - Pipeline UUID
+ * @returns {Promise<Object>} Pipeline metrics including stages
+ */
+export const getPipelineMetrics = async (pipelineId) => {
+  const { json } = await httpClient(`${API_URL}/pipelines/${pipelineId}/metrics`);
+  return json;
+};
+
+/**
+ * Get all pipelines with summary
+ * @returns {Promise<Object>} Pipelines with deal counts and values
+ */
+export const getPipelinesWithSummary = async () => {
+  const { json } = await httpClient(`${API_URL}/pipelines?with_summary=true`);
+  return json;
+};
+
+/**
+ * Get leads with date filtering for time series
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} Leads data
+ */
+export const getLeadsTimeSeries = async (params = {}) => {
+  const query = stringify({
+    page: params.page || 1,
+    limit: Math.min(params.limit || 100, 100), // API max is 100
+    sort_by: 'created_at',
+    sort_order: 'asc',
+    ...(params.created_after && { created_after: params.created_after }),
+    ...(params.created_before && { created_before: params.created_before }),
+  });
+  const { json } = await httpClient(`${API_URL}/leads?${query}`);
+  return json;
 };
 
 export default dataProvider;

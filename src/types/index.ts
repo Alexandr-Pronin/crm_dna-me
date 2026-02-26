@@ -40,6 +40,7 @@ export interface PipelineStage {
   slug: string;
   name: string;
   position: number;
+  color?: string | null;
   stage_type?: string;
   automation_config: AutomationStageConfig[];
   created_at: Date;
@@ -100,6 +101,7 @@ export interface Deal {
   lead_id: string;
   pipeline_id: string;
   stage_id: string;
+  position: number;
   name?: string;
   value?: number;
   currency: string;
@@ -211,6 +213,11 @@ export interface TeamMember {
   is_active: boolean;
   max_leads: number;
   current_leads: number;
+  avatar?: string | null;
+  password_hash?: string;
+  two_factor_secret?: string;
+  is_two_factor_enabled?: boolean;
+  temp_two_factor_secret?: string;
   created_at: Date;
 }
 
@@ -243,6 +250,170 @@ export interface ApiKey {
   last_used_at?: Date;
   created_at: Date;
 }
+
+// =============================================================================
+// E-Mail Sequence Types
+// =============================================================================
+
+export interface EmailSequence {
+  id: string;
+  name: string;
+  description?: string;
+  trigger_event?: string;
+  trigger_config: Record<string, unknown>;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailSequenceStep {
+  id: string;
+  sequence_id: string;
+  position: number;
+  delay_days: number;
+  delay_hours: number;
+  subject: string;
+  body_html: string;
+  body_text?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailSequenceEnrollment {
+  id: string;
+  lead_id: string;
+  deal_id?: string;
+  stage_id?: string;
+  sequence_id: string;
+  current_step: number;
+  status: EmailEnrollmentStatus;
+  enrolled_at: Date;
+  last_email_sent_at?: Date;
+  next_email_due_at?: Date;
+  completed_at?: Date;
+  unsubscribed_at?: Date;
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailTracking {
+  id: string;
+  enrollment_id: string;
+  step_id: string;
+  sent_at: Date;
+  opened_at?: Date;
+  open_count: number;
+  clicked_at?: Date;
+  click_count: number;
+  bounced_at?: Date;
+  bounce_reason?: string;
+  unsubscribed_at?: Date;
+  metadata: Record<string, unknown>;
+}
+
+export type EmailEnrollmentStatus = 'active' | 'paused' | 'completed' | 'unsubscribed';
+
+// =============================================================================
+// Chat System Types
+// =============================================================================
+
+export interface Conversation {
+  id: string;
+  lead_id?: string;
+  deal_id?: string;
+  type: ConversationType;
+  status: ConversationStatus;
+  subject?: string;
+  participant_emails: string[];
+  last_message_at?: Date;
+  created_by_id?: string;
+  initiated_by_lead?: boolean;
+  imported_at?: Date;
+  assigned_to_id?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id?: string;
+  message_type: MessageType;
+  direction: MessageDirection;
+  status: MessageStatus;
+  sender_email?: string;
+  sender_name?: string;
+  recipients: MessageRecipient[];
+  subject?: string;
+  body_html?: string;
+  body_text?: string;
+  metadata: Record<string, unknown>;
+  attachments: MessageAttachment[];
+  external_id?: string;
+  email_thread_id?: string;
+  sent_at?: Date;
+  read_at?: Date;
+  replied_at?: Date;
+  error_message?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailAccount {
+  id: string;
+  team_member_id: string;
+  email_address: string;
+  imap_host?: string;
+  imap_port?: number;
+  imap_username?: string;
+  imap_password?: string;
+  smtp_host?: string;
+  smtp_port?: number;
+  smtp_username?: string;
+  smtp_password?: string;
+  sync_enabled: boolean;
+  last_sync_at?: Date;
+  sync_status: EmailSyncStatus;
+  sync_error?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LinkedInConnection {
+  id: string;
+  team_member_id: string;
+  linkedin_profile_id?: string;
+  access_token?: string;
+  refresh_token?: string;
+  token_expires_at?: Date;
+  profile_data: Record<string, unknown>;
+  is_active: boolean;
+  last_sync_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MessageRecipient {
+  email: string;
+  name?: string;
+  type: 'to' | 'cc' | 'bcc';
+}
+
+export interface MessageAttachment {
+  filename: string;
+  content_type: string;
+  size: number;
+  url?: string;
+  storage_key?: string;
+}
+
+export type ConversationType = 'direct' | 'group' | 'internal';
+export type ConversationStatus = 'active' | 'archived' | 'closed';
+export type MessageType = 'email' | 'linkedin' | 'internal_note' | 'task';
+export type MessageDirection = 'inbound' | 'outbound' | 'internal';
+export type MessageStatus = 'draft' | 'sending' | 'sent' | 'error';
+export type EmailSyncStatus = 'idle' | 'syncing' | 'error';
 
 // =============================================================================
 // Enums / Union Types
@@ -334,6 +505,7 @@ export interface SyncJob {
   entity_id: string;
   target: 'moco' | 'slack';
   action: string;
+  metadata?: Record<string, unknown>;
 }
 
 // =============================================================================

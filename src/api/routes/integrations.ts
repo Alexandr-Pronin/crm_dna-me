@@ -5,11 +5,22 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { getMocoService } from '../../integrations/moco.js';
+import { getCituroService } from '../../integrations/cituro.js';
+import { getLinkedInService } from '../../services/linkedinService.js';
 import { getSyncQueue } from '../../config/queues.js';
 import { db } from '../../db/index.js';
 import { NotFoundError, ValidationError, BusinessLogicError } from '../../errors/index.js';
 import { config } from '../../config/index.js';
+import {
+  loadIntegrationSettingsCache,
+  getMocoConfigForApi,
+  setMocoConfig,
+  getCituroTemplate,
+  setCituroTemplate
+} from '../../config/integrationSettings.js';
+import { invalidateMocoService } from '../../integrations/moco.js';
 import type { SyncJob, Lead, Deal } from '../../types/index.js';
 
 // =============================================================================
@@ -28,50 +39,88 @@ const mocoWebhookSchema = z.object({
   data: z.record(z.unknown()).optional()
 });
 
+const mocoConfigSchema = z.object({
+  api_key: z.string().optional(),
+  subdomain: z.string().optional()
+});
+
 // =============================================================================
 // Routes Plugin
 // =============================================================================
 
 export async function integrationsRoutes(fastify: FastifyInstance): Promise<void> {
-  const mocoService = getMocoService();
+  const cituroService = getCituroService();
   const syncQueue = getSyncQueue();
 
   // ===========================================================================
   // GET /integrations/moco/status - Check Moco connection status
   // ===========================================================================
 
-  fastify.get('/integrations/moco/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.get('/integrations/moco/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const mocoService = getMocoService();
     const isConfigured = mocoService.isConfigured();
-    
+    const mocoConfig = getMocoConfigForApi();
+
     if (!isConfigured) {
       return {
         status: 'not_configured',
         message: 'Moco API key or subdomain not configured',
-        enabled: config.features.mocoSync
+        enabled: config.features.mocoSync,
+        subdomain: mocoConfig.subdomain
       };
     }
 
     const connectionTest = await mocoService.testConnection();
-    
+
     return {
       status: connectionTest.connected ? 'connected' : 'disconnected',
       message: connectionTest.error || 'Connection successful',
       enabled: config.features.mocoSync,
-      subdomain: config.moco.subdomain
+      subdomain: mocoConfig.subdomain
     };
   });
+
+  // GET /integrations/moco/config - Get Moco config for UI (subdomain + api_configured, no api_key)
+  fastify.get('/integrations/moco/config', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const c = getMocoConfigForApi();
+    return { subdomain: c.subdomain ?? '', api_configured: c.api_configured };
+  });
+
+  // PUT /integrations/moco/config - Save Moco API key and/or subdomain from UI
+  fastify.put<{ Body: z.infer<typeof mocoConfigSchema> }>(
+    '/integrations/moco/config',
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
+      const body = mocoConfigSchema.parse(request.body || {});
+      if (!body.api_key && body.subdomain === undefined) {
+        throw new ValidationError('Bitte mindestens api_key oder subdomain angeben.');
+      }
+      await setMocoConfig({
+        api_key: body.api_key,
+        subdomain: body.subdomain
+      });
+      invalidateMocoService();
+      const c = getMocoConfigForApi();
+      return reply.code(200).send({
+        message: 'Moco-Konfiguration gespeichert.',
+        subdomain: c.subdomain ?? '',
+        api_configured: c.api_configured
+      });
+    }
+  );
 
   // ===========================================================================
   // POST /integrations/moco/sync/:leadId - Manually trigger Moco sync for lead
   // ===========================================================================
 
-  fastify.post('/integrations/moco/sync/lead/:leadId', async (
-    request: FastifyRequest<{ 
-      Params: { leadId: string };
-      Body: z.infer<typeof manualMocoSyncSchema>;
-    }>, 
-    _reply: FastifyReply
+  fastify.post<{ 
+    Params: { leadId: string };
+    Body: z.infer<typeof manualMocoSyncSchema>;
+  }>('/integrations/moco/sync/lead/:leadId', { preHandler: authenticateOrApiKey }, async (
+    request, 
+    _reply
   ) => {
+    const mocoService = getMocoService();
     const { leadId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_customer' });
     
@@ -118,13 +167,14 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // POST /integrations/moco/sync/deal/:dealId - Manually trigger Moco sync for deal
   // ===========================================================================
 
-  fastify.post('/integrations/moco/sync/deal/:dealId', async (
-    request: FastifyRequest<{ 
-      Params: { dealId: string };
-      Body: z.infer<typeof manualMocoSyncSchema>;
-    }>, 
-    _reply: FastifyReply
+  fastify.post<{ 
+    Params: { dealId: string };
+    Body: z.infer<typeof manualMocoSyncSchema>;
+  }>('/integrations/moco/sync/deal/:dealId', { preHandler: authenticateOrApiKey }, async (
+    request, 
+    _reply
   ) => {
+    const mocoService = getMocoService();
     const { dealId } = request.params;
     const body = manualMocoSyncSchema.parse(request.body || { action: 'create_offer' });
     
@@ -209,10 +259,11 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   // GET /integrations/moco/customer/:email - Find Moco customer by email
   // ===========================================================================
 
-  fastify.get('/integrations/moco/customer/:email', async (
-    request: FastifyRequest<{ Params: { email: string } }>,
-    _reply: FastifyReply
+  fastify.get<{ Params: { email: string } }>('/integrations/moco/customer/:email', { preHandler: authenticateOrApiKey }, async (
+    request,
+    _reply
   ) => {
+    const mocoService = getMocoService();
     const { email } = request.params;
 
     if (!mocoService.isConfigured()) {
@@ -229,10 +280,57 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
   });
 
   // ===========================================================================
+  // GET /integrations/cituro/status - Check Cituro connection status
+  // ===========================================================================
+
+  fastify.get('/integrations/cituro/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const isConfigured = cituroService.isConfigured();
+    
+    if (!isConfigured) {
+      return {
+        status: 'not_configured',
+        message: 'Cituro API key or subdomain not configured',
+        enabled: config.cituro.enabled
+      };
+    }
+
+    const connectionTest = await cituroService.testConnection();
+    
+    return {
+      status: connectionTest.connected ? 'connected' : 'disconnected',
+      message: connectionTest.error || 'Connection successful',
+      enabled: config.cituro.enabled,
+      subdomain: config.cituro.subdomain
+    };
+  });
+
+  // ===========================================================================
+  // GET /integrations/cituro/template - E-Mail-Vorlage (HTML) für Termin-Einladungen
+  // ===========================================================================
+  fastify.get('/integrations/cituro/template', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    const html = await getCituroTemplate();
+    return reply.send({ email_template_html: html });
+  });
+
+  // ===========================================================================
+  // PUT /integrations/cituro/template - Vorlage speichern
+  // ===========================================================================
+  fastify.put<{ Body: { email_template_html?: string } }>(
+    '/integrations/cituro/template',
+    { preHandler: authenticateOrApiKey },
+    async (request, reply) => {
+      const html = typeof request.body?.email_template_html === 'string' ? request.body.email_template_html : '';
+      await setCituroTemplate(html);
+      return reply.send({ success: true, email_template_html: html });
+    }
+  );
+
+  // ===========================================================================
   // GET /integrations/status - Get status of all integrations
   // ===========================================================================
 
-  fastify.get('/integrations/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.get('/integrations/status', { preHandler: authenticateOrApiKey }, async (_request: FastifyRequest, _reply: FastifyReply) => {
+    const mocoService = getMocoService();
     const mocoConfigured = mocoService.isConfigured();
     let mocoConnected = false;
 
@@ -240,6 +338,18 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
       const connectionTest = await mocoService.testConnection();
       mocoConnected = connectionTest.connected;
     }
+
+    const cituroConfigured = cituroService.isConfigured();
+    let cituroConnected = false;
+
+    if (cituroConfigured) {
+      const connectionTest = await cituroService.testConnection();
+      cituroConnected = connectionTest.connected;
+    }
+
+    // LinkedIn API availability check
+    const linkedinService = getLinkedInService();
+    const linkedinStatus = await linkedinService.checkApiAvailability();
 
     return {
       moco: {
@@ -251,6 +361,21 @@ export async function integrationsRoutes(fastify: FastifyInstance): Promise<void
         configured: !!config.slack.webhookUrl,
         connected: false, // Will be implemented in Etappe 12
         enabled: config.features.slackAlerts
+      },
+      cituro: {
+        configured: cituroConfigured,
+        connected: cituroConnected,
+        enabled: config.cituro.enabled
+      },
+      linkedin: {
+        configured: linkedinService.isConfigured(),
+        mode: linkedinStatus.mode,
+        messaging_available: linkedinStatus.messaging_available,
+        profile_read_available: linkedinStatus.profile_read_available,
+        oauth_configured: linkedinStatus.oauth_configured,
+        gateway_configured: linkedinStatus.gateway_configured,
+        snap_configured: linkedinStatus.snap_configured,
+        enabled: config.linkedin.enabled
       }
     };
   });
