@@ -28,7 +28,8 @@ export type TriggerAction =
   | 'create_moco_offer'
   | 'create_moco_invoice_draft'
   | 'send_cituro_booking'
-  | 'send_slack_message';
+  | 'send_slack_message'
+  | 'create_task';
 
 export interface TriggerActionConfig {
   action: TriggerAction;
@@ -158,6 +159,9 @@ export class TriggerService {
 
         case 'send_slack_message':
           return await this.actionSendSlackMessage(config, context);
+
+        case 'create_task':
+          return await this.actionCreateTask(config, context);
 
         default:
           throw new ValidationError(`Unbekannte Aktion: ${action}`);
@@ -1089,6 +1093,97 @@ export class TriggerService {
         required_fields: ['channel', 'message']
       }
     ];
+  }
+
+  // ===========================================================================
+  // Action: Create Task
+  // ===========================================================================
+
+  private async actionCreateTask(
+    config: Record<string, unknown>,
+    context: TriggerContext
+  ): Promise<TriggerResult> {
+    if (!context.lead_id && !context.deal_id) {
+      throw new ValidationError('lead_id oder deal_id benötigt für create_task');
+    }
+
+    const titleTemplate = (config.title_template as string) || 'Aufgabe';
+    const descriptionTemplate = config.description_template as string | undefined;
+    const assignStrategy = (config.assign_strategy as string) || 'deal_owner';
+    const priority = (config.priority as string) || 'medium';
+    const dueDaysOffset = Number(config.due_days_offset) || 2;
+
+    let leadData: Record<string, unknown> | null = null;
+    let dealData: Record<string, unknown> | null = null;
+
+    if (context.lead_id) {
+      const rows = await db.query<Record<string, unknown>>(
+        'SELECT * FROM leads WHERE id = $1', [context.lead_id]
+      );
+      leadData = rows[0] || null;
+    }
+    if (context.deal_id) {
+      const rows = await db.query<Record<string, unknown>>(
+        'SELECT * FROM deals WHERE id = $1', [context.deal_id]
+      );
+      dealData = rows[0] || null;
+    }
+
+    const leadName = leadData
+      ? `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim() || (leadData.email as string)
+      : '';
+    const dealName = dealData ? (dealData.name as string || '') : '';
+
+    const replaceVars = (template: string) =>
+      template
+        .replace(/\{lead_name\}/g, leadName)
+        .replace(/\{lead_email\}/g, (leadData?.email as string) || '')
+        .replace(/\{deal_name\}/g, dealName)
+        .replace(/\{deal_value\}/g, dealData?.value ? String(dealData.value) : '')
+        .replace(/\{trigger_date\}/g, new Date().toISOString().split('T')[0]);
+
+    const title = replaceVars(titleTemplate);
+    const description = descriptionTemplate ? replaceVars(descriptionTemplate) : undefined;
+
+    let assignedTo: string | undefined;
+    if (assignStrategy === 'deal_owner' && dealData?.assigned_to) {
+      assignedTo = dealData.assigned_to as string;
+    } else if (assignStrategy === 'lead_owner') {
+      const ownerRows = await db.query<Record<string, unknown>>(
+        `SELECT tm.email FROM team_members tm
+         JOIN deals d ON d.assigned_to = tm.email
+         WHERE d.lead_id = $1 AND tm.is_active = true LIMIT 1`,
+        [context.lead_id]
+      );
+      assignedTo = ownerRows[0]?.email as string | undefined;
+    }
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + dueDaysOffset);
+
+    const taskRows = await db.query<Record<string, unknown>>(
+      `INSERT INTO tasks (lead_id, deal_id, title, description, task_type, assigned_to, due_date, status, priority, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'follow_up', $5, $6, 'open', $7, 'system', NOW(), NOW())
+       RETURNING id`,
+      [
+        context.lead_id || null,
+        context.deal_id || null,
+        title,
+        description || null,
+        assignedTo || null,
+        dueDate.toISOString(),
+        priority,
+      ]
+    );
+
+    const taskId = taskRows[0]?.id as string;
+    console.log(`[TriggerService] Task erstellt: ${taskId} — "${title}"`);
+
+    return {
+      success: true,
+      action: 'create_task',
+      details: `Aufgabe "${title}" erstellt${assignedTo ? ` → ${assignedTo}` : ''}, fällig: ${dueDate.toLocaleDateString('de-DE')}`,
+    };
   }
 }
 

@@ -149,6 +149,21 @@ const TRIGGER_ACTIONS = [
     category: 'notification',
     fields: [],
   },
+  {
+    id: 'create_task',
+    name: 'Aufgabe erstellen',
+    description: 'Erstellt automatisch eine Aufgabe bei Stage-Wechsel',
+    icon: CheckIcon,
+    color: '#28A745',
+    category: 'tasks',
+    fields: [
+      { name: 'title_template', label: 'Aufgabentitel', type: 'text', required: true, placeholder: 'Follow-up mit {lead_name}' },
+      { name: 'description_template', label: 'Beschreibung', type: 'textarea', required: false },
+      { name: 'assign_strategy', label: 'Zuweisen an', type: 'select', required: true, options: ['lead_owner', 'deal_owner', 'round_robin'] },
+      { name: 'priority', label: 'Priorität', type: 'select', required: true, options: ['low', 'medium', 'high', 'critical'] },
+      { name: 'due_days_offset', label: 'Fällig in Tagen', type: 'text', required: false, placeholder: '2' },
+    ],
+  },
 ];
 
 // Gruppiere Aktionen nach Kategorie
@@ -157,6 +172,7 @@ const ACTION_CATEGORIES = {
   moco: { name: 'Moco Integration', color: '#10B981' },
   scheduling: { name: 'Terminplanung', color: '#8B5CF6' },
   notification: { name: 'Benachrichtigungen', color: '#E91E63' },
+  tasks: { name: 'Aufgaben', color: '#28A745' },
 };
 
 const StageTriggersModal = ({

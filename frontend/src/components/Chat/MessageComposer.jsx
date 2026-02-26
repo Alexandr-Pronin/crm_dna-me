@@ -27,21 +27,24 @@ import {
   StickyNote2 as NoteIcon,
   AttachFile as AttachIcon,
   CalendarMonth as CalendarIcon,
+  Assignment as TaskIcon,
 } from '@mui/icons-material';
 import { API_URL, httpClient, sendCituroInvite } from '../../providers/dataProvider';
 import { useNotify } from 'react-admin';
+import TaskCreateDialog from '../tasks/TaskCreateDialog';
 
 const DRAFT_PREFIX = 'chat_draft_';
 const AUTO_SAVE_INTERVAL = 5000; // 5 s
 const TYPING_DEBOUNCE = 1500; // 1.5 s
 
-function MessageComposer({ conversationId, onSend, disabled = false }) {
+function MessageComposer({ conversationId, onSend, disabled = false, leadId, dealId }) {
   const [text, setText] = useState('');
   const [subject, setSubject] = useState('');
   const [messageType, setMessageType] = useState('email');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
   const [cituroSending, setCituroSending] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const typingTimerRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
   const notify = useNotify();
@@ -172,6 +175,34 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
   };
 
   const isCituroInvite = messageType === 'cituro_invite';
+  const isTask = messageType === 'task';
+
+  // When task type is selected, open the dialog immediately
+  useEffect(() => {
+    if (isTask) {
+      setTaskDialogOpen(true);
+    }
+  }, [isTask]);
+
+  const handleTaskCreated = async (task) => {
+    setTaskDialogOpen(false);
+    setMessageType('internal_note');
+    // Post a note about the task creation in the conversation
+    if (onSend && task) {
+      await onSend({
+        message_type: 'internal_note',
+        direction: 'internal',
+        body_text: `Aufgabe erstellt: "${task.title}"${task.assigned_to ? ` → ${task.assigned_to}` : ''}${task.due_date ? ` (fällig: ${new Date(task.due_date).toLocaleDateString('de-DE')})` : ''}`,
+        body_html: `<p>📋 <strong>Aufgabe erstellt:</strong> "${task.title}"${task.assigned_to ? ` → ${task.assigned_to}` : ''}${task.due_date ? ` (fällig: ${new Date(task.due_date).toLocaleDateString('de-DE')})` : ''}</p>`,
+        metadata: { task_id: task.id, task_created: true },
+      });
+    }
+  };
+
+  const handleTaskDialogClose = () => {
+    setTaskDialogOpen(false);
+    setMessageType('internal_note');
+  };
 
   return (
     <Box
@@ -207,6 +238,10 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
           <MenuItem value="cituro_invite">
             <CalendarIcon sx={{ fontSize: 16, mr: 0.5, color: '#8B5CF6' }} />
             Termin einladen
+          </MenuItem>
+          <MenuItem value="task">
+            <TaskIcon sx={{ fontSize: 16, mr: 0.5, color: '#28A745' }} />
+            Aufgabe
           </MenuItem>
         </Select>
 
@@ -313,6 +348,15 @@ function MessageComposer({ conversationId, onSend, disabled = false }) {
           {sendError}
         </Alert>
       </Collapse>
+
+      <TaskCreateDialog
+        open={taskDialogOpen}
+        onClose={handleTaskDialogClose}
+        onSuccess={handleTaskCreated}
+        defaultLeadId={leadId}
+        defaultDealId={dealId}
+        defaultDescription={text || undefined}
+      />
     </Box>
   );
 }
