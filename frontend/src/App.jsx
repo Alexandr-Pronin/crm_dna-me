@@ -32,6 +32,7 @@ import Dashboard from './components/Dashboard';
 // Resources - REAL API
 import { LeadList, LeadShow } from './resources/leads';
 import { DealList } from './resources/deals';
+import DealShow from './resources/deals/DealShow';
 import { TaskList } from './resources/tasks';
 
 // Pages - MOCK DATA
@@ -74,6 +75,7 @@ const App = () => {
         <Resource
           name="deals"
           list={DealList}
+          show={DealShow}
           options={{ label: 'Deals' }}
         />
 
