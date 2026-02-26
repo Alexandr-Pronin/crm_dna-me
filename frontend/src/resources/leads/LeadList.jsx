@@ -4,13 +4,15 @@
  */
 import { useState } from 'react';
 import {
-  List,
+  List as RaList,
   Datagrid,
   TextField,
   DateField,
   FunctionField,
   useRefresh,
   useNotify,
+  useDataProvider,
+  ReferenceField,
   TopToolbar,
   FilterButton,
   CreateButton,
@@ -22,17 +24,22 @@ import {
 import {
   Box,
   Typography,
-  Chip,
   IconButton,
   Tooltip,
+  Button,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
+  TableChart as TableChartIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { ScoreBadge, StatusBadge } from '../../components/common';
 import LeadCreateModal from './LeadCreateModal';
+import CsvImportDialog from './CsvImportDialog';
+import { EmailDropZone as EmailImportDialog } from './components';
+import { useRightDrawer } from '../../contexts/RightDrawerContext';
 
 /**
  * Custom filters for the lead list
@@ -72,17 +79,6 @@ const leadFilters = [
   />,
   <TextInput source="email" label="Email" />,
 ];
-
-/**
- * Custom actions toolbar
- */
-const ListActions = ({ onCreateClick }) => (
-  <TopToolbar>
-    <FilterButton />
-    <CreateButton onClick={onCreateClick} label="Create Lead" />
-    <ExportButton />
-  </TopToolbar>
-);
 
 /**
  * Full Name field renderer
@@ -178,13 +174,22 @@ const ActionsField = ({ record }) => {
  * Main Lead List Component
  */
 const LeadList = () => {
+  const { openRecord } = useRightDrawer();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [emlImportOpen, setEmlImportOpen] = useState(false);
   const refresh = useRefresh();
   const notify = useNotify();
+  const dataProvider = useDataProvider();
 
   const handleCreateClick = (e) => {
     e.preventDefault();
     setCreateModalOpen(true);
+  };
+
+  const handleCsvImportClick = (e) => {
+    e?.preventDefault();
+    setCsvImportOpen(true);
   };
 
   const handleCreateSuccess = () => {
@@ -199,27 +204,43 @@ const LeadList = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Page Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 300 }}>
-            Leads
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage and track your sales leads
-          </Typography>
-        </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={refresh}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 300 }}>Leads</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage and track your sales leads
+        </Typography>
       </Box>
-
-      {/* Lead List */}
-      <List
+      <RaList
+        title=" "
         filters={leadFilters}
-        actions={<ListActions onCreateClick={handleCreateClick} />}
+        actions={
+          <TopToolbar sx={{ minHeight: 'auto', p: 0 }}>
+            <FilterButton />
+            <CreateButton onClick={handleCreateClick} label="Create Lead" />
+            <Button
+              size="small"
+              startIcon={<TableChartIcon />}
+              onClick={handleCsvImportClick}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              CSV Import
+            </Button>
+            <Button
+              size="small"
+              startIcon={<EmailIcon />}
+              onClick={() => setEmlImportOpen(true)}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              EML Import
+            </Button>
+            <ExportButton />
+            <Tooltip title="Refresh">
+              <IconButton onClick={refresh} size="small" sx={{ ml: 0.5 }}>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </TopToolbar>
+        }
         sort={{ field: 'created_at', order: 'DESC' }}
         perPage={25}
         sx={{
@@ -231,7 +252,7 @@ const LeadList = () => {
         }}
       >
         <Datagrid
-          rowClick="show"
+          rowClick={(id) => { openRecord('leads', id); return false; }}
           bulkActionButtons={false}
           sx={{
             '& .RaDatagrid-headerCell': {
@@ -247,6 +268,15 @@ const LeadList = () => {
         >
           <TextField source="email" label="Email" />
           <FunctionField label="Name" render={(record) => <FullNameField record={record} />} />
+          <ReferenceField
+            source="organization_id"
+            reference="organizations"
+            label="Company"
+            link="edit"
+            emptyText="—"
+          >
+            <TextField source="name" />
+          </ReferenceField>
           <FunctionField label="Score" render={(record) => <ScoreField record={record} />} />
           <FunctionField label="Status" render={(record) => <StatusBadge status={record?.status} />} />
           <FunctionField label="Stage" render={(record) => <StatusBadge status={record?.lifecycle_stage} />} />
@@ -255,13 +285,26 @@ const LeadList = () => {
           <DateField source="created_at" label="Created" showTime={false} />
           <FunctionField label="" render={(record) => <ActionsField record={record} />} />
         </Datagrid>
-      </List>
+      </RaList>
 
       {/* Create Lead Modal */}
       <LeadCreateModal
         open={createModalOpen}
         onClose={handleCreateClose}
         onSuccess={handleCreateSuccess}
+      />
+
+      {/* CSV Import Dialog */}
+      <CsvImportDialog
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+      />
+
+      {/* EML Email Import Dialog */}
+      <EmailImportDialog
+        open={emlImportOpen}
+        onClose={() => setEmlImportOpen(false)}
+        onImported={() => refresh()}
       />
     </Box>
   );

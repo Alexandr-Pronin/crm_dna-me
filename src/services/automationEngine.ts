@@ -6,6 +6,9 @@
 import { db } from '../db/index.js';
 import { getSyncQueue, getNotificationsQueue } from '../config/queues.js';
 import { NotFoundError } from '../errors/index.js';
+import { recordActivity } from './activityService.js';
+import { pauseDealEnrollments } from '../workers/emailSequenceWorker.js';
+import { getTriggerService } from './triggerService.js';
 import type {
   AutomationRule,
   Lead,
@@ -153,9 +156,37 @@ export class AutomationEngine {
     
     // Process stage-specific automation rules from stage config
     const stageRules = toStage.automation_config || [];
-    
+
     for (const ruleConfig of stageRules) {
-      if (ruleConfig.trigger.type === 'stage_entered') {
+      // Support flat format saved by triggers API: { action, config, enabled }
+      if ('action' in ruleConfig && typeof (ruleConfig as any).action === 'string') {
+        const flatConfig = ruleConfig as any;
+        if (flatConfig.enabled === false) continue;
+        try {
+          const triggerService = getTriggerService();
+          const actionResult = await triggerService.executeAction(
+            flatConfig.action,
+            flatConfig.config || {},
+            {
+              deal_id: deal.id,
+              lead_id: deal.lead_id,
+              stage_id: toStage.id,
+              pipeline_id: toStage.pipeline_id,
+            }
+          );
+          results.actions_taken.push({
+            action: flatConfig.action,
+            success: actionResult.success,
+            ...actionResult.result as Record<string, unknown>,
+          });
+        } catch (error) {
+          console.error(`[Automation Engine] Stage trigger ${flatConfig.action} error:`, error);
+        }
+        continue;
+      }
+
+      // Legacy nested format: { trigger: { type: 'stage_entered' }, action: { type: '...' } }
+      if (ruleConfig.trigger?.type === 'stage_entered') {
         try {
           const actionResult = await this.executeStageAction(ruleConfig, lead, deal);
           results.actions_taken.push(actionResult);
@@ -407,6 +438,12 @@ export class AutomationEngine {
       SET stage_id = $1, stage_entered_at = NOW(), updated_at = NOW()
       WHERE id = $2
     `, [targetStage.id, deal.id]);
+
+    try {
+      await pauseDealEnrollments(deal.id, deal.stage_id);
+    } catch (pauseError) {
+      console.error('[Automation Engine] Failed to pause email enrollments:', pauseError);
+    }
     
     return { 
       action: 'move_to_stage', 
@@ -494,6 +531,28 @@ export class AutomationEngine {
       lead_id: lead.id,
       deal_id: deal?.id
     });
+
+    // Also send email notification to the deal owner
+    if (deal?.assigned_to) {
+      const owner = await db.queryOne<{ email: string; name: string | null }>(
+        'SELECT email, name FROM team_members WHERE id = $1',
+        [deal.assigned_to]
+      );
+      if (owner?.email) {
+        const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email;
+        await notificationsQueue.add('email_notification', {
+          to: owner.email,
+          subject: `[DNA ME] Benachrichtigung: ${leadName}`,
+          html: `<h3>Automatische Benachrichtigung</h3>
+            <p>${message.replace(/\n/g, '<br/>')}</p>
+            <hr/>
+            <p><strong>Lead:</strong> ${leadName} (${lead.email})</p>
+            ${deal ? `<p><strong>Deal:</strong> ${deal.name}</p>` : ''}`,
+          lead_id: lead.id,
+          deal_id: deal?.id
+        });
+      }
+    }
     
     return { action: 'send_notification', success: true, channel };
   }
@@ -598,16 +657,23 @@ export class AutomationEngine {
       `, [pipeline.id]);
       
       if (firstStage) {
-        await db.execute(`
+        const dealName = `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim();
+        const deal = await db.queryOne<Deal>(`
           INSERT INTO deals (lead_id, pipeline_id, stage_id, name, status)
           VALUES ($1, $2, $3, $4, 'open')
           ON CONFLICT (lead_id, pipeline_id) DO NOTHING
-        `, [
-          lead.id, 
-          pipeline.id, 
-          firstStage.id, 
-          `${lead.first_name || ''} ${lead.last_name || ''} - ${lead.email}`.trim()
-        ]);
+          RETURNING *
+        `, [lead.id, pipeline.id, firstStage.id, dealName]);
+        if (deal) {
+          recordActivity({
+            lead_id: deal.lead_id,
+            event_type: 'deal_created',
+            event_category: 'activity',
+            source: 'api',
+            metadata: { deal_id: deal.id, deal_name: deal.name, pipeline_id: deal.pipeline_id },
+            update_lead_activity: true,
+          }).catch((err) => console.warn('[Automation] Failed to record deal_created activity:', (err as Error).message));
+        }
       }
     }
     
@@ -722,12 +788,11 @@ export class AutomationEngine {
   ): Promise<void> {
     try {
       await db.execute(`
-        INSERT INTO automation_logs (rule_id, lead_id, event_id, trigger_data, action_result)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO automation_logs (rule_id, lead_id, trigger_data, action_result)
+        VALUES ($1, $2, $3, $4)
       `, [
         rule.id,
         lead.id,
-        event?.id || null,
         JSON.stringify(rule.trigger_config),
         JSON.stringify(result || {})
       ]);

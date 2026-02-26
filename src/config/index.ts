@@ -29,6 +29,10 @@ const configSchema = z.object({
   // Security
   jwtSecret: z.string().min(32),
   webhookSecret: z.string().min(16),
+  corsOrigin: z.string().optional(),
+
+  // Encryption (AES-256-GCM for passwords, tokens, etc.)
+  encryptionKey: z.string().regex(/^[0-9a-fA-F]{64}$/, 'Must be 64 hex characters (32 bytes)').optional(),
 
   // API Keys (parsed from comma-separated string)
   apiKeys: z.array(z.object({
@@ -47,6 +51,43 @@ const configSchema = z.object({
   slack: z.object({
     webhookUrl: z.string().url().nullish(),
     botToken: z.string().nullish(),
+    enabled: z.boolean().default(false)
+  }),
+
+  // Cituro Integration (app.cituro.com API: X-API-KEY, base URL https://app.cituro.com/api)
+  cituro: z.object({
+    apiKey: z.string().nullish(),
+    subdomain: z.string().nullish(),
+    baseUrl: z.string().url().optional(),
+    /** Fallback-URL für Terminbuchung, wenn die API keinen /booking-links Endpoint hat */
+    bookingUrl: z.string().url().optional(),
+    webhookSecret: z.string().nullish(),
+    serviceId: z.string().nullish(), // "Meeting with Lead" service ID for appointments
+    enabled: z.boolean().default(false)
+  }),
+
+  // LinkedIn Integration
+  linkedin: z.object({
+    clientId: z.string().nullish(),
+    clientSecret: z.string().nullish(),
+    redirectUri: z.string().default('http://localhost:3000/api/v1/linkedin/callback'),
+    // SNAP (Sales Navigator API) partner credentials
+    snapPartnerId: z.string().nullish(),
+    // Third-party gateway (e.g. Unipile)
+    gatewayUrl: z.string().nullish(),
+    gatewayApiKey: z.string().nullish(),
+    enabled: z.boolean().default(false)
+  }),
+
+  // SMTP Configuration
+  smtp: z.object({
+    host: z.string().nullish(),
+    port: z.coerce.number().default(587),
+    user: z.string().nullish(),
+    pass: z.string().nullish(),
+    secure: z.boolean().default(false),
+    from: z.string().nullish(),
+    fromName: z.string().default('DNA ME'),
     enabled: z.boolean().default(false)
   }),
 
@@ -102,16 +143,46 @@ function loadConfig(): Config {
     redisUrl: process.env.REDIS_URL,
     jwtSecret: process.env.JWT_SECRET,
     webhookSecret: process.env.WEBHOOK_SECRET,
+    corsOrigin: process.env.CORS_ORIGIN || undefined,
+    encryptionKey: process.env.ENCRYPTION_KEY || undefined,
     apiKeys: parseApiKeys(process.env.API_KEYS),
     moco: {
       apiKey: process.env.MOCO_API_KEY || undefined,
-      subdomain: process.env.MOCO_SUBDOMAIN || undefined,
+      subdomain: process.env.MOCO_SUBDOMAIN || process.env.MOCO_ACCOUNT_ID || undefined,
       enabled: parseBoolean(process.env.ENABLE_MOCO_SYNC, false)
     },
     slack: {
       webhookUrl: process.env.SLACK_WEBHOOK_URL || undefined,
       botToken: process.env.SLACK_BOT_TOKEN || undefined,
       enabled: parseBoolean(process.env.ENABLE_SLACK_ALERTS, false)
+    },
+    cituro: {
+      apiKey: process.env.CITURO_API_KEY || undefined,
+      subdomain: process.env.CITURO_SUBDOMAIN || undefined,
+      baseUrl: process.env.CITURO_BASE_URL || undefined,
+      bookingUrl: process.env.CITURO_BOOKING_URL || undefined,
+      webhookSecret: process.env.CITURO_WEBHOOK_SECRET || undefined,
+      serviceId: process.env.CITURO_SERVICE_ID || undefined,
+      enabled: parseBoolean(process.env.ENABLE_CITURO, false)
+    },
+    linkedin: {
+      clientId: process.env.LINKEDIN_CLIENT_ID || undefined,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || undefined,
+      redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:3000/api/v1/linkedin/callback',
+      snapPartnerId: process.env.LINKEDIN_SNAP_PARTNER_ID || undefined,
+      gatewayUrl: process.env.LINKEDIN_GATEWAY_URL || undefined,
+      gatewayApiKey: process.env.LINKEDIN_GATEWAY_API_KEY || undefined,
+      enabled: parseBoolean(process.env.ENABLE_LINKEDIN, false)
+    },
+    smtp: {
+      host: process.env.SMTP_HOST || undefined,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER || undefined,
+      pass: process.env.SMTP_PASS || undefined,
+      secure: parseBoolean(process.env.SMTP_SECURE, false),
+      from: process.env.SMTP_FROM || undefined,
+      fromName: process.env.SMTP_FROM_NAME || 'DNA ME',
+      enabled: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
     },
     features: {
       mocoSync: parseBoolean(process.env.ENABLE_MOCO_SYNC, false),

@@ -9,9 +9,14 @@ import {
   People as LeadsIcon,
   Handshake as DealsIcon,
   CheckCircle as TasksIcon,
+  Business as OrganizationsIcon,
   Analytics as ReportsIcon,
   Settings as SettingsIcon,
   TrendingUp as ScoringIcon,
+  Timeline as PipelineIcon,
+  Email as EmailIcon,
+  Security as SecurityIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 
 /**
@@ -69,6 +74,24 @@ const Menu = (props) => {
         primaryText="Tasks"
         leftIcon={<TasksIcon />}
       />
+      <RAMenu.ResourceItem
+        name="organizations"
+        primaryText="Organizations"
+        leftIcon={<OrganizationsIcon />}
+      />
+      <RAMenu.ResourceItem
+        name="pipelines"
+        primaryText="Pipelines"
+        leftIcon={<PipelineIcon />}
+      />
+
+      {/* Communication */}
+      <MenuSection title="Communication" open={open} />
+      <RAMenu.Item
+        to="/chat"
+        primaryText="Chat"
+        leftIcon={<ChatIcon />}
+      />
 
       {/* Analytics Section */}
       <MenuSection title="Analytics" open={open} />
@@ -82,6 +105,11 @@ const Menu = (props) => {
         primaryText="Lead Scoring"
         leftIcon={<ScoringIcon />}
       />
+      <RAMenu.Item
+        to="/email-marketing"
+        primaryText="E-Mail Marketing"
+        leftIcon={<EmailIcon />}
+      />
 
       {/* Settings Section */}
       <MenuSection title="System" open={open} />
@@ -89,6 +117,11 @@ const Menu = (props) => {
         to="/settings"
         primaryText="Settings"
         leftIcon={<SettingsIcon />}
+      />
+      <RAMenu.Item
+        to="/2fa-setup"
+        primaryText="2FA Setup"
+        leftIcon={<SecurityIcon />}
       />
     </RAMenu>
   );

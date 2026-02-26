@@ -1,0 +1,960 @@
+/**
+ * Integration Settings Component
+ * Shows status of Moco and Slack integrations with connection test functionality
+ */
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Grid,
+  Button,
+  Chip,
+  CircularProgress,
+  Alert,
+  Divider,
+  IconButton,
+  Tooltip,
+  Skeleton,
+  Paper,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material';
+import {
+  CheckCircle as ConnectedIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  Refresh as RefreshIcon,
+  ContentCopy as CopyIcon,
+  CloudSync as SyncIcon,
+  Link as LinkIcon,
+  Settings as SettingsIcon,
+  Email as EmailIcon,
+  Clear as ClearIcon,
+} from '@mui/icons-material';
+import {
+  getIntegrationsStatus,
+  getMocoStatus,
+  getCituroStatus,
+  getMocoConfig,
+  saveMocoConfig,
+  getCituroTemplate,
+  saveCituroTemplate,
+} from '../../providers/dataProvider';
+
+// Status color mapping
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'connected':
+      return 'success';
+    case 'configured':
+      return 'warning';
+    case 'not_configured':
+    case 'disconnected':
+    default:
+      return 'error';
+  }
+};
+
+// Status icon component
+const StatusIcon = ({ status, size = 'medium' }) => {
+  const iconSize = size === 'small' ? 18 : 24;
+  
+  switch (status) {
+    case 'connected':
+      return <ConnectedIcon sx={{ fontSize: iconSize, color: 'success.main' }} />;
+    case 'configured':
+      return <WarningIcon sx={{ fontSize: iconSize, color: 'warning.main' }} />;
+    case 'not_configured':
+    case 'disconnected':
+    default:
+      return <ErrorIcon sx={{ fontSize: iconSize, color: 'error.main' }} />;
+  }
+};
+
+// Status label mapping
+const getStatusLabel = (integration) => {
+  if (!integration.configured) {
+    return { text: 'Nicht konfiguriert', status: 'not_configured' };
+  }
+  if (integration.connected) {
+    return { text: 'Verbunden', status: 'connected' };
+  }
+  return { text: 'Konfiguriert (nicht verbunden)', status: 'configured' };
+};
+
+const IntegrationSettings = () => {
+  const [loading, setLoading] = useState(true);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [error, setError] = useState(null);
+  const [integrationStatus, setIntegrationStatus] = useState(null);
+  const [mocoDetails, setMocoDetails] = useState(null);
+  const [cituroDetails, setCituroDetails] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(null);
+  const [mocoConfig, setMocoConfig] = useState({ subdomain: '', api_configured: false });
+  const [mocoForm, setMocoForm] = useState({ api_key: '', subdomain: '' });
+  const [savingMoco, setSavingMoco] = useState(false);
+  const [mocoSaveError, setMocoSaveError] = useState(null);
+  const [cituroTemplateOpen, setCituroTemplateOpen] = useState(false);
+  const [cituroTemplateHtml, setCituroTemplateHtml] = useState('');
+  const [cituroTemplateLoading, setCituroTemplateLoading] = useState(false);
+  const [cituroTemplateSaving, setCituroTemplateSaving] = useState(false);
+  const [cituroTemplateError, setCituroTemplateError] = useState(null);
+
+  // Webhook URL for event ingestion (same origin in production; no :3000)
+  const webhookUrl = `${window.location.origin}/api/v1/events/ingest`;
+
+  // Fetch integration status
+  const fetchStatus = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    setError(null);
+    
+    try {
+      const status = await getIntegrationsStatus();
+      setIntegrationStatus(status);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error('Error fetching integration status:', err);
+      setError('Fehler beim Laden des Integration-Status');
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  }, []);
+
+  // Test Moco connection
+  const testMocoConnection = async () => {
+    setTestingConnection(true);
+    setError(null);
+    
+    try {
+      const details = await getMocoStatus();
+      setMocoDetails(details);
+      
+      // Also refresh the overall status
+      await fetchStatus(false);
+      
+      if (details.status === 'connected') {
+        // Success notification handled in UI
+      }
+    } catch (err) {
+      console.error('Error testing Moco connection:', err);
+      setError('Fehler beim Testen der Moco-Verbindung');
+      setMocoDetails(null);
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  // Test Cituro connection
+  const testCituroConnection = async () => {
+    setTestingConnection(true);
+    setError(null);
+    
+    try {
+      const details = await getCituroStatus();
+      setCituroDetails(details);
+      
+      // Also refresh the overall status
+      await fetchStatus(false);
+      
+      if (details.status === 'connected') {
+        // Success notification handled in UI
+      }
+    } catch (err) {
+      console.error('Error testing Cituro connection:', err);
+      setError('Fehler beim Testen der Cituro-Verbindung');
+      setCituroDetails(null);
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(label);
+      setTimeout(() => setCopySuccess(null), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
+  // Load Moco config for form (subdomain prefill; API key never returned)
+  const loadMocoConfig = useCallback(async () => {
+    try {
+      const c = await getMocoConfig();
+      setMocoConfig(c);
+      setMocoForm((prev) => ({ ...prev, subdomain: c.subdomain || '' }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Save Moco config (API key optional)
+  const saveMocoConfigHandler = async () => {
+    setSavingMoco(true);
+    setMocoSaveError(null);
+    try {
+      const payload = {};
+      if (mocoForm.api_key.trim() !== '') payload.api_key = mocoForm.api_key.trim();
+      if (mocoForm.subdomain !== undefined) payload.subdomain = mocoForm.subdomain.trim() || undefined;
+      if (Object.keys(payload).length === 0) {
+        setMocoSaveError('Bitte API-Key und/oder Subdomain angeben.');
+        return;
+      }
+      await saveMocoConfig(payload);
+      setMocoForm((prev) => ({ ...prev, api_key: '' }));
+      await loadMocoConfig();
+      await fetchStatus(false);
+    } catch (err) {
+      setMocoSaveError(err?.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setSavingMoco(false);
+    }
+  };
+
+  const openCituroTemplateDialog = async () => {
+    setCituroTemplateOpen(true);
+    setCituroTemplateError(null);
+    setCituroTemplateLoading(true);
+    try {
+      const res = await getCituroTemplate();
+      setCituroTemplateHtml(res?.email_template_html ?? '');
+    } catch (err) {
+      setCituroTemplateError(err?.message || 'Vorlage konnte nicht geladen werden.');
+    } finally {
+      setCituroTemplateLoading(false);
+    }
+  };
+
+  const saveCituroTemplateHandler = async () => {
+    setCituroTemplateSaving(true);
+    setCituroTemplateError(null);
+    try {
+      await saveCituroTemplate(cituroTemplateHtml);
+      setCituroTemplateOpen(false);
+    } catch (err) {
+      setCituroTemplateError(err?.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setCituroTemplateSaving(false);
+    }
+  };
+
+  const clearCituroTemplateHandler = () => {
+    setCituroTemplateHtml('');
+  };
+
+  // Initial fetch + Moco config
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+  useEffect(() => {
+    if (!loading) loadMocoConfig();
+  }, [loading, loadMocoConfig]);
+
+  if (loading) {
+    return (
+      <Grid container spacing={3}>
+        {[1, 2, 3].map((i) => (
+          <Grid key={i} size={{ xs: 12, md: 6, lg: 4 }}>
+            <Card>
+              <CardContent>
+                <Skeleton variant="rectangular" height={150} />
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    );
+  }
+
+  const mocoStatus = integrationStatus?.moco || {};
+  const slackStatus = integrationStatus?.slack || {};
+  const cituroStatus = integrationStatus?.cituro || {};
+  const mocoLabel = getStatusLabel(mocoStatus);
+  const slackLabel = getStatusLabel(slackStatus);
+  const cituroLabel = getStatusLabel(cituroStatus);
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h6" fontWeight={600}>
+            Integration Einstellungen
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Status und Konfiguration der externen Integrationen
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {lastRefresh && (
+            <Typography variant="caption" color="text.secondary">
+              Zuletzt aktualisiert: {lastRefresh.toLocaleTimeString('de-DE')}
+            </Typography>
+          )}
+          <Tooltip title="Status aktualisieren">
+            <IconButton onClick={() => fetchStatus()} size="small">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Grid container spacing={3}>
+        {/* Moco Integration Card */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card 
+            sx={{ 
+              height: '100%',
+              border: '1px solid',
+              borderColor: mocoStatus.connected ? 'success.main' : 'divider',
+              transition: 'border-color 0.3s ease',
+            }}
+          >
+            <CardContent>
+              {/* Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'primary.contrastText',
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    M
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Moco
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ERP & Buchhaltung
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  icon={<StatusIcon status={mocoLabel.status} size="small" />}
+                  label={mocoLabel.text}
+                  color={getStatusColor(mocoLabel.status)}
+                  size="small"
+                  variant="outlined"
+                />
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Status Details */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    API konfiguriert:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {mocoStatus.configured ? 'Ja' : 'Nein'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Sync aktiviert:
+                  </Typography>
+                  <Chip
+                    label={mocoStatus.enabled ? 'Aktiviert' : 'Deaktiviert'}
+                    color={mocoStatus.enabled ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
+
+                {mocoDetails?.subdomain && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Subdomain:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500} fontFamily="monospace">
+                      {mocoDetails.subdomain}
+                    </Typography>
+                  </Box>
+                )}
+
+                {mocoDetails?.message && (
+                  <Alert 
+                    severity={mocoDetails.status === 'connected' ? 'success' : 'warning'} 
+                    sx={{ mt: 1 }}
+                    icon={false}
+                  >
+                    <Typography variant="caption">{mocoDetails.message}</Typography>
+                  </Alert>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Moco Config: API Key & Subdomain */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Konfiguration
+                </Typography>
+                <TextField
+                  size="small"
+                  fullWidth
+                  type="password"
+                  label="API Key"
+                  placeholder={mocoConfig.api_configured ? '•••••••• (leer = unverändert)' : 'API Key eingeben'}
+                  value={mocoForm.api_key}
+                  onChange={(e) => setMocoForm((prev) => ({ ...prev, api_key: e.target.value }))}
+                  autoComplete="off"
+                />
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Subdomain"
+                  placeholder="z. B. testing"
+                  value={mocoForm.subdomain}
+                  onChange={(e) => setMocoForm((prev) => ({ ...prev, subdomain: e.target.value }))}
+                />
+                {mocoSaveError && (
+                  <Alert severity="error" sx={{ py: 0 }} onClose={() => setMocoSaveError(null)}>
+                    <Typography variant="caption">{mocoSaveError}</Typography>
+                  </Alert>
+                )}
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={saveMocoConfigHandler}
+                  disabled={savingMoco}
+                  startIcon={savingMoco ? <CircularProgress size={16} /> : null}
+                >
+                  {savingMoco ? 'Speichern...' : 'Speichern'}
+                </Button>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Actions */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={testingConnection ? <CircularProgress size={16} /> : <SyncIcon />}
+                  onClick={testMocoConnection}
+                  disabled={testingConnection || !mocoStatus.configured}
+                  fullWidth
+                >
+                  {testingConnection ? 'Teste...' : 'Verbindung testen'}
+                </Button>
+              </Box>
+
+              {/* Info Note */}
+              <Paper 
+                variant="outlined" 
+                sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    API Key und Subdomain können hier gespeichert werden (werden in der Datenbank gespeichert).
+                    Fallback: .env (MOCO_API_KEY, MOCO_SUBDOMAIN).
+                  </Typography>
+                </Box>
+              </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Slack Integration Card */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card 
+            sx={{ 
+              height: '100%',
+              border: '1px solid',
+              borderColor: slackStatus.connected ? 'success.main' : 'divider',
+              transition: 'border-color 0.3s ease',
+            }}
+          >
+            <CardContent>
+              {/* Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: '#4A154B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    S
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Slack
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Benachrichtigungen
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  icon={<StatusIcon status={slackLabel.status} size="small" />}
+                  label={slackLabel.text}
+                  color={getStatusColor(slackLabel.status)}
+                  size="small"
+                  variant="outlined"
+                />
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Status Details */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Webhook konfiguriert:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {slackStatus.configured ? 'Ja' : 'Nein'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Alerts aktiviert:
+                  </Typography>
+                  <Chip
+                    label={slackStatus.enabled ? 'Aktiviert' : 'Deaktiviert'}
+                    color={slackStatus.enabled ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Actions */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<SyncIcon />}
+                  disabled={true}
+                  fullWidth
+                >
+                  Test-Nachricht senden
+                </Button>
+              </Box>
+
+              {/* Info Note */}
+              <Paper 
+                variant="outlined" 
+                sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Webhook URL wird via Environment Variables konfiguriert (.env Datei).
+                    Test-Nachrichten werden in einer zukünftigen Version unterstützt.
+                  </Typography>
+                </Box>
+              </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Cituro Integration Card */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card 
+            sx={{ 
+              height: '100%',
+              border: '1px solid',
+              borderColor: cituroStatus.connected ? 'success.main' : 'divider',
+              transition: 'border-color 0.3s ease',
+            }}
+          >
+            <CardContent>
+              {/* Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: '#6C5CE7',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    C
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Cituro
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Meeting-Buchungen
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  icon={<StatusIcon status={cituroLabel.status} size="small" />}
+                  label={cituroLabel.text}
+                  color={getStatusColor(cituroLabel.status)}
+                  size="small"
+                  variant="outlined"
+                />
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Status Details */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    API konfiguriert:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {cituroStatus.configured ? 'Ja' : 'Nein'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Integration aktiviert:
+                  </Typography>
+                  <Chip
+                    label={cituroStatus.enabled ? 'Aktiviert' : 'Deaktiviert'}
+                    color={cituroStatus.enabled ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
+
+                {cituroDetails?.subdomain && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Subdomain:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500} fontFamily="monospace">
+                      {cituroDetails.subdomain}
+                    </Typography>
+                  </Box>
+                )}
+
+                {cituroDetails?.message && (
+                  <Alert 
+                    severity={cituroDetails.status === 'connected' ? 'success' : 'warning'} 
+                    sx={{ mt: 1 }}
+                    icon={false}
+                  >
+                    <Typography variant="caption">{cituroDetails.message}</Typography>
+                  </Alert>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Actions */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={testingConnection ? <CircularProgress size={16} /> : <SyncIcon />}
+                  onClick={testCituroConnection}
+                  disabled={testingConnection || !cituroStatus.configured}
+                >
+                  {testingConnection ? 'Teste...' : 'Verbindung testen'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EmailIcon />}
+                  onClick={openCituroTemplateDialog}
+                >
+                  E-Mail-Vorlage
+                </Button>
+              </Box>
+
+              {/* Cituro E-Mail-Vorlage Dialog */}
+              <Dialog
+                open={cituroTemplateOpen}
+                onClose={() => !cituroTemplateSaving && setCituroTemplateOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{ sx: { minHeight: '70vh' } }}
+              >
+                <DialogTitle>Cituro E-Mail-Vorlage (HTML)</DialogTitle>
+                <DialogContent>
+                  {cituroTemplateLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                        HTML für Termin-Einladungen. Platzhalter: {'{BOOKING_LINK}'} oder {'{booking_link}'} wird durch den Buchungslink ersetzt.
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={14}
+                        maxRows={24}
+                        value={cituroTemplateHtml}
+                        onChange={(e) => setCituroTemplateHtml(e.target.value)}
+                        placeholder="<!DOCTYPE html>..."
+                        sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                        slotProps={{ input: { sx: { fontFamily: 'monospace' } } }}
+                      />
+                      {cituroTemplateError && (
+                        <Alert severity="error" sx={{ mt: 1 }} onClose={() => setCituroTemplateError(null)}>
+                          {cituroTemplateError}
+                        </Alert>
+                      )}
+                    </>
+                  )}
+                </DialogContent>
+                <DialogActions>
+                  <Button
+                    onClick={clearCituroTemplateHandler}
+                    disabled={cituroTemplateLoading || cituroTemplateSaving}
+                    startIcon={<ClearIcon />}
+                  >
+                    Leeren
+                  </Button>
+                  <Box sx={{ flex: 1 }} />
+                  <Button onClick={() => setCituroTemplateOpen(false)} disabled={cituroTemplateSaving}>
+                    Abbrechen
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={saveCituroTemplateHandler}
+                    disabled={cituroTemplateSaving || cituroTemplateLoading}
+                    startIcon={cituroTemplateSaving ? <CircularProgress size={16} /> : null}
+                  >
+                    {cituroTemplateSaving ? 'Speichern...' : 'Speichern'}
+                  </Button>
+                </DialogActions>
+              </Dialog>
+
+              {/* Info Note */}
+              <Paper 
+                variant="outlined" 
+                sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <SettingsIcon fontSize="small" color="action" sx={{ mt: 0.2 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    API Key und Subdomain werden via Environment Variables konfiguriert (.env Datei).
+                    E-Mail-Vorlage wird in der Datenbank gespeichert und in Pipeline-Trigger sowie Chat „Termin einladen“ verwendet.
+                  </Typography>
+                </Box>
+              </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Webhook Endpoints Card */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              {/* Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <LinkIcon color="primary" />
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Webhook Endpoints
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    URLs für externe Event-Integration
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Grid container spacing={2}>
+                {/* Event Ingestion Webhook */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}
+                  >
+                    <Typography variant="body2" fontWeight={500} gutterBottom>
+                      Event Ingestion
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      Endpunkt für Marketing-Events (Formulare, Pageviews, etc.)
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontFamily="monospace"
+                        sx={{
+                          flex: 1,
+                          bgcolor: 'action.hover',
+                          p: 1,
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        {webhookUrl}
+                      </Typography>
+                      <Tooltip title={copySuccess === 'webhook' ? 'Kopiert!' : 'URL kopieren'}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => copyToClipboard(webhookUrl, 'webhook')}
+                          color={copySuccess === 'webhook' ? 'success' : 'default'}
+                        >
+                          <CopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                {/* HMAC Secret Status */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}
+                  >
+                    <Typography variant="body2" fontWeight={500} gutterBottom>
+                      HMAC-Authentifizierung
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      Webhook-Signatur zur Absicherung eingehender Requests
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        icon={<StatusIcon status="connected" size="small" />}
+                        label="Webhook Secret konfiguriert"
+                        color="success"
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                      Header: <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: 2 }}>X-Webhook-Signature</code>
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Info Note */}
+              <Paper 
+                variant="outlined" 
+                sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  <strong>Hinweis:</strong> Externe Systeme sollten HMAC-SHA256 Signaturen im Header 
+                  <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 4px', margin: '0 4px', borderRadius: 2 }}>X-Webhook-Signature</code>
+                  senden. Das Secret wird via <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: 2 }}>WEBHOOK_SECRET</code> in der .env konfiguriert.
+                </Typography>
+              </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Feature Flags Info */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <SettingsIcon color="primary" />
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Feature Flags
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Aktivierte System-Features
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Chip
+                  label="Moco Sync"
+                  color={mocoStatus.enabled ? 'success' : 'default'}
+                  variant={mocoStatus.enabled ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Slack Alerts"
+                  color={slackStatus.enabled ? 'success' : 'default'}
+                  variant={slackStatus.enabled ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Cituro Integration"
+                  color={cituroStatus.enabled ? 'success' : 'default'}
+                  variant={cituroStatus.enabled ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Score Decay"
+                  color="success"
+                  variant="filled"
+                  size="small"
+                />
+                <Chip
+                  label="Smart Routing"
+                  color="success"
+                  variant="filled"
+                  size="small"
+                />
+                <Chip
+                  label="Intent Detection"
+                  color="success"
+                  variant="filled"
+                  size="small"
+                />
+              </Box>
+
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
+                Feature Flags werden via Environment Variables gesteuert. Score Decay, Smart Routing 
+                und Intent Detection sind Kernfunktionen und immer aktiviert.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default IntegrationSettings;

@@ -3,11 +3,15 @@ node_modules/
 
 # Build output
 dist/
+frontend/beispiel_component_another_crm/
 
 # Environment files
 .env
 .env.local
 .env.*.local
+deploy/aws/.env.aws
+deploy/aws/.secrets.generated.txt
+deploy/aws/.api_key.txt
 
 # Logs
 logs/

@@ -5,7 +5,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { validateApiKey } from '../middleware/apiKey.js';
+import { authenticateOrApiKey } from '../middleware/auth.js';
 import { validateHmacSignature } from '../middleware/hmac.js';
 import {
   ingestEventSchema,
@@ -16,6 +16,7 @@ import {
   type BulkImportResponse
 } from '../schemas/events.js';
 import { getEventsQueue } from '../../config/queues.js';
+import { getLeadService } from '../../services/leadService.js';
 import { ValidationError } from '../../errors/index.js';
 import type { EventProcessingJob } from '../../types/index.js';
 
@@ -24,7 +25,45 @@ import type { EventProcessingJob } from '../../types/index.js';
 // =============================================================================
 
 export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
-  
+
+  // ===========================================================================
+  // GET /api/v1/events — all recent events (dashboard activity feed)
+  // ===========================================================================
+  fastify.get<{
+    Querystring: { limit?: string; offset?: string };
+    Reply: { data: Array<unknown>; total: number };
+  }>(
+    '/events',
+    {
+      preHandler: authenticateOrApiKey,
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+            offset: { type: 'integer', minimum: 0, default: 0 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              total: { type: 'integer' }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 50;
+      const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0;
+      const leadService = getLeadService();
+      const { data, total } = await leadService.getRecentEvents({ limit, offset });
+      return reply.send({ data, total });
+    }
+  );
+
   // ===========================================================================
   // POST /api/v1/events/ingest
   // ===========================================================================
@@ -41,10 +80,8 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/events/ingest',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Ingest a marketing event for processing',
-        tags: ['Events'],
         body: {
           type: 'object',
           required: ['event_type', 'source', 'occurred_at', 'lead_identifier'],
@@ -159,10 +196,7 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
     '/events/webhook',
     {
       preHandler: validateHmacSignature,
-      schema: {
-        description: 'Receive events via webhook (HMAC validated)',
-        tags: ['Events']
-      }
+      schema: {}
     },
     async (request, reply) => {
       // Same processing as /events/ingest
@@ -230,10 +264,8 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
   }>(
     '/leads/bulk',
     {
-      preHandler: validateApiKey,
+      preHandler: authenticateOrApiKey,
       schema: {
-        description: 'Bulk import leads',
-        tags: ['Leads', 'Events'],
         body: {
           type: 'object',
           required: ['leads', 'source'],
@@ -251,7 +283,11 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
                   job_title: { type: 'string' },
                   company_name: { type: 'string' },
                   company_domain: { type: 'string' },
+                  industry: { type: 'string' },
+                  company_size: { type: 'string' },
+                  country: { type: 'string' },
                   linkedin_url: { type: 'string', format: 'uri' },
+                  message: { type: 'string' },
                   source: { type: 'string' },
                   campaign_id: { type: 'string' },
                   metadata: { type: 'object', additionalProperties: true }
@@ -315,12 +351,18 @@ export async function eventsRoutes(fastify: FastifyInstance): Promise<void> {
             job_title: lead.job_title,
             company_name: lead.company_name,
             company_domain: lead.company_domain,
+            industry: lead.industry,
+            company_size: lead.company_size,
+            country: lead.country,
             campaign_id: bulkData.campaign_id || lead.campaign_id,
             batch_id: batchId,
             batch_index: index,
             batch_total: bulkData.leads.length,
             skip_duplicates: bulkData.skip_duplicates,
-            api_key_source: request.apiKeySource
+            api_key_source: request.apiKeySource,
+            // Pass the importing user's ID so the worker can set created_by_id correctly
+            requested_by_id: (request as { user?: { id?: string } }).user?.id ?? null,
+            ...(lead.message && lead.message.trim() ? { initial_message: lead.message.trim() } : {}),
           },
           occurred_at: queuedAt
         };

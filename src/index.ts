@@ -5,11 +5,14 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
 import { config, isDev } from './config/index.js';
+import { loadIntegrationSettingsCache } from './config/integrationSettings.js';
 import { db, closePool } from './db/index.js';
 import { getRedisConnection, closeRedisConnection } from './config/redis.js';
 import { initializeQueues, closeQueues } from './config/queues.js';
 import { errorHandler, notFoundHandler } from './api/middleware/errorHandler.js';
+import { authRoutes } from './api/routes/auth.js';
 import { eventsRoutes } from './api/routes/events.js';
 import { leadsRoutes } from './api/routes/leads.js';
 import { scoringRoutes } from './api/routes/scoring.js';
@@ -23,7 +26,16 @@ import { gdprRoutes } from './api/routes/gdpr.js';
 import { reportsRoutes } from './api/routes/reports.js';
 import { teamRoutes } from './api/routes/team.js';
 import { campaignsRoutes } from './api/routes/campaigns.js';
-import { communicationsRoutes } from './api/routes/communications.js';
+import { organizationsRoutes } from './api/routes/organizations.js';
+import { triggersRoutes } from './api/routes/triggers.js';
+import { emailRoutes } from './api/routes/email.js';
+import { sequencesRoutes } from './api/routes/sequences.js';
+import { conversationsRoutes } from './api/routes/conversations.js';
+import { linkedinRoutes } from './api/routes/linkedin.js';
+import { emailAccountsRoutes } from './api/routes/emailAccounts.js';
+import { emailImportRoutes } from './api/routes/emailImport.js';
+import { webhooksRoutes } from './api/routes/webhooks.js';
+import { adminRoutes } from './api/routes/admin.js';
 import type { HealthCheckResponse } from './types/index.js';
 
 // =============================================================================
@@ -51,10 +63,22 @@ const fastify = Fastify({
 // =============================================================================
 
 await fastify.register(cors, {
-  origin: isDev ? true : ['https://crm.dna-me.com'],
+  origin: isDev ? true : (config.corsOrigin ? config.corsOrigin.split(',').map((o) => o.trim()) : ['https://crm.dna-me.com']),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-Request-ID', 'X-Correlation-ID'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Webhook-Signature', 'X-CITURO-SIGNATURE', 'X-Request-ID', 'X-Correlation-ID'],
   credentials: true
+});
+
+await fastify.register(jwt, {
+  secret: config.jwtSecret
+});
+
+fastify.decorate('authenticate', async (request: any, reply: any) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
 });
 
 // =============================================================================
@@ -93,7 +117,7 @@ fastify.get('/health', async (): Promise<HealthCheckResponse> => {
   };
 });
 
-fastify.get('/ready', async (request, reply) => {
+fastify.get('/ready', async (_request, reply) => {
   const dbHealthy = await db.healthCheck();
   
   if (!dbHealthy) {
@@ -135,6 +159,7 @@ fastify.get('/', async () => {
 // API Routes
 // =============================================================================
 
+await fastify.register(authRoutes, { prefix: '/api/v1' });
 await fastify.register(eventsRoutes, { prefix: '/api/v1' });
 await fastify.register(leadsRoutes, { prefix: '/api/v1' });
 await fastify.register(scoringRoutes, { prefix: '/api/v1' });
@@ -148,7 +173,16 @@ await fastify.register(gdprRoutes, { prefix: '/api/v1' });
 await fastify.register(reportsRoutes, { prefix: '/api/v1' });
 await fastify.register(teamRoutes, { prefix: '/api/v1' });
 await fastify.register(campaignsRoutes, { prefix: '/api/v1' });
-await fastify.register(communicationsRoutes, { prefix: '/api/v1' });
+await fastify.register(organizationsRoutes, { prefix: '/api/v1' });
+await fastify.register(triggersRoutes, { prefix: '/api/v1' });
+await fastify.register(emailRoutes, { prefix: '/api/v1' });
+await fastify.register(sequencesRoutes, { prefix: '/api/v1' });
+await fastify.register(conversationsRoutes, { prefix: '/api/v1' });
+await fastify.register(linkedinRoutes, { prefix: '/api/v1' });
+await fastify.register(emailAccountsRoutes, { prefix: '/api/v1' });
+await fastify.register(emailImportRoutes, { prefix: '/api/v1' });
+await fastify.register(adminRoutes, { prefix: '/api/v1' });
+await fastify.register(webhooksRoutes, { prefix: '/api' });
 
 // =============================================================================
 // Graceful Shutdown
@@ -175,8 +209,8 @@ const shutdown = async (signal: string) => {
     fastify.log.info('Database pool closed');
 
     process.exit(0);
-  } catch (error) {
-    fastify.log.error('Error during shutdown:', error);
+  } catch (error: unknown) {
+    fastify.log.error({ err: error }, 'Error during shutdown');
     process.exit(1);
   }
 };
@@ -203,6 +237,10 @@ const start = async () => {
       throw new Error(`Failed to connect to database: ${err.message}`);
     }
     fastify.log.info('✅ Database connected');
+
+    // Load DB-backed integration config (Moco, etc.) into memory
+    await loadIntegrationSettingsCache();
+    fastify.log.info('✅ Integration settings cache loaded');
 
     // Initialize Redis connection
     fastify.log.info('Connecting to Redis...');
