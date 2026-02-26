@@ -20,7 +20,9 @@ const createTaskSchema = z.object({
   description: z.string().max(2000).optional(),
   task_type: z.string().max(50).optional(),
   assigned_to: z.string().email().optional(),
-  due_date: z.string().datetime().optional()
+  due_date: z.string().datetime().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+  created_by: z.string().max(255).optional()
 }).refine(data => data.lead_id || data.deal_id, {
   message: 'Either lead_id or deal_id is required'
 });
@@ -31,7 +33,8 @@ const updateTaskSchema = z.object({
   task_type: z.string().max(50).optional(),
   assigned_to: z.string().email().nullable().optional(),
   due_date: z.string().datetime().nullable().optional(),
-  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional()
+  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional()
 });
 
 const taskFiltersSchema = z.object({
@@ -40,12 +43,14 @@ const taskFiltersSchema = z.object({
   assigned_to: z.string().email().optional(),
   status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
   task_type: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  created_by: z.string().optional(),
   due_before: z.string().datetime().optional(),
   due_after: z.string().datetime().optional(),
   overdue: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sort_by: z.enum(['created_at', 'updated_at', 'due_date', 'title', 'status']).default('due_date'),
+  sort_by: z.enum(['created_at', 'updated_at', 'due_date', 'title', 'status', 'priority']).default('due_date'),
   sort_order: z.enum(['asc', 'desc']).default('asc')
 });
 
@@ -67,6 +72,38 @@ export async function tasksRoutes(fastify: FastifyInstance): Promise<void> {
     const result = await taskService.searchTasks(filters);
     
     return reply.status(200).send(result);
+  });
+
+  // ===========================================================================
+  // GET /tasks/calendar - Get tasks for calendar view
+  // ===========================================================================
+
+  fastify.get<{
+    Querystring: { start: string; end: string; assigned_to?: string }
+  }>('/tasks/calendar', async (request, reply) => {
+    const { start, end, assigned_to } = request.query;
+
+    if (!start || !end) {
+      throw new ValidationError('start and end query parameters are required');
+    }
+
+    const tasks = await taskService.getTasksForCalendar(start, end, assigned_to);
+    return reply.status(200).send({ data: tasks });
+  });
+
+  // ===========================================================================
+  // GET /tasks/grouped - Get tasks grouped by assignee
+  // ===========================================================================
+
+  fastify.get<{
+    Querystring: { status?: string; priority?: string }
+  }>('/tasks/grouped', async (request, reply) => {
+    const { status, priority } = request.query;
+    const grouped = await taskService.getTasksGroupedByAssignee({
+      status: status as any,
+      priority
+    });
+    return reply.status(200).send({ data: grouped });
   });
 
   // ===========================================================================
