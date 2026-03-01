@@ -11,7 +11,7 @@ import { createEventWorker } from './eventWorker.js';
 import { createRoutingWorker } from './routingWorker.js';
 import { createSyncWorker } from './syncWorker.js';
 import { createDecayWorker, setupDecayJob } from './decayWorker.js';
-import { createDailyDigestWorker, setupDailyDigestJob } from './dailyDigestWorker.js';
+// import { createDailyDigestWorker, setupDailyDigestJob } from './dailyDigestWorker.js'; // Slack → Telegram
 import { createEmailSequenceWorker, setupEmailSequenceJob } from './emailSequenceWorker.js';
 import { createEmailSyncWorker, setupEmailSyncJob } from './emailSyncWorker.js';
 import { createNotificationWorker } from './notificationWorker.js';
@@ -20,7 +20,7 @@ import { getScoringEngine } from '../services/scoringEngine.js';
 import { getIntentDetector } from '../services/intentDetector.js';
 import { getPipelineRouter } from '../services/pipelineRouter.js';
 import { getMocoService } from '../integrations/moco.js';
-import { getSlackService } from '../integrations/slack.js';
+import { getSlackService } from '../integrations/slack.js'; // сервис отключён в config, будет Telegram
 import { getAutomationEngine } from '../services/automationEngine.js';
 
 console.log(`
@@ -87,15 +87,10 @@ async function initializeWorkers() {
     console.log('⚠️ Moco Service not configured (missing API key or subdomain)');
   }
 
-  // Initialize Slack Service
+  // Slack отключён в config — в будущем замена на Telegram-бота
   const slackService = getSlackService();
-  if (slackService.isConfigured()) {
-    console.log('✅ Slack Service initialized');
-  } else {
-    console.log('⚠️ Slack Service not configured (missing webhook URL)');
-  }
 
-  // Sync Worker - handles Moco and Slack synchronization
+  // Sync Worker - handles Moco (Slack отключён)
   const syncWorker = createSyncWorker(mocoService, slackService);
   workers.push(syncWorker);
   console.log('✅ Sync Worker started (concurrency: 3, rate limit: 10/sec)');
@@ -110,15 +105,15 @@ async function initializeWorkers() {
     console.log('⚠️ Decay Worker disabled (ENABLE_SCORE_DECAY=false)');
   }
 
-  // Daily Digest Worker - sends daily marketing stats to Slack
-  if (config.features.slackAlerts && slackService.isConfigured()) {
-    const dailyDigestWorker = createDailyDigestWorker();
-    workers.push(dailyDigestWorker);
-    await setupDailyDigestJob();
-    console.log('✅ Daily Digest Worker started (scheduled: 8:00 AM daily)');
-  } else {
-    console.log('⚠️ Daily Digest Worker disabled (Slack not configured or ENABLE_SLACK_ALERTS=false)');
-  }
+  // Daily Digest Worker — отключён (Slack убран, будет Telegram)
+  // if (config.features.slackAlerts && slackService.isConfigured()) {
+  //   const dailyDigestWorker = createDailyDigestWorker();
+  //   workers.push(dailyDigestWorker);
+  //   await setupDailyDigestJob();
+  //   console.log('✅ Daily Digest Worker started (scheduled: 8:00 AM daily)');
+  // } else {
+  //   console.log('⚠️ Daily Digest Worker disabled (Slack not configured or ENABLE_SLACK_ALERTS=false)');
+  // }
 
   // Email Sequence Worker - processes email sequences
   const emailService = getEmailService();

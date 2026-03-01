@@ -1,0 +1,16 @@
+﻿aws : 
+C:\Users\Александр\AppData\Local\Temp\ps-script-4ce03438-bf7c-4fc4-a15b-09ec3e39b3b5.ps1:18 знак:1
++ aws ssm get-command-invocation --command-id $cmd_id --instance-id $IN ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+aws.exe: [ERROR]: argument --command-id: expected one argument
+
+usage: aws [options] <command> <subcommand> [<subcommand> ...] [parameters]
+To see help text, you can run:
+
+  aws help
+  aws <command> help
+  aws <command> <subcommand> help
+

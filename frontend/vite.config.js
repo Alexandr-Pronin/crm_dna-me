@@ -5,7 +5,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    // Source maps verbrauchen beim Bundling viel RAM (esbuild); bei OOM deaktivieren
     sourcemap: false,
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
+          'mui-icons': ['@mui/icons-material'],
+          'ra-vendor': ['react-admin', 'ra-core'],
+        },
+      },
+    },
   },
 })

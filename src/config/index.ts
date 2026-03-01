@@ -151,10 +151,11 @@ function loadConfig(): Config {
       subdomain: process.env.MOCO_SUBDOMAIN || process.env.MOCO_ACCOUNT_ID || undefined,
       enabled: parseBoolean(process.env.ENABLE_MOCO_SYNC, false)
     },
+    // Slack отключён, в будущем будет заменён на Telegram-бота
     slack: {
-      webhookUrl: process.env.SLACK_WEBHOOK_URL || undefined,
-      botToken: process.env.SLACK_BOT_TOKEN || undefined,
-      enabled: parseBoolean(process.env.ENABLE_SLACK_ALERTS, false)
+      webhookUrl: undefined as string | undefined,
+      botToken: undefined as string | undefined,
+      enabled: false
     },
     cituro: {
       apiKey: process.env.CITURO_API_KEY || undefined,
@@ -186,7 +187,7 @@ function loadConfig(): Config {
     },
     features: {
       mocoSync: parseBoolean(process.env.ENABLE_MOCO_SYNC, false),
-      slackAlerts: parseBoolean(process.env.ENABLE_SLACK_ALERTS, false),
+      slackAlerts: false, // Slack отключён, будет Telegram
       scoreDecay: parseBoolean(process.env.ENABLE_SCORE_DECAY, true)
     },
     rateLimit: {

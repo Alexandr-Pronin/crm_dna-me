@@ -39,3 +39,6 @@ coverage/
 tmp/
 temp/
 .tmp/
+
+# Specstory / agent history (may contain tokens, keys — do not commit)
+.specstory/

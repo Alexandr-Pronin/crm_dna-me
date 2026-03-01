@@ -1,6 +1,8 @@
 // =============================================================================
 // src/integrations/slack.ts
 // Slack Integration Service for Notifications
+// ОТКЛЮЧЕНО: в config Slack выключен, в будущем замена на Telegram-бота.
+// Код оставлен для справки.
 // =============================================================================
 
 import axios, { AxiosInstance } from 'axios';

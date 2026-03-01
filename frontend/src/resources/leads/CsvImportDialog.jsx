@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNotify, useRefresh } from 'react-admin';
 import Papa from 'papaparse';
 import {
@@ -48,17 +48,17 @@ import { bulkImportLeads } from '../../providers/dataProvider';
 
 const SYSTEM_FIELDS = [
   { key: 'email', label: 'E-Mail *', required: true, group: 'lead' },
-  { key: 'first_name', label: 'Vorname', required: false, group: 'lead' },
-  { key: 'last_name', label: 'Nachname', required: false, group: 'lead' },
-  { key: 'phone', label: 'Telefon', required: false, group: 'lead' },
-  { key: 'job_title', label: 'Position', required: false, group: 'lead' },
+  { key: 'first_name', label: 'Vorname', required: false, group: 'lead', maxLen: 100 },
+  { key: 'last_name', label: 'Nachname', required: false, group: 'lead', maxLen: 100 },
+  { key: 'phone', label: 'Telefon', required: false, group: 'lead', maxLen: 50 },
+  { key: 'job_title', label: 'Position', required: false, group: 'lead', maxLen: 150 },
   { key: 'linkedin_url', label: 'LinkedIn URL', required: false, group: 'lead' },
-  { key: 'message', label: 'Nachricht (→ Notiz im Chat)', required: false, group: 'lead' },
-  { key: 'company_name', label: 'Firma (Name)', required: false, group: 'org' },
-  { key: 'company_domain', label: 'Firma (Domain)', required: false, group: 'org' },
-  { key: 'industry', label: 'Branche', required: false, group: 'org' },
-  { key: 'company_size', label: 'Firmengröße', required: false, group: 'org' },
-  { key: 'country', label: 'Land (2-Buchstaben)', required: false, group: 'org' },
+  { key: 'message', label: 'Nachricht (→ Notiz im Chat)', required: false, group: 'lead', maxLen: 100000 },
+  { key: 'company_name', label: 'Firma (Name)', required: false, group: 'org', maxLen: 255 },
+  { key: 'company_domain', label: 'Firma (Domain)', required: false, group: 'org', maxLen: 255 },
+  { key: 'industry', label: 'Branche', required: false, group: 'org', maxLen: 100 },
+  { key: 'company_size', label: 'Firmengröße', required: false, group: 'org', maxLen: 50 },
+  { key: 'country', label: 'Land (2-Buchstaben)', required: false, group: 'org', maxLen: 2 },
 ];
 
 const HEADER_ALIASES = {
@@ -126,15 +126,21 @@ function mapRowToLead(row, mapping) {
   const meta = {};
   for (const [csvHeader, systemField] of Object.entries(mapping)) {
     if (!systemField || !row[csvHeader]) continue;
-    const value = row[csvHeader].trim();
+    let value = row[csvHeader].trim();
     if (!value) continue;
 
     const fieldDef = SYSTEM_FIELDS.find((f) => f.key === systemField);
+    if (fieldDef?.maxLen && value.length > fieldDef.maxLen) {
+      if (systemField === 'message') {
+        value = value.slice(0, fieldDef.maxLen);
+      } else {
+        continue; // Skip — value too long, likely wrong column mapped
+      }
+    }
     if (fieldDef?.group === 'org') {
       meta[systemField] = value;
     } else if (systemField === 'linkedin_url') {
-      const trimmed = value.trim();
-      if (/^https?:\/\//i.test(trimmed)) lead[systemField] = trimmed;
+      if (/^https?:\/\//i.test(value)) lead[systemField] = value;
     } else {
       lead[systemField] = systemField === 'email' ? value.toLowerCase() : value;
     }
@@ -150,10 +156,17 @@ function buildLeadFromRawRow(rawRow, headers, mapping) {
     const idx = headers.indexOf(csvHeader);
     if (idx === -1) continue;
     const rawVal = rawRow[idx];
-    const value = rawVal != null && rawVal !== '' ? String(rawVal).trim() : '';
+    let value = rawVal != null && rawVal !== '' ? String(rawVal).trim() : '';
     if (!value) continue;
 
     const fieldDef = SYSTEM_FIELDS.find((f) => f.key === systemField);
+    if (fieldDef?.maxLen && value.length > fieldDef.maxLen) {
+      if (systemField === 'message') {
+        value = value.slice(0, fieldDef.maxLen);
+      } else {
+        continue; // Skip — value too long, likely wrong column mapped
+      }
+    }
     if (fieldDef?.group === 'org') {
       meta[systemField] = value;
     } else if (systemField === 'linkedin_url') {
@@ -179,6 +192,7 @@ function CsvImportDialog({ open, onClose }) {
   const [csvRawRows, setCsvRawRows] = useState([]);
   const [parseError, setParseError] = useState(null);
   const [delimiter, setDelimiter] = useState('auto');
+  const [hasHeader, setHasHeader] = useState(true); // toggle: first row = header?
 
   // Step 2: Mapping
   const [mapping, setMapping] = useState({});
@@ -189,6 +203,14 @@ function CsvImportDialog({ open, onClose }) {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState(null);
+
+  // Re-parse automatically when hasHeader or delimiter changes and a file is already loaded
+  useEffect(() => {
+    if (file && activeStep >= 1) {
+      handleFileSelect(file);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHeader, delimiter]);
 
   const previewRows = useMemo(() => csvRows.slice(0, 5), [csvRows]);
 
@@ -229,16 +251,31 @@ function CsvImportDialog({ open, onClose }) {
           }
 
           const rawRows = results.data || [];
-          if (rawRows.length < 2) {
-            setParseError('Die CSV-Datei enthält keine Daten oder keine Header-Zeile.');
+          if (rawRows.length < 1) {
+            setParseError('Die CSV-Datei enthält keine Daten.');
             return;
           }
 
-          let headers = (rawRows[0] || []).map((h) =>
-            (typeof h === 'string' ? h.replace(/^\uFEFF/, '').trim() : String(h ?? ''))
-          );
+          // If no header row: use "Spalte 1", "Spalte 2", ... as synthetic headers
+          let headers;
+          let rawDataRows;
+          if (hasHeader) {
+            headers = (rawRows[0] || []).map((h) =>
+              (typeof h === 'string' ? h.replace(/^\uFEFF/, '').trim() : String(h ?? ''))
+            );
+            rawDataRows = rawRows.slice(1);
+            if (rawDataRows.length === 0) {
+              setParseError('Die CSV-Datei enthält keine Daten (nur eine Kopfzeile).');
+              return;
+            }
+          } else {
+            // No header: generate "Spalte N" names based on max column count
+            const maxCols = Math.max(...rawRows.map((r) => r.length));
+            headers = Array.from({ length: maxCols }, (_, i) => `Spalte ${i + 1}`);
+            rawDataRows = rawRows;
+          }
+
           const numCols = headers.length;
-          const rawDataRows = rawRows.slice(1);
           const hasContent = (arr) => arr.some((v) => v != null && String(v).trim());
           const rawFiltered = rawDataRows.filter(hasContent);
           const rows = rawFiltered.map((arr) => {
@@ -251,14 +288,26 @@ function CsvImportDialog({ open, onClose }) {
           });
 
           if (headers.length === 0 || rows.length === 0) {
-            setParseError('Die CSV-Datei enthält keine Daten oder keine Header-Zeile.');
+            setParseError('Die CSV-Datei enthält keine Daten.');
             return;
+          }
+
+          const autoMapped = autoMapHeaders(headers);
+          const mappedCount = Object.values(autoMapped).filter(Boolean).length;
+
+          // Hint: if no fields matched and hasHeader=true, likely no header row
+          if (mappedCount === 0 && hasHeader) {
+            setParseError(
+              'Keine bekannten Spaltenbezeichnungen erkannt. ' +
+              'Hat die Datei eine Kopfzeile? Falls nicht, deaktiviere „Erste Zeile = Kopfzeile".'
+            );
+            // Still proceed so user can manually map
           }
 
           setCsvHeaders(headers);
           setCsvRows(rows);
           setCsvRawRows(rawFiltered);
-          setMapping(autoMapHeaders(headers));
+          setMapping(autoMapped);
           setActiveStep(1);
         },
         error: (err) => {
@@ -272,7 +321,7 @@ function CsvImportDialog({ open, onClose }) {
 
       Papa.parse(selectedFile, config);
     },
-    [delimiter]
+    [delimiter, hasHeader]
   );
 
   const handleDrop = useCallback(
@@ -474,7 +523,7 @@ function CsvImportDialog({ open, onClose }) {
               </Alert>
             )}
 
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <FormControl size="small" sx={{ minWidth: 180 }}>
                 <InputLabel>Trennzeichen</InputLabel>
                 <Select
@@ -488,6 +537,20 @@ function CsvImportDialog({ open, onClose }) {
                   <MenuItem value="\t">Tab</MenuItem>
                 </Select>
               </FormControl>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={hasHeader}
+                    onChange={(e) => setHasHeader(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    Erste Zeile = Kopfzeile
+                  </Typography>
+                }
+              />
             </Box>
 
             <Box
@@ -516,7 +579,7 @@ function CsvImportDialog({ open, onClose }) {
                 oder klicken zum Auswählen
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                UTF-8 Encoding, mit Header-Zeile. Pflichtfeld: E-Mail
+                UTF-8 Encoding. Pflichtfeld: E-Mail. Ohne Kopfzeile: Toggle deaktivieren.
               </Typography>
               <input
                 ref={fileInputRef}
@@ -601,10 +664,14 @@ function CsvImportDialog({ open, onClose }) {
                           </Select>
                         </FormControl>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {previewRows[0]?.[header] || '—'}
-                        </Typography>
+                      <TableCell sx={{ maxWidth: 200 }}>
+                        <Tooltip title={previewRows[0]?.[header] || ''}>
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', maxWidth: 180 }}>
+                            {previewRows[0]?.[header]
+                              ? String(previewRows[0][header]).slice(0, 60) + (String(previewRows[0][header]).length > 60 ? '…' : '')
+                              : '—'}
+                          </Typography>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
