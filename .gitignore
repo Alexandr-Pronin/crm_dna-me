@@ -9,6 +9,7 @@ dist/
 .env.local
 .env.*.local
 
+frontend/beispiel_component_another_crm
 # Logs
 logs/
 *.log
