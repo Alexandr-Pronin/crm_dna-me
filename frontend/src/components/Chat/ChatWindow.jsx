@@ -211,6 +211,8 @@ function ChatWindow({ conversationId, onBack, currentUserEmail }) {
         conversationId={conversationId}
         onSend={handleSend}
         disabled={conversation?.status !== 'active'}
+        leadId={conversation?.lead_id}
+        dealId={conversation?.deal_id}
         />
       </Box>
     </Box>

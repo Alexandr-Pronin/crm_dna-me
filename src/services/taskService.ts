@@ -23,6 +23,8 @@ export interface CreateTaskInput {
   task_type?: string;
   assigned_to?: string;
   due_date?: string;
+  priority?: string;
+  created_by?: string;
   automation_rule_id?: string;
 }
 
@@ -33,6 +35,7 @@ export interface UpdateTaskInput {
   assigned_to?: string | null;
   due_date?: string | null;
   status?: TaskStatus;
+  priority?: string;
 }
 
 export interface TaskFiltersInput {
@@ -41,6 +44,8 @@ export interface TaskFiltersInput {
   assigned_to?: string;
   status?: TaskStatus;
   task_type?: string;
+  priority?: string;
+  created_by?: string;
   due_before?: string;
   due_after?: string;
   overdue?: boolean;
@@ -96,12 +101,12 @@ export class TaskService {
     const sql = `
       INSERT INTO tasks (
         lead_id, deal_id, title, description, task_type, 
-        assigned_to, due_date, status, automation_rule_id,
-        created_at, updated_at
+        assigned_to, due_date, status, priority, created_by,
+        automation_rule_id, created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, 
-        $6, $7, 'open', $8,
-        NOW(), NOW()
+        $6, $7, 'open', $8, $9,
+        $10, NOW(), NOW()
       )
       RETURNING *
     `;
@@ -114,6 +119,8 @@ export class TaskService {
       data.task_type || 'follow_up',
       data.assigned_to || null,
       data.due_date || null,
+      data.priority || 'medium',
+      data.created_by || null,
       data.automation_rule_id || null
     ];
     
@@ -256,6 +263,16 @@ export class TaskService {
       conditions.push(`t.task_type = $${paramIndex++}`);
       params.push(filters.task_type);
     }
+
+    if (filters.priority) {
+      conditions.push(`t.priority = $${paramIndex++}`);
+      params.push(filters.priority);
+    }
+
+    if (filters.created_by) {
+      conditions.push(`t.created_by = $${paramIndex++}`);
+      params.push(filters.created_by);
+    }
     
     if (filters.due_before) {
       conditions.push(`t.due_date <= $${paramIndex++}`);
@@ -287,7 +304,7 @@ export class TaskService {
     const totalPages = Math.ceil(total / limit);
     
     // Build order clause
-    const validSortColumns = ['created_at', 'updated_at', 'due_date', 'title', 'status'];
+    const validSortColumns = ['created_at', 'updated_at', 'due_date', 'title', 'status', 'priority'];
     const sortBy = validSortColumns.includes(filters.sort_by || '') ? filters.sort_by : 'due_date';
     const sortOrder = (filters.sort_order || 'asc').toUpperCase();
     const orderClause = `ORDER BY t.${sortBy} ${sortOrder} NULLS LAST`;
@@ -361,6 +378,11 @@ export class TaskService {
       params.push(data.due_date);
     }
     
+    if (data.priority !== undefined) {
+      updates.push(`priority = $${paramIndex++}`);
+      params.push(data.priority);
+    }
+
     if (data.status !== undefined) {
       updates.push(`status = $${paramIndex++}`);
       params.push(data.status);
@@ -564,6 +586,90 @@ export class TaskService {
     sql += ' ORDER BY t.due_date ASC';
     
     return await db.query<Task>(sql, params);
+  }
+
+  // ===========================================================================
+  // Get Tasks for Calendar View (date range)
+  // ===========================================================================
+  
+  async getTasksForCalendar(
+    start: string, 
+    end: string, 
+    assignedTo?: string
+  ): Promise<TaskWithRelations[]> {
+    let sql = `
+      SELECT 
+        t.*,
+        l.email as lead_email,
+        CONCAT(l.first_name, ' ', l.last_name) as lead_name,
+        d.name as deal_name
+      FROM tasks t
+      LEFT JOIN leads l ON l.id = t.lead_id
+      LEFT JOIN deals d ON d.id = t.deal_id
+      WHERE t.due_date >= $1 AND t.due_date < $2
+    `;
+    const params: unknown[] = [start, end];
+    let paramIndex = 3;
+    
+    if (assignedTo) {
+      sql += ` AND t.assigned_to = $${paramIndex++}`;
+      params.push(assignedTo);
+    }
+    
+    sql += ' ORDER BY t.due_date ASC, t.priority DESC';
+    
+    return await db.query<TaskWithRelations>(sql, params);
+  }
+
+  // ===========================================================================
+  // Get Tasks Grouped by Assignee
+  // ===========================================================================
+  
+  async getTasksGroupedByAssignee(
+    options?: { status?: TaskStatus; priority?: string }
+  ): Promise<Record<string, TaskWithRelations[]>> {
+    let sql = `
+      SELECT 
+        t.*,
+        l.email as lead_email,
+        CONCAT(l.first_name, ' ', l.last_name) as lead_name,
+        d.name as deal_name,
+        tm.name as assigned_name
+      FROM tasks t
+      LEFT JOIN leads l ON l.id = t.lead_id
+      LEFT JOIN deals d ON d.id = t.deal_id
+      LEFT JOIN team_members tm ON tm.email = t.assigned_to
+      WHERE 1=1
+    `;
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (options?.status) {
+      sql += ` AND t.status = $${paramIndex++}`;
+      params.push(options.status);
+    } else {
+      sql += ` AND t.status NOT IN ('completed', 'cancelled')`;
+    }
+
+    if (options?.priority) {
+      sql += ` AND t.priority = $${paramIndex++}`;
+      params.push(options.priority);
+    }
+
+    sql += ' ORDER BY t.assigned_to NULLS LAST, t.priority DESC, t.due_date ASC NULLS LAST';
+
+    const tasks = await db.query<TaskWithRelations & { assigned_name?: string }>(sql, params);
+
+    const grouped: Record<string, TaskWithRelations[]> = {};
+    for (const task of tasks) {
+      const key = task.assigned_to || 'unassigned';
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(task);
+    }
+
+    return grouped;
   }
 }
 

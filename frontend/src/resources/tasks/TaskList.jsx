@@ -1,183 +1,125 @@
-/**
- * Task List Component
- * Connects to REAL API (GET /tasks)
- * TODO: Implement full functionality in later phase
- */
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-  List,
-  Datagrid,
-  TextField,
-  DateField,
-  FunctionField,
-  useRefresh,
-  TopToolbar,
-  FilterButton,
-  CreateButton,
-  SearchInput,
-  SelectInput,
-} from 'react-admin';
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  Card,
-  CardContent,
+  Box, Typography, IconButton, Tooltip, ToggleButton, ToggleButtonGroup,
+  Button, MenuItem, TextField,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
-  CheckCircle as CompletedIcon,
-  Schedule as PendingIcon,
-  PlayArrow as InProgressIcon,
+  ViewList as ListIcon,
+  CalendarMonth as CalendarIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
-
-const taskFilters = [
-  <SearchInput source="q" alwaysOn placeholder="Search tasks..." />,
-  <SelectInput
-    source="status"
-    choices={[
-      { id: 'pending', name: 'Pending' },
-      { id: 'in_progress', name: 'In Progress' },
-      { id: 'completed', name: 'Completed' },
-    ]}
-  />,
-  <SelectInput
-    source="priority"
-    choices={[
-      { id: 'low', name: 'Low' },
-      { id: 'medium', name: 'Medium' },
-      { id: 'high', name: 'High' },
-    ]}
-  />,
-];
-
-const StatusBadge = ({ status }) => {
-  const config = {
-    pending: { icon: PendingIcon, color: '#F59E0B', label: 'Pending' },
-    in_progress: { icon: InProgressIcon, color: '#4A90A4', label: 'In Progress' },
-    completed: { icon: CompletedIcon, color: '#28A745', label: 'Completed' },
-  };
-  
-  const { icon: Icon, color, label } = config[status] || config.pending;
-  
-  return (
-    <Chip
-      icon={<Icon sx={{ fontSize: 16 }} />}
-      label={label}
-      size="small"
-      sx={{
-        bgcolor: `${color}20`,
-        color: color,
-        fontWeight: 500,
-        '& .MuiChip-icon': { color: color },
-      }}
-    />
-  );
-};
-
-const PriorityBadge = ({ priority }) => {
-  const colors = {
-    low: '#64748B',
-    medium: '#F59E0B',
-    high: '#EF4444',
-  };
-  
-  const color = colors[priority] || colors.medium;
-  
-  return (
-    <Chip
-      label={priority?.charAt(0).toUpperCase() + priority?.slice(1) || 'Medium'}
-      size="small"
-      sx={{
-        bgcolor: `${color}20`,
-        color: color,
-        fontWeight: 500,
-      }}
-    />
-  );
-};
-
-const ListActions = () => (
-  <TopToolbar>
-    <FilterButton />
-    <CreateButton label="Create Task" />
-  </TopToolbar>
-);
+import TaskListView from './TaskListView';
+import TaskCalendarView from './TaskCalendarView';
+import TaskCreateDialog from '../../components/tasks/TaskCreateDialog';
 
 const TaskList = () => {
-  const refresh = useRefresh();
+  const [viewMode, setViewMode] = useState('list');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [filters, setFilters] = useState({ status: '', priority: '', assignee: '' });
+
+  const handleRefresh = () => setRefreshKey(k => k + 1);
+
+  const handleCreateTask = useCallback((defaults = {}) => {
+    setCreateDefaults(defaults);
+    setCreateOpen(true);
+  }, []);
+
+  const handleTaskCreated = () => {
+    handleRefresh();
+  };
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Page Header */}
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 300 }}>
-            Tasks
-          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 300 }}>Tasks</Typography>
           <Typography variant="body2" color="text.secondary">
             Manage your tasks and to-dos
           </Typography>
         </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={refresh}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, v) => v && setViewMode(v)}
+            size="small"
+          >
+            <ToggleButton value="list"><Tooltip title="List View"><ListIcon fontSize="small" /></Tooltip></ToggleButton>
+            <ToggleButton value="calendar"><Tooltip title="Calendar View"><CalendarIcon fontSize="small" /></Tooltip></ToggleButton>
+          </ToggleButtonGroup>
+
+          <Tooltip title="Refresh">
+            <IconButton onClick={handleRefresh}><RefreshIcon /></IconButton>
+          </Tooltip>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleCreateTask()}
+            size="small"
+          >
+            Create Task
+          </Button>
+        </Box>
       </Box>
 
-      {/* Task List */}
-      <List
-        filters={taskFilters}
-        actions={<ListActions />}
-        sort={{ field: 'due_date', order: 'ASC' }}
-        perPage={25}
-        empty={
-          <Card sx={{ textAlign: 'center', py: 6 }}>
-            <CardContent>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No Tasks Yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tasks will appear here when connected to the backend.
-              </Typography>
-            </CardContent>
-          </Card>
-        }
-        sx={{
-          '& .RaList-main': {
-            bgcolor: 'background.paper',
-            borderRadius: 2,
-            overflow: 'hidden',
-          },
-        }}
-      >
-        <Datagrid
-          rowClick="edit"
-          bulkActionButtons={false}
-          sx={{
-            '& .RaDatagrid-headerCell': {
-              fontWeight: 600,
-              bgcolor: 'background.default',
-            },
-          }}
+      {/* Filters */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <TextField
+          select
+          label="Status"
+          value={filters.status}
+          onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}
+          size="small"
+          sx={{ minWidth: 140 }}
         >
-          <TextField source="title" label="Title" />
-          <TextField source="description" label="Description" />
-          <FunctionField
-            label="Status"
-            render={(record) => <StatusBadge status={record?.status} />}
-          />
-          <FunctionField
-            label="Priority"
-            render={(record) => <PriorityBadge priority={record?.priority} />}
-          />
-          <DateField source="due_date" label="Due Date" />
-          <TextField source="assignee" label="Assignee" emptyText="—" />
-        </Datagrid>
-      </List>
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="open">Open</MenuItem>
+          <MenuItem value="in_progress">In Progress</MenuItem>
+          <MenuItem value="completed">Completed</MenuItem>
+        </TextField>
+
+        <TextField
+          select
+          label="Priority"
+          value={filters.priority}
+          onChange={(e) => setFilters(f => ({ ...f, priority: e.target.value }))}
+          size="small"
+          sx={{ minWidth: 140 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="critical">Critical</MenuItem>
+          <MenuItem value="high">High</MenuItem>
+          <MenuItem value="medium">Medium</MenuItem>
+          <MenuItem value="low">Low</MenuItem>
+        </TextField>
+      </Box>
+
+      {/* Content */}
+      {viewMode === 'list' ? (
+        <TaskListView key={`list-${refreshKey}`} filters={filters} />
+      ) : (
+        <TaskCalendarView
+          key={`cal-${refreshKey}`}
+          onCreateTask={handleCreateTask}
+          assigneeFilter={filters.assignee || undefined}
+        />
+      )}
+
+      {/* Create Dialog */}
+      <TaskCreateDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={handleTaskCreated}
+        defaultDueDate={createDefaults.defaultDueDate}
+        defaultLeadId={createDefaults.defaultLeadId}
+        defaultDealId={createDefaults.defaultDealId}
+      />
     </Box>
   );
 };

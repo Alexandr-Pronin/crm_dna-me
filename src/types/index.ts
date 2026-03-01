@@ -199,9 +199,24 @@ export interface Task {
   due_date?: Date;
   completed_at?: Date;
   status: TaskStatus;
+  priority: TaskPriority;
+  created_by?: string;
   automation_rule_id?: string;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface Communication {
+  id: string;
+  lead_id: string;
+  deal_id?: string;
+  comm_type: CommunicationType;
+  subject?: string;
+  body: string;
+  direction: CommunicationDirection;
+  created_by?: string;
+  metadata: Record<string, unknown>;
+  created_at: Date;
 }
 
 export interface TeamMember {
@@ -425,6 +440,9 @@ export type RoutingStatus = 'unrouted' | 'pending' | 'routed' | 'manual_review';
 export type IntentType = 'research' | 'b2b' | 'co_creation';
 export type DealStatus = 'open' | 'won' | 'lost';
 export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
+export type CommunicationType = 'notiz' | 'cituro' | 'einladung' | 'email';
+export type CommunicationDirection = 'inbound' | 'outbound' | 'internal';
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
 export type ScoreCategory = 'demographic' | 'engagement' | 'behavior';
 export type TeamRole = 'bdr' | 'ae' | 'partnership_manager' | 'marketing_manager' | 'admin';

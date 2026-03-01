@@ -32,6 +32,7 @@ import Dashboard from './components/Dashboard';
 // Resources - REAL API
 import { LeadList, LeadShow, LeadEdit, LeadCreate } from './resources/leads';
 import { DealList, DealCreate, DealEdit } from './resources/deals';
+import DealShow from './resources/deals/DealShow';
 import { TaskList } from './resources/tasks';
 import { OrganizationList, OrganizationCreate, OrganizationEdit } from './resources/organizations';
 import { PipelineList, PipelineShow } from './resources/pipelines';
@@ -97,6 +98,7 @@ const App = () => {
         <Resource
           name="deals"
           list={DealList}
+          show={DealShow}
           create={DealCreate}
           edit={DealEdit}
           options={{ label: 'Deals' }}

@@ -969,4 +969,100 @@ export const getLeadsTimeSeries = async (params = {}) => {
   return json;
 };
 
+// ==========================================
+// Task Management API (Extended)
+// ==========================================
+
+export const getTasksCalendar = async (start, end, assignedTo) => {
+  const query = stringify({ start, end, ...(assignedTo && { assigned_to: assignedTo }) });
+  const { json } = await httpClient(`${API_URL}/tasks/calendar?${query}`);
+  return json;
+};
+
+export const getTasksGrouped = async (params = {}) => {
+  const query = stringify({
+    ...(params.status && { status: params.status }),
+    ...(params.priority && { priority: params.priority }),
+  });
+  const { json } = await httpClient(`${API_URL}/tasks/grouped?${query}`);
+  return json;
+};
+
+export const createTask = async (taskData) => {
+  const { json } = await httpClient(`${API_URL}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify(taskData),
+  });
+  return json;
+};
+
+export const updateTask = async (taskId, taskData) => {
+  const { json } = await httpClient(`${API_URL}/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(taskData),
+  });
+  return json;
+};
+
+export const completeTask = async (taskId) => {
+  const { json } = await httpClient(`${API_URL}/tasks/${taskId}/complete`, { method: 'POST' });
+  return json;
+};
+
+// ==========================================
+// Communications API
+// ==========================================
+
+export const getLeadCommunications = async (leadId, params = {}) => {
+  const query = stringify({
+    ...(params.comm_type && { comm_type: params.comm_type }),
+    ...(params.limit && { limit: params.limit }),
+  });
+  const { json } = await httpClient(`${API_URL}/leads/${leadId}/communications?${query}`);
+  return json;
+};
+
+export const createCommunication = async (data) => {
+  const { json } = await httpClient(`${API_URL}/communications`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return json;
+};
+
+// ==========================================
+// Automation API (for Auto-Tasks)
+// ==========================================
+
+export const getAutomationRules = async (params = {}) => {
+  const query = stringify({
+    page: params.page || 1,
+    limit: params.limit || 50,
+    ...(params.action_type && { action_type: params.action_type }),
+    ...(params.pipeline_id && { pipeline_id: params.pipeline_id }),
+  });
+  const { json } = await httpClient(`${API_URL}/automation/rules?${query}`);
+  return json;
+};
+
+export const createAutomationRule = async (ruleData) => {
+  const { json } = await httpClient(`${API_URL}/automation/rules`, {
+    method: 'POST',
+    body: JSON.stringify(ruleData),
+  });
+  return json;
+};
+
+export const updateAutomationRule = async (ruleId, ruleData) => {
+  const { json } = await httpClient(`${API_URL}/automation/rules/${ruleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(ruleData),
+  });
+  return json;
+};
+
+export const deleteAutomationRule = async (ruleId) => {
+  await httpClient(`${API_URL}/automation/rules/${ruleId}`, { method: 'DELETE' });
+};
+
 export default dataProvider;
